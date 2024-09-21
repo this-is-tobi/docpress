@@ -1,0 +1,9 @@
+.VPFeature {
+  border: 1px solid color-mix(in srgb, var(--vp-c-bg-soft), transparent 0%) !important;
+  background-color: color-mix(in srgb, var(--vp-c-bg-soft), transparent 70%) !important;
+}
+
+.VPFeature.link:hover {
+  border: 1px solid color-mix(in srgb, var(--vp-c-brand-1), transparent 80%) !important;
+  background-color: color-mix(in srgb, var(--vp-c-bg-soft), transparent 10%) !important;
+}
