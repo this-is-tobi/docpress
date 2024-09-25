@@ -2,35 +2,50 @@
   "name": "doc-generator",
   "type": "module",
   "version": "0.0.1",
+  "packageManager": "pnpm@9.11.0",
+  "main": "src/server.js",
   "module": "src/index.ts",
+  "types": "types/server.d.ts",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "build": "bun run ./src/index.ts",
-    "docker:build": "docker build --tag robots/docs --target prod .",
-    "docker:run": "docker run --publish 8080:8080 --rm robots/docs",
+    "build": "tsc",
+    "build:clean": "rimraf ./dist ./types ./tsconfig.tsbuildinfo",
     "docs:build": "vitepress build ./src",
     "docs:dev": "vitepress dev ./src --port 8080",
     "docs:preview": "vitepress preview ./src",
-    "docs:sync": "bun run ./src/index.ts",
+    "docker:docs:build": "docker build --tag robots/docs --target prod .",
+    "docker:docs:dev": "docker run --publish 8080:8080 --rm robots/docs",
     "format": "eslint . --fix",
-    "lint": "eslint ."
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
+    "lint": "eslint .",
+    "sync": "vite-node ./src/index.ts",
+    "test": "echo 'start test..."
   },
   "dependencies": {
     "axios": "^1.7.7",
     "commander": "^12.1.0",
     "octokit": "^4.0.2",
     "simple-git": "^3.26.0",
-    "ungit": "^1.5.27",
     "vitepress": "^1.3.4",
     "yaml": "^2.5.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^3.6.1",
-    "@types/bun": "^1.1.9",
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
     "@types/node": "^22.5.5",
-    "eslint": "^9.10.0"
+    "eslint": "^9.10.0",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.5.2",
+    "vite-node": "^2.1.1"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public",
+    "tag": "latest"
   }
 }

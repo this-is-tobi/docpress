@@ -1,8 +1,8 @@
 import { appendFileSync, cpSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, parse, resolve } from 'node:path'
 import YAML from 'yaml'
-import { NAV_PATH, TEMPLATES_PATH } from '../index.ts'
-import { prettifyName } from './functions.ts'
+import { NAV_PATH, TEMPLATES_PATH } from '../index.js'
+import { prettifyName } from './functions.js'
 
 interface RepoSidebarItem {
   text: string
@@ -30,10 +30,9 @@ If you'd like to improve or fix the code, check out the [contribution guidelines
 `
 
   appendFileSync(outputPath, sourcesContent, 'utf8')
-  console.log(`Sources added to ${outputPath}`)
 }
 
-export function generateHeaders(projectsPath: string, files: string[]) {
+export function generateExtraPages(projectsPath: string, files: string[]) {
   const nav: Record<string, string>[] = []
   for (const file of files) {
     const src = resolve(process.cwd(), file)

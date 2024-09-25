@@ -1,13 +1,12 @@
 import { basename, parse, resolve } from 'node:path'
 import { readdirSync, statSync } from 'node:fs'
-import { cloneRepo } from './git.ts'
-import { replaceReadmePath, replaceRelativePath } from './utils/regex.ts'
-import { checkHttpStatus, findMarkdownFiles, renameFile } from './utils/functions.ts'
-import { addSources, generateGlobalSidebar, generateIndex, generateRepoSidebar, type RepoSidebar } from './utils/docs.ts'
-import { INDEX_PATH, SIDEBAR_PATH } from './index.ts'
+import { cloneRepo } from './git.js'
+import { replaceReadmePath, replaceRelativePath } from './utils/regex.js'
+import { checkHttpStatus, findMarkdownFiles, renameFile } from './utils/functions.js'
+import { addSources, generateGlobalSidebar, generateIndex, generateRepoSidebar, type RepoSidebar } from './utils/docs.js'
+import { INDEX_PATH, SIDEBAR_PATH } from './index.js'
 
-export async function generateDoc(repoOwner: string, repoName: string, description: string, branch: string) {
-  const projectPath = resolve(__dirname, 'projects', repoName)
+export async function generateDoc(repoOwner: string, repoName: string, description: string, projectPath: string, branch: string) {
   const docsUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/docs`
   const readmeUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/docs/01-readme.md`
   const docsFolderStatus = await checkHttpStatus(docsUrl)
@@ -34,7 +33,7 @@ export async function generateDoc(repoOwner: string, repoName: string, descripti
 
   readdirSync(projectPath)
     .filter(file => statSync(resolve(projectPath, file)).isFile() && basename(resolve(projectPath, file)).endsWith('.md'))
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .reduce((acc: RepoSidebar | undefined, cur, idx, arr) => {
       const filename = renameFile(resolve(projectPath, cur))
 

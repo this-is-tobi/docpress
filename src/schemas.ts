@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { prettifyEnum } from './utils/functions.ts'
+import { prettifyEnum } from './utils/functions.js'
 
 const providers = ['github', 'gitlab'] as const
 
@@ -8,7 +8,7 @@ export const options = z.object({
     .describe('Branch used to collect Git provider data.')
     .optional()
     .default('main'),
-  headerPages: z.string()
+  extraPages: z.string()
     .describe('List of comma separated additional files to process Vitepress header pages.')
     .transform(repos => repos.split(','))
     .optional(),

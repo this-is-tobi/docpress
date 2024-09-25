@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitepress'
-import sidebar from '../projects/sidebar.json'
-import nav from '../projects/nav.json'
+import sidebar from '../projects/sidebar.json' with { type: 'json' }
+import nav from '../projects/nav.json' with { type: 'json' }
 
 export default defineConfig({
   base: '/',
@@ -19,17 +19,12 @@ export default defineConfig({
   description: 'Tobi\'s documentation',
   srcDir: './projects',
   cleanUrls: true,
-  // ignoreDeadLinks: 'localhostLinks',
+  ignoreDeadLinks: 'localhostLinks',
   themeConfig: {
     logo: '/android-chrome-512x512.png',
     outline: [2, 3],
     sidebar,
     nav,
-    // nav: [
-    //   { text: 'About', link: '/about' },
-    //   { text: 'Contribute', link: '/contribute' },
-    //   { text: 'OSS', link: '/oss' },
-    // ],
     socialLinks: [
       { icon: 'github', link: 'https://github.com/this-is-tobi' },
     ],

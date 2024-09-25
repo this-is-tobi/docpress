@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { Octokit } from 'octokit'
 import { CleanOptions, simpleGit } from 'simple-git'
 import type { SimpleGit } from 'simple-git'
-import type { Options } from './schemas.ts'
+import type { Options } from './schemas.js'
 
 let git: SimpleGit
 
@@ -39,8 +39,8 @@ export async function cloneRepo(url: string, projectDir: string, branch: string,
     if (include.some(item => item.includes('docs'))) {
       cpSync(resolve(projectDir, 'docs'), projectDir, { recursive: true })
       rmSync(resolve(projectDir, 'docs'), { recursive: true })
-      rmSync(resolve(projectDir, '.git'), { recursive: true })
     }
+    rmSync(resolve(projectDir, '.git'), { recursive: true })
   } catch (e) {
     console.error(e)
   }

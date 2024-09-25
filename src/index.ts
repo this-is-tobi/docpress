@@ -1,13 +1,13 @@
 import { resolve } from 'node:path'
 import { program } from 'commander'
-import { version } from '../package.json'
-import { options } from './schemas.ts'
-import { fetch, parseOptions } from './commands.ts'
+import pkg from '../package.json' with { type: 'json' }
+import { options } from './schemas.js'
+import { fetch, parseOptions } from './commands.js'
 
-export const SIDEBAR_PATH = resolve(__dirname, 'projects/sidebar.json')
-export const NAV_PATH = resolve(__dirname, 'projects/nav.json')
-export const INDEX_PATH = resolve(__dirname, 'projects/index.md')
-export const TEMPLATES_PATH = resolve(__dirname, 'templates')
+export const SIDEBAR_PATH = resolve(import.meta.dirname, 'projects/sidebar.json')
+export const NAV_PATH = resolve(import.meta.dirname, 'projects/nav.json')
+export const INDEX_PATH = resolve(import.meta.dirname, 'projects/index.md')
+export const TEMPLATES_PATH = resolve(import.meta.dirname, 'templates')
 
 function main() {
   program
@@ -19,8 +19,8 @@ function main() {
       options.shape.branch._def.defaultValue(),
     )
     .option(
-      '-h, --header-pages <string>',
-      options.shape.headerPages._def.description,
+      '-e, --extra-pages <string>',
+      options.shape.extraPages._def.description,
     )
     .option(
       '-p, --provider <string>',
@@ -39,7 +39,7 @@ function main() {
       '-u, --username <string>',
       options.shape.username._def.description,
     )
-    .version(`${version}`)
+    .version(`${pkg.version}`)
     .action(opts => fetch(parseOptions(opts)))
 
   program.parse()
