@@ -31,20 +31,36 @@ export function createDir(directory: string, { clean }: { clean?: boolean } = { 
   }
 }
 
-export function findMarkdownFiles(dir: string) {
-  const markdownFiles: string[] = []
+export function isDir(path: string) {
+  return statSync(path).isDirectory()
+}
 
-  readdirSync(dir).forEach((file) => {
-    const filePath = join(dir, file)
-    const stat = statSync(filePath)
+export function isFile(path: string) {
+  return statSync(path).isFile()
+}
 
-    if (stat.isDirectory()) {
-      markdownFiles.push(...findMarkdownFiles(filePath))
-    } else if (stat.isFile() && file.endsWith('.md')) {
-      markdownFiles.push(filePath)
+export function extractFiles(paths: string[]) {
+  const files: string[] = []
+
+  paths.forEach((path) => {
+    if (isFile(path)) {
+      files.push(path)
+    } else if (isDir(path)) {
+      readdirSync(path).forEach((file) => {
+        const filePath = join(path, file)
+        if (isDir(filePath)) {
+          files.push(...extractFiles([filePath]))
+        } else if (isFile(filePath)) {
+          files.push(filePath)
+        }
+      })
     }
   })
-  return markdownFiles
+  return files
+}
+
+export function findMarkdownFiles(path: string[]) {
+  return extractFiles(path).filter(file => basename(file).endsWith('.md'))
 }
 
 export function prettifyEnum(arr: readonly string[]) {

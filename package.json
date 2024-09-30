@@ -12,15 +12,16 @@
   "scripts": {
     "build": "tsc",
     "build:clean": "rimraf ./dist ./types ./tsconfig.tsbuildinfo",
-    "docs:build": "vitepress build ./src",
-    "docs:dev": "vitepress dev ./src --port 8080",
-    "docs:preview": "vitepress preview ./src",
-    "docker:docs:build": "docker build --tag robots/docs --target prod .",
-    "docker:docs:dev": "docker run --publish 8080:8080 --rm robots/docs",
+    "dev": "vite-node ./src/index.ts",
     "format": "eslint . --fix",
     "lint": "eslint .",
-    "sync": "vite-node ./src/index.ts",
-    "test": "echo 'start test..."
+    "start": "node ./dist/index.js",
+    "test": "echo 'start test...",
+    "vp:build": "vitepress build ./vitepress",
+    "vp:build:docker": "docker build --tag robots/docs --target prod .",
+    "vp:dev": "vitepress dev ./vitepress --port 8080",
+    "vp:dev:docker": "docker run --publish 8080:8080 --rm robots/docs",
+    "vp:preview": "vitepress preview ./vitepress"
   },
   "dependencies": {
     "axios": "^1.7.7",
@@ -41,6 +42,7 @@
     "lint-staged": "^15.2.10",
     "rimraf": "^6.0.1",
     "typescript": "^5.5.2",
+    "vite": "^5.4.8",
     "vite-node": "^2.1.1"
   },
   "publishConfig": {

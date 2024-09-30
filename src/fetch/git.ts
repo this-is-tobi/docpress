@@ -25,18 +25,18 @@ export async function getUserRepos(username: Options['username'], repoList: Opti
   return data.filter(repo => !repo.private && !repo.fork)
 }
 
-export async function cloneRepo(url: string, projectDir: string, branch: string, include: string[]) {
+export async function cloneRepo(url: string, projectDir: string, branch: string, includes: string[]) {
   if (!existsSync(projectDir)) mkdirSync(projectDir, { recursive: true })
 
   try {
     await git.init().addRemote('origin', url).addConfig('core.sparseCheckout', 'true', true)
-    for (const item of include) {
+    for (const item of includes) {
       appendFileSync(resolve(projectDir, '.git/info/sparse-checkout'), `${item}\n`, 'utf8')
     }
 
     await git.pull('origin', branch)
 
-    if (include.some(item => item.includes('docs'))) {
+    if (includes.some(item => item.includes('docs'))) {
       cpSync(resolve(projectDir, 'docs'), projectDir, { recursive: true })
       rmSync(resolve(projectDir, 'docs'), { recursive: true })
     }

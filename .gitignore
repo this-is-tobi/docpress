@@ -183,3 +183,5 @@ dist/
 # projects docs
 src/projects
 tmp/
+vitepress/
+extras/

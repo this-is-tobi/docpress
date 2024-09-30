@@ -1,8 +1,8 @@
-import { appendFileSync, cpSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { basename, parse, resolve } from 'node:path'
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { basename, resolve } from 'node:path'
 import YAML from 'yaml'
-import { NAV_PATH, TEMPLATES_PATH } from '../index.js'
-import { prettifyName } from './functions.js'
+import { TEMPLATES_PATH } from '~/utils/const.js'
+import { prettifyName } from '~/utils/functions.js'
 
 interface RepoSidebarItem {
   text: string
@@ -21,26 +21,20 @@ export function addSources(repoUrl: string, outputPath: string) {
   const fileName = basename(outputPath)
   const title = fileName === 'readme.md' ? '## Sources' : '# Sources'
 
-  const sourcesContent = `
-${title}
+  const sourcesContent = `${title}
 
 Take a look at the [project sources](${repoUrl}).
-
-If you'd like to improve or fix the code, check out the [contribution guidelines](/contribute).
 `
 
   appendFileSync(outputPath, sourcesContent, 'utf8')
 }
 
-export function generateExtraPages(projectsPath: string, files: string[]) {
-  const nav: Record<string, string>[] = []
-  for (const file of files) {
-    const src = resolve(process.cwd(), file)
-    const dest = resolve(projectsPath, basename(file))
-    cpSync(src, dest)
-    nav.push({ text: prettifyName(parse(src).name), link: `/${parse(src).name}` })
-  }
-  writeFileSync(NAV_PATH, JSON.stringify(nav))
+export function addContribution(outputPath: string) {
+  const sourcesContent = `
+If you'd like to improve or fix the code, check out the [contribution guidelines](/contribute).
+`
+
+  appendFileSync(outputPath, sourcesContent, 'utf8')
 }
 
 export function generateIndex(indexPath: string, repo: string, description: string) {
