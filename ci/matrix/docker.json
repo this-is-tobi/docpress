@@ -1,0 +1,10 @@
+[
+  {
+    "name": "docpress",
+    "build": {
+      "context": "./",
+      "dockerfile": "./Dockerfile",
+      "target": "prod"
+    }
+  }
+]

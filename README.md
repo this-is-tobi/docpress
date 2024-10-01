@@ -1,4 +1,4 @@
-# Doc Hunt :robot:
+# Docpress :robot:
 
 This project aims to automate the construction of documentation website based on a list of repositories.
 

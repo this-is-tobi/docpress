@@ -1,0 +1,63 @@
+name: CD
+
+on:
+  # push:
+  #   branches:
+  #     - main
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: 20.17.0
+  PNPM_VERSION: 9.11.0
+  REGISTRY_NAMESPACE: ghcr.io/${{ github.repository }}
+  MULTI_ARCH: true
+  USE_QEMU: true
+
+jobs:
+  expose-vars:
+    runs-on: ubuntu-latest
+    outputs:
+      NODE_VERSION: ${{ env.NODE_VERSION }}
+      PNPM_VERSION: ${{ env.PNPM_VERSION }}
+      REGISTRY_NAMESPACE: ${{ env.REGISTRY_NAMESPACE }}
+      MULTI_ARCH: ${{ env.MULTI_ARCH }}
+      USE_QEMU: ${{ env.USE_QEMU }}
+    steps:
+    - name: Exposing env vars
+      run: echo "Exposing env vars"
+
+  release:
+    uses: ./.github/workflows/release.yml
+    permissions:
+      contents: write
+      pull-requests: write
+
+  npm-publish:
+    uses: ./.github/workflows/npm.yml
+    if: ${{ needs.release.outputs.release-created == 'true' }}
+    needs:
+      - expose-vars
+      - release
+    with:
+      PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
+      NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
+      PUBLISH_PACKAGES: true
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  build:
+    uses: ./.github/workflows/build.yml
+    if: ${{ needs.release.outputs.release-created == 'true' }}
+    needs:
+    - expose-vars
+    - release
+    permissions:
+      packages: write
+    with:
+      REGISTRY_NAMESPACE: ${{ needs.expose-vars.outputs.REGISTRY_NAMESPACE }}
+      TAG: ${{ needs.release.outputs.major-tag }}.${{ needs.release.outputs.minor-tag }}.${{ needs.release.outputs.patch-tag }}
+      MAJOR_TAG: ${{ needs.release.outputs.major-tag }}
+      MINOR_TAG: ${{ needs.release.outputs.minor-tag }}
+      PATCH_TAG: ${{ needs.release.outputs.patch-tag }}
+      MULTI_ARCH: ${{ needs.expose-vars.outputs.MULTI_ARCH == 'true' }}
+      USE_QEMU: ${{ needs.expose-vars.outputs.USE_QEMU == 'true' }}
