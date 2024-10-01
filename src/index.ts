@@ -6,8 +6,8 @@ import { getCommand as getBuildCommand } from './build/command.js'
 
 function main() {
   program
-    .name('doc-hunt')
-    .description('Build a complete portfolio / doc website faster than light ⚡️')
+    .name('docpress')
+    .description('Build portfolio / doc website faster than light ⚡️')
     .version(`${pkg.version}`)
     .option(
       '-c, --config <string>',
