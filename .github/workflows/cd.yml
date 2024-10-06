@@ -36,8 +36,8 @@ jobs:
     uses: ./.github/workflows/npm.yml
     if: ${{ needs.release.outputs.release-created == 'true' }}
     needs:
-      - expose-vars
-      - release
+    - expose-vars
+    - release
     with:
       PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
       NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}

@@ -17,12 +17,14 @@ export function initProvider(token?: Options['token']) {
   octokit = new Octokit({ auth: token })
 }
 
-export async function getUserRepos(username: Options['username'], repoList: Options['repositories']) {
+export async function getUserInfos(username: Options['username']) {
+  const { data } = await octokit.request('GET /users/{username}', { username })
+  return data
+}
+
+export async function getUserRepos(username: Options['username']) {
   const { data } = await octokit.request('GET /users/{username}/repos', { username, sort: 'full_name' })
-  if (repoList) {
-    return data.filter(repo => repoList?.some(filter => filter === repo.name))
-  }
-  return data.filter(repo => !repo.private && !repo.fork)
+  return data
 }
 
 export async function cloneRepo(url: string, projectDir: string, branch: string, includes: string[]) {

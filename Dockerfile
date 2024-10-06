@@ -38,6 +38,7 @@ RUN mkdir -p /home/node/logs && chmod 660 -R /home/node/logs \
   && chown node:root /app
 COPY --chown=node:root --from=deps /app/node_modules ./node_modules
 COPY --chown=node:root --from=build /app/dist ./dist
+COPY --chown=node:root --from=build /app/package.json ./
 USER node
 EXPOSE 8080
 ENTRYPOINT ["node", "/app/dist/index.js"]

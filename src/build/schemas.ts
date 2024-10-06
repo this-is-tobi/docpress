@@ -1,14 +1,16 @@
 import { z } from 'zod'
 
-export const options = z.object({
+export const optionsSchema = z.object({
   extraHeaderPages: z.string()
     .describe('List of comma separated additional files to process Vitepress header pages.')
-    .transform(repos => repos.split(','))
+    .transform(pages => pages.split(','))
     .optional(),
   extraPublicContent: z.string()
     .describe('List of comma separated additional files to process Vitepress public folder.')
-    .transform(repos => repos.split(','))
+    .optional(),
+  vitepressConfig: z.string()
+    .describe('Path to the vitepress configuration.')
     .optional(),
 })
 
-export type Options = Zod.infer<typeof options>
+export type Options = Zod.infer<typeof optionsSchema>

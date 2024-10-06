@@ -2,9 +2,6 @@
   "compilerOptions": {
     "baseUrl": "./",
     "rootDir": "./src",
-    "paths": {
-      "~/*": ["src/*"]
-    },
 
     // Module
     "incremental": true,
@@ -15,7 +12,7 @@
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
     "allowImportingTsExtensions": false,
-    "allowJs": true,
+    "allowJs": false,
 
     // Best practices
     "strict": true,
@@ -31,8 +28,8 @@
     "useUnknownInCatchVariables": false,
     
     // Output
-    "declarationDir": "./types",
     "outDir": "./dist",
+    "declarationDir": "./types",
     "noEmit": false,
     "declaration": true,
     "emitDeclarationOnly": false,
@@ -44,7 +41,6 @@
   },
   "include": [
     "./src/**/*.ts",
-    "./src/**/*.js",
   ],
   "exclude": [
     "./src/**/*.spec.ts",

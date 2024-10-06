@@ -3,18 +3,11 @@ import { prettifyEnum } from '../utils/functions.js'
 
 const providers = ['github', 'gitlab'] as const
 
-export const options = z.object({
+export const optionsSchema = z.object({
   branch: z.string()
     .describe('Branch used to collect Git provider data.')
     .optional()
     .default('main'),
-  config: z.string()
-    .describe('DocHunt configuration file path.')
-    .optional(),
-  extraPages: z.string()
-    .describe('List of comma separated additional files to process Vitepress header pages.')
-    .transform(repos => repos.split(','))
-    .optional(),
   gitProvider: z.enum(providers)
     .describe(`Git provider used to retrieve data. Values should be one of ${prettifyEnum(providers)}.`)
     .optional()
@@ -30,4 +23,4 @@ export const options = z.object({
     .describe('Git provider username used to collect data.'),
 })
 
-export type Options = Zod.infer<typeof options>
+export type Options = Zod.infer<typeof optionsSchema>

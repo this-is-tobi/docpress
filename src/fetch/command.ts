@@ -1,45 +1,36 @@
 import { existsSync, rmSync } from 'node:fs'
-import type { program as Program } from 'commander'
-import { options, type Options } from './schemas.js'
+import { createCommand, createOption } from 'commander'
+import { VITEPRESS_PATH } from '../utils/const.js'
+import { addOptions, parseOptions } from '../utils/commands.js'
+import { type Options, optionsSchema } from './schemas.js'
 import { initProvider } from './git.js'
 import { main as fetchDoc } from './functions.js'
-import { VITEPRESS_PATH } from '~/utils/const.js'
-import { parseOptions } from '~/utils/config.js'
 
-const cmd = 'fetch'
+const cmdName = 'fetch'
 
-export function getCommand(program: typeof Program) {
-  return program.command(cmd)
-    .option(
-      '-b, --branch <string>',
-      options.shape.branch._def.description,
-      options.shape.branch._def.defaultValue(),
-    )
-    .option(
-      '-g, --git-provider <string>',
-      options.shape.gitProvider._def.description,
-      options.shape.gitProvider._def.defaultValue(),
-    )
-    .option(
-      '-r, --repositories <string>',
-      options.shape.repositories._def.description,
-    )
-    .option(
-      '-t, --token <string>',
-      options.shape.token._def.description,
-    )
-    .option(
-      '-u, --username <string>',
-      options.shape.username._def.description,
-    )
-    .action(async (opts) => {
-      const options = parseOptions(cmd, opts)
-      await fetch(options)
-    })
-}
+export const opts = [
+  createOption('-b, --branch <string>', optionsSchema.shape.branch._def.description)
+    .default(optionsSchema.shape.branch._def.defaultValue()),
 
-export async function fetch(opts: Options) {
-  const { username, repositories: reposFilter, token, branch } = opts
+  createOption('-g, --git-provider <string>', optionsSchema.shape.gitProvider._def.description)
+    .default(optionsSchema.shape.gitProvider._def.defaultValue()),
+
+  createOption('-r, --repositories <string>', optionsSchema.shape.repositories._def.description),
+
+  createOption('-T, --token <string>', optionsSchema.shape.token._def.description),
+
+  createOption('-u, --username <string>', optionsSchema.shape.username._def.description),
+]
+
+export const cmd = addOptions(createCommand(cmdName), opts)
+  .description('Fetch docs with the given username and git provider.')
+  .action(async (opts) => {
+    await main(opts)
+  })
+
+export async function main(opts: Options) {
+  const options = parseOptions(cmdName, opts) as Options
+  const { username, repositories: reposFilter, token, branch } = options
 
   initProvider(token)
   if (existsSync(VITEPRESS_PATH)) {

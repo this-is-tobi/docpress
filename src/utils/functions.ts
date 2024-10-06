@@ -1,6 +1,9 @@
-import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import axios from 'axios'
+import type { EnhancedRepository } from '../fetch/functions.js'
+import type { getUserInfos as fetchUserInfos } from '../fetch/git.js'
+import { USER_INFOS_PATH, USER_REPOS_PATH } from './const.js'
 
 export async function checkHttpStatus(url: string): Promise<number> {
   try {
@@ -39,27 +42,17 @@ export function isFile(path: string) {
   return statSync(path).isFile()
 }
 
-export function extractFiles(paths: string[]) {
-  const files: string[] = []
-
-  paths.forEach((path) => {
-    if (isFile(path)) {
-      files.push(path)
-    } else if (isDir(path)) {
-      readdirSync(path).forEach((file) => {
-        const filePath = join(path, file)
-        if (isDir(filePath)) {
-          files.push(...extractFiles([filePath]))
-        } else if (isFile(filePath)) {
-          files.push(filePath)
-        }
-      })
-    }
-  })
-  return files
+export function extractFiles(paths: string[] | string): string[] {
+  return (Array.isArray(paths) ? paths : [paths]).flatMap(path =>
+    isFile(path)
+      ? [path]
+      : isDir(path)
+        ? readdirSync(path).flatMap(file => extractFiles(join(path, file)))
+        : [],
+  )
 }
 
-export function findMarkdownFiles(path: string[]) {
+export function getMdFiles(path: string[]) {
   return extractFiles(path).filter(file => basename(file).endsWith('.md'))
 }
 
@@ -80,7 +73,39 @@ export function prettifyName(s: string) {
 }
 
 export function renameFile(file: string) {
-  const filename = basename(file).toLocaleLowerCase().replace(/^\d{2}-/, '')
-  renameSync(file, resolve(dirname(file), filename))
+  const filename = basename(file).toLowerCase().replace(/^\d{2}-/, '')
+  if (filename !== basename(file)) {
+    renameSync(file, resolve(dirname(file), filename))
+  }
   return filename
+}
+
+export function getUserInfos() {
+  return JSON.parse(readFileSync(USER_INFOS_PATH).toString()) as Awaited<ReturnType<typeof fetchUserInfos>>
+}
+
+export function getUserRepos() {
+  return JSON.parse(readFileSync(USER_REPOS_PATH).toString()) as EnhancedRepository[]
+}
+
+export function deepMerge<T extends Record<string, any>>(...objects: T[]): T {
+  return objects.reduce((acc, obj) => {
+    Object.keys(obj).forEach((key) => {
+      const accValue = acc[key]
+      const objValue = obj[key]
+
+      // Check if both values are objects and not null
+      if (isObject(accValue) && isObject(objValue)) {
+        (acc as Record<string, any>)[key] = deepMerge(accValue, objValue)
+      } else {
+        (acc as Record<string, any>)[key] = objValue
+      }
+    })
+    return acc
+  }, {} as T)
+}
+
+// Utility function to check if a value is an object and not null
+function isObject(val: any): val is object {
+  return val && typeof val === 'object' && !Array.isArray(val)
 }
