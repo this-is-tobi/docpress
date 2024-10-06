@@ -14,13 +14,6 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
   const features: Feature[] = []
   const sidebar: SidebarProject[] = []
 
-  // const filteredRepos = repositories.reduce((acc: EnhancedRepository[], cur) => {
-  //   if (cur.clone_url && !cur.fork && !cur.private && !cur.docpress.filtered) {
-  //     return [...acc, cur]
-  //   }
-  //   return acc
-  // }, [])
-
   for (const repository of repositories) {
     getMdFiles([repository.docpress.projectPath]).forEach((file) => {
       replaceRelativePath(file, `https://github.com/${repository.owner.login}/${repository.name}/tree/${repository.docpress.branch}`)

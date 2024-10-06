@@ -24,7 +24,6 @@ export function parseOptions<T extends Cmd | Cmd[]>(
   cmd: T,
   opts: T extends Cmd[] ? Options[T[number]] : Options[T & Cmd],
 ) {
-  // console.log(opts)
   if (Array.isArray(cmd)) {
     return cmd.reduce((acc, cur) => {
       return {

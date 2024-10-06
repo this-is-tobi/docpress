@@ -94,7 +94,6 @@ export function deepMerge<T extends Record<string, any>>(...objects: T[]): T {
       const accValue = acc[key]
       const objValue = obj[key]
 
-      // Check if both values are objects and not null
       if (isObject(accValue) && isObject(objValue)) {
         (acc as Record<string, any>)[key] = deepMerge(accValue, objValue)
       } else {
@@ -105,7 +104,6 @@ export function deepMerge<T extends Record<string, any>>(...objects: T[]): T {
   }, {} as T)
 }
 
-// Utility function to check if a value is an object and not null
 function isObject(val: any): val is object {
   return val && typeof val === 'object' && !Array.isArray(val)
 }

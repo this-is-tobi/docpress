@@ -24,7 +24,6 @@ export const opts = [
 export const cmd = addOptions(createCommand(cmdName), opts)
   .description('Transform doc to the target vitepress format.')
   .action(async (opts) => {
-    // const options = parseOptions(cmdName, opts) as Options
     await main(opts)
   })
 
@@ -40,8 +39,6 @@ export async function main(opts: Options) {
       }
       return acc
     }, [])
-
-  // console.log({ repositories })
 
   const { sidebar, index } = transformDoc(repositories, user)
   const nav: Page[] = []
