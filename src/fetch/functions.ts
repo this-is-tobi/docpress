@@ -76,7 +76,7 @@ async function getSparseCheckout(repository: Awaited<ReturnType<typeof getUserRe
   const docsStatus = await checkDoc(repository.owner.login, repository.name, branch)
 
   const includes: string[] = []
-  if (Object.values(docsStatus).every(status => status === 404)) {
+  if (Object.values(docsStatus).every(status => status === 404) || !repository.size) {
     return []
   }
   if (docsStatus.docsFolderStatus !== 404) {

@@ -43,13 +43,15 @@ export function isFile(path: string) {
 }
 
 export function extractFiles(paths: string[] | string): string[] {
-  return (Array.isArray(paths) ? paths : [paths]).flatMap(path =>
-    isFile(path)
-      ? [path]
-      : isDir(path)
-        ? readdirSync(path).flatMap(file => extractFiles(join(path, file)))
-        : [],
-  )
+  return (Array.isArray(paths) ? paths : [paths]).flatMap((path) => {
+    if (isFile(path)) {
+      return [path]
+    }
+    if (isDir(path)) {
+      return readdirSync(path).flatMap(file => extractFiles(join(path, file)))
+    }
+    return []
+  })
 }
 
 export function getMdFiles(path: string[]) {
@@ -69,7 +71,7 @@ export function prettifyEnum(arr: readonly string[]) {
 }
 
 export function prettifyName(s: string) {
-  return capitalize(s).replace('-', ' ') || ''
+  return capitalize(s).replaceAll('-', ' ') || ''
 }
 
 export function renameFile(file: string) {
