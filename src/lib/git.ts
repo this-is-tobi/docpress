@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { Octokit } from 'octokit'
 import { CleanOptions, simpleGit } from 'simple-git'
 import type { SimpleGit } from 'simple-git'
-import type { Options } from './schemas.js'
+import type { FetchOpts } from '../schemas/fetch.js'
 
 let git: SimpleGit
 
@@ -13,16 +13,16 @@ export function initGit(projectDir: string) {
 
 let octokit: Octokit
 
-export function initProvider(token?: Options['token']) {
+export function initProvider(token?: FetchOpts['token']) {
   octokit = new Octokit({ auth: token })
 }
 
-export async function getUserInfos(username: Options['username']) {
+export async function getUserInfos(username: FetchOpts['username']) {
   const { data } = await octokit.request('GET /users/{username}', { username })
   return data
 }
 
-export async function getUserRepos(username: Options['username']) {
+export async function getUserRepos(username: FetchOpts['username']) {
   const { data } = await octokit.request('GET /users/{username}/repos', { username, sort: 'full_name' })
   return data
 }

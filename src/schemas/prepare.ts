@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import type { defineConfig } from 'vitepress'
 import { z } from 'zod'
 
-export const optionsSchema = z.object({
+export const prepareOptsSchema = z.object({
   extraHeaderPages: z.string()
     .describe('List of comma separated additional files or directories to process Vitepress header pages.')
     .transform(pages => pages.split(','))
@@ -22,4 +22,4 @@ export const optionsSchema = z.object({
     .optional(),
 })
 
-export type Options = Zod.infer<typeof optionsSchema>
+export type PrepareOpts = Zod.infer<typeof prepareOptsSchema>

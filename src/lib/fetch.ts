@@ -1,9 +1,9 @@
 import { resolve } from 'node:path'
 import { writeFileSync } from 'node:fs'
+import type { FetchOpts } from 'src/schemas/fetch.js'
 import { checkHttpStatus, createDir } from '../utils/functions.js'
-import { PROJECTS_PATH, USER_INFOS_PATH, USER_REPOS_PATH, VITEPRESS_PATH } from '../utils/const.js'
+import { DOCPRESS_DIR, DOCS_DIR, USER_INFOS, USER_REPOS_INFOS } from '../utils/const.js'
 import { cloneRepo, getUserInfos, getUserRepos, initGit } from './git.js'
-import type { Options } from './schemas.js'
 
 export type EnhancedRepository = Awaited<ReturnType<typeof getUserRepos>>[number] & {
   docpress: {
@@ -33,7 +33,7 @@ export async function checkDoc(repoOwner: string, repoName: string, branch: stri
 }
 
 export async function main(owner: string, branch?: string, reposFilter?: string[]) {
-  createDir(VITEPRESS_PATH, { clean: true })
+  createDir(DOCPRESS_DIR, { clean: true })
 
   await getUserInfos(owner)
     .then(user => generateUserInfos(user))
@@ -48,7 +48,7 @@ async function enhanceRepositories(repositories: Awaited<ReturnType<typeof getUs
 
   for (const repository of repositories) {
     const computedBranch = branch ?? repository.default_branch ?? 'main'
-    const projectPath = resolve(PROJECTS_PATH, repository.name)
+    const projectPath = resolve(DOCS_DIR, repository.name)
     const filtered = isFiltered(repository, reposFilter)
     let includes: string[] = []
 
@@ -90,7 +90,7 @@ async function getSparseCheckout(repository: Awaited<ReturnType<typeof getUserRe
 
 function generateUserInfos(user?: Awaited<ReturnType<typeof getUserInfos>>) {
   writeFileSync(
-    USER_INFOS_PATH,
+    USER_INFOS,
     JSON.stringify(user, null, 2),
   )
 
@@ -99,14 +99,14 @@ function generateUserInfos(user?: Awaited<ReturnType<typeof getUserInfos>>) {
 
 function generateReposInfos(repositories: EnhancedRepository[]) {
   writeFileSync(
-    USER_REPOS_PATH,
+    USER_REPOS_INFOS,
     JSON.stringify(repositories, null, 2),
   )
 
   return repositories
 }
 
-async function fetchDoc(repositories?: EnhancedRepository[], reposFilter?: Options['repositories']) {
+async function fetchDoc(repositories?: EnhancedRepository[], reposFilter?: FetchOpts['repositories']) {
   if (!repositories) {
     console.warn('No repository respect docpress rules.')
     return

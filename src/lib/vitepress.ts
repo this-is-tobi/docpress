@@ -1,6 +1,6 @@
 import type { defineConfig } from 'vitepress'
 import { deepMerge } from '../utils/functions.js'
-import type { Page, SidebarProject } from '../prepare/utils.js'
+import type { Page, SidebarProject } from './prepare.js'
 
 const defaultVitepressConfig: ReturnType<typeof defineConfig> = {
   base: '/',

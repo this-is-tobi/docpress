@@ -1,9 +1,13 @@
 import { resolve } from 'node:path'
 
-export const VITEPRESS_PATH = resolve(process.cwd(), 'vitepress')
-export const USER_REPOS_PATH = resolve(VITEPRESS_PATH, 'repositories.json')
-export const USER_INFOS_PATH = resolve(VITEPRESS_PATH, 'owner.json')
-export const PUBLIC_PATH = resolve(VITEPRESS_PATH, 'projects')
-export const PROJECTS_PATH = resolve(VITEPRESS_PATH, 'projects')
-export const INDEX_PATH = resolve(PROJECTS_PATH, 'index.md')
-export const VITEPRESS_CONFIG_PATH = resolve(VITEPRESS_PATH, '.vitepress/config.ts')
+export const DOCPRESS_DIR = resolve(process.cwd(), 'docpress')
+
+export const USER_REPOS_INFOS = resolve(DOCPRESS_DIR, 'repositories.json')
+
+export const USER_INFOS = resolve(DOCPRESS_DIR, 'owner.json')
+
+export const DOCS_DIR = resolve(DOCPRESS_DIR, 'docs')
+
+export const INDEX_PATH = resolve(DOCS_DIR, 'index.md')
+
+export const VITEPRESS_CONFIG = resolve(DOCPRESS_DIR, '.vitepress/config.ts')

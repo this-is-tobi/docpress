@@ -4,12 +4,12 @@ import { createCommand } from 'commander'
 
 const cmdName = 'build'
 
-export const cmd = createCommand(cmdName)
+export const buildCmd = createCommand(cmdName)
   .description('Build vitepress website.')
   .action(async (_opts) => {
-    await main()
+    await build()
   })
 
-export async function main() {
+export async function build() {
   await vitepressBuild(resolve(process.cwd(), 'vitepress'))
 }

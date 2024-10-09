@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const optionsSchema = z.object({
+export const buildOptsSchema = z.object({
   extraHeaderPages: z.string()
     .describe('List of comma separated additional files to process Vitepress header pages.')
     .transform(pages => pages.split(','))
@@ -13,4 +13,4 @@ export const optionsSchema = z.object({
     .optional(),
 })
 
-export type Options = Zod.infer<typeof optionsSchema>
+export type BuildOpts = Zod.infer<typeof buildOptsSchema>

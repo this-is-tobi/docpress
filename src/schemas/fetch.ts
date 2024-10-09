@@ -3,7 +3,7 @@ import { prettifyEnum } from '../utils/functions.js'
 
 const providers = ['github', 'gitlab'] as const
 
-export const optionsSchema = z.object({
+export const fetchOptsSchema = z.object({
   branch: z.string()
     .describe('Branch used to collect Git provider data.')
     .optional()
@@ -23,4 +23,4 @@ export const optionsSchema = z.object({
     .describe('Git provider username used to collect data.'),
 })
 
-export type Options = Zod.infer<typeof optionsSchema>
+export type FetchOpts = Zod.infer<typeof fetchOptsSchema>

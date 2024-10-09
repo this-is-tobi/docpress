@@ -1,23 +1,23 @@
 import type { Command, Option } from 'commander'
-import { optionsSchema as buildOptions } from '../build/schemas.js'
-import type { Options as BuildOptions } from '../build/schemas.js'
-import { optionsSchema as fetchOptions } from '../fetch/schemas.js'
-import type { Options as FetchOptions } from '../fetch/schemas.js'
-import { optionsSchema as prepareOptions } from '../prepare/schemas.js'
-import type { Options as PrepareOptions } from '../prepare/schemas.js'
+import type { BuildOpts } from '../schemas/build.js'
+import { buildOptsSchema } from '../schemas/build.js'
+import type { FetchOpts } from '../schemas/fetch.js'
+import { fetchOptsSchema } from '../schemas/fetch.js'
+import type { PrepareOpts } from '../schemas/prepare.js'
+import { prepareOptsSchema } from '../schemas/prepare.js'
 
 type Cmd = 'fetch' | 'build' | 'prepare'
 
 interface Options {
-  build: BuildOptions
-  fetch: FetchOptions
-  prepare: PrepareOptions
+  build: BuildOpts
+  fetch: FetchOpts
+  prepare: PrepareOpts
 }
 
 export const options = {
-  build: buildOptions,
-  fetch: fetchOptions,
-  prepare: prepareOptions,
+  build: buildOptsSchema,
+  fetch: fetchOptsSchema,
+  prepare: prepareOptsSchema,
 }
 
 export function parseOptions<T extends Cmd | Cmd[]>(

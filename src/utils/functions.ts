@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import axios from 'axios'
-import type { EnhancedRepository } from '../fetch/functions.js'
-import type { getUserInfos as fetchUserInfos } from '../fetch/git.js'
-import { USER_INFOS_PATH, USER_REPOS_PATH } from './const.js'
+import type { EnhancedRepository } from '../lib/fetch.js'
+import type { getUserInfos as fetchUserInfos } from '../lib/git.js'
+import { USER_INFOS, USER_REPOS_INFOS } from './const.js'
 
 export async function checkHttpStatus(url: string): Promise<number> {
   try {
@@ -83,11 +83,11 @@ export function renameFile(file: string) {
 }
 
 export function getUserInfos() {
-  return JSON.parse(readFileSync(USER_INFOS_PATH).toString()) as Awaited<ReturnType<typeof fetchUserInfos>>
+  return JSON.parse(readFileSync(USER_INFOS).toString()) as Awaited<ReturnType<typeof fetchUserInfos>>
 }
 
 export function getUserRepos() {
-  return JSON.parse(readFileSync(USER_REPOS_PATH).toString()) as EnhancedRepository[]
+  return JSON.parse(readFileSync(USER_REPOS_INFOS).toString()) as EnhancedRepository[]
 }
 
 export function deepMerge<T extends Record<string, any>>(...objects: T[]): T {

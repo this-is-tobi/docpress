@@ -3,16 +3,23 @@
   "type": "module",
   "version": "0.0.1",
   "packageManager": "pnpm@9.11.0",
-  "main": "src/server.js",
-  "module": "src/index.ts",
-  "types": "types/server.d.ts",
+  "main": "bin/index.js",
+  "types": "types/index.d.ts",
+  "bin": {
+    "docpress": "bin/index.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "types"
+  ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "build": "tsc",
     "build:clean": "rimraf ./dist ./types ./tsconfig.tsbuildinfo",
-    "dev": "vite-node ./src/index.ts",
+    "dev": "vite-node ./dev/index.ts",
     "format": "eslint . --fix",
     "lint": "eslint .",
     "prepare": "husky",
