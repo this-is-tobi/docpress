@@ -4,7 +4,6 @@ import { DOCPRESS_DIR } from '../utils/const.js'
 import { addOptions, parseOptions } from '../utils/commands.js'
 import type { FetchOpts } from '../schemas/fetch.js'
 import { fetchOptsSchema } from '../schemas/fetch.js'
-import { initProvider } from '../lib/git.js'
 import { main as fetchDoc } from '../lib/fetch.js'
 
 const cmdName = 'fetch'
@@ -26,7 +25,7 @@ export const fetchOpts = [
     ),
   createOption(
     '-r, --repositories <string>',
-    fetchOptsSchema.shape.repositories._def.description,
+    fetchOptsSchema.shape.reposFilter._def.description,
 
   ),
   createOption(
@@ -49,12 +48,11 @@ export const fetchCmd = addOptions(createCommand(cmdName), fetchOpts)
 
 export async function fetch(opts: FetchOpts) {
   const options = parseOptions(cmdName, opts) as FetchOpts
-  const { username, repositories: reposFilter, token, branch } = options
+  const { username, reposFilter, token, branch } = options
 
-  initProvider(token)
   if (existsSync(DOCPRESS_DIR)) {
     rmSync(DOCPRESS_DIR, { recursive: true })
   }
 
-  await fetchDoc(username, branch, reposFilter || [])
+  await fetchDoc({ username, branch, reposFilter, gitProvider: 'github', token })
 }

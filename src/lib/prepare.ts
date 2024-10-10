@@ -4,7 +4,7 @@ import YAML from 'yaml'
 import type { defineConfig } from 'vitepress'
 import type { getUserInfos } from '../utils/functions.js'
 import { createDir, extractFiles, getMdFiles, prettifyName, renameFile } from '../utils/functions.js'
-import { DOCS_DIR, INDEX_PATH, VITEPRESS_CONFIG } from '../utils/const.js'
+import { DOCS_DIR, INDEX_FILE, VITEPRESS_CONFIG } from '../utils/const.js'
 import { replaceReadmePath, replaceRelativePath } from '../utils/regex.js'
 import type { EnhancedRepository } from './fetch.js'
 
@@ -174,5 +174,5 @@ export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeo
   createDir(dirname(VITEPRESS_CONFIG))
 
   writeFileSync(VITEPRESS_CONFIG, `import { defineConfig } from 'vitepress'\n\nexport default defineConfig(${JSON.stringify(vitepressConfig, null, 2)})\n`)
-  writeFileSync(INDEX_PATH, '---\n'.concat(YAML.stringify(index)))
+  writeFileSync(INDEX_FILE, '---\n'.concat(YAML.stringify(index)))
 }

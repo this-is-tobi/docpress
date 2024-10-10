@@ -181,7 +181,6 @@ cache/
 dist/
 
 # projects docs
-src/projects
 tmp/
-vitepress/
+docpress/
 extras/

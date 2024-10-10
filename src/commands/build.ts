@@ -1,6 +1,6 @@
-import { resolve } from 'node:path'
 import { build as vitepressBuild } from 'vitepress'
 import { createCommand } from 'commander'
+import { DOCPRESS_DIR } from '../utils/const.js'
 
 const cmdName = 'build'
 
@@ -11,5 +11,5 @@ export const buildCmd = createCommand(cmdName)
   })
 
 export async function build() {
-  await vitepressBuild(resolve(process.cwd(), 'vitepress'))
+  await vitepressBuild(DOCPRESS_DIR)
 }

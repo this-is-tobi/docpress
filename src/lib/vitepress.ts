@@ -10,7 +10,7 @@ const defaultVitepressConfig: ReturnType<typeof defineConfig> = {
   },
   title: 'Home',
   description: 'Docpress',
-  srcDir: './projects',
+  srcDir: './docs',
   cleanUrls: true,
   ignoreDeadLinks: 'localhostLinks',
   themeConfig: {

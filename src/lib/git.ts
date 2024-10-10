@@ -1,34 +1,24 @@
-import { appendFileSync, cpSync, existsSync, mkdirSync, rmSync } from 'node:fs'
+import { appendFileSync, cpSync, existsSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { Octokit } from 'octokit'
 import { CleanOptions, simpleGit } from 'simple-git'
-import type { SimpleGit } from 'simple-git'
+import { createDir } from '../utils/functions.js'
 import type { FetchOpts } from '../schemas/fetch.js'
 
-let git: SimpleGit
+export async function getInfos({ username, token, branch }: Pick<FetchOpts, 'username' | 'branch' | 'token'>) {
+  const octokit = new Octokit({ auth: token })
+  const { data: user } = await octokit.request('GET /users/{username}', { username })
+  const { data: repos } = await octokit.request('GET /users/{username}/repos', { username, sort: 'full_name' })
 
-export function initGit(projectDir: string) {
-  git = simpleGit({ baseDir: projectDir }).clean(CleanOptions.FORCE)
-}
-
-let octokit: Octokit
-
-export function initProvider(token?: FetchOpts['token']) {
-  octokit = new Octokit({ auth: token })
-}
-
-export async function getUserInfos(username: FetchOpts['username']) {
-  const { data } = await octokit.request('GET /users/{username}', { username })
-  return data
-}
-
-export async function getUserRepos(username: FetchOpts['username']) {
-  const { data } = await octokit.request('GET /users/{username}/repos', { username, sort: 'full_name' })
-  return data
+  return { user, repos, branch }
 }
 
 export async function cloneRepo(url: string, projectDir: string, branch: string, includes: string[]) {
-  if (!existsSync(projectDir)) mkdirSync(projectDir, { recursive: true })
+  if (!existsSync(projectDir)) {
+    createDir(projectDir)
+  }
+
+  const git = simpleGit({ baseDir: projectDir }).clean(CleanOptions.FORCE)
 
   try {
     await git.init().addRemote('origin', url).addConfig('core.sparseCheckout', 'true', true)
