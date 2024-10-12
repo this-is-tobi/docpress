@@ -180,7 +180,7 @@ dist
 cache/
 dist/
 
-# projects docs
-tmp/
+# docpress
 docpress/
+docpress-docker/
 extras/
