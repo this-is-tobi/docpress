@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs'
-import { basename, dirname, join, resolve } from 'node:path'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { basename, join } from 'node:path'
 import axios from 'axios'
 import type { EnhancedRepository } from '../lib/fetch.js'
-import type { getUserInfos as fetchUserInfos } from '../lib/git.js'
+import type { getInfos } from '../lib/git.js'
 import { USER_INFOS, USER_REPOS_INFOS } from './const.js'
 
 export async function checkHttpStatus(url: string): Promise<number> {
@@ -17,8 +17,32 @@ export async function checkHttpStatus(url: string): Promise<number> {
   }
 }
 
-export function capitalize(s: string) {
-  return (s && s[0].toUpperCase() + s.slice(1).toLowerCase()) || ''
+interface PrettifyOpts {
+  mode?: 'capitalize' | 'uppercase' | 'lowercase'
+  replaceDash?: boolean
+  removeIdx?: boolean
+}
+
+export function prettify(s: string, opts: PrettifyOpts) {
+  let u: string = ''
+
+  if (opts?.removeIdx) {
+    u = s.replace(/^\d{2}-/, '')
+  }
+
+  if (opts?.replaceDash) {
+    u = (u || s).replaceAll('-', ' ')
+  }
+
+  if (opts?.mode === 'capitalize') {
+    u = (u || s).slice(0, 1).toUpperCase() + (u || s).slice(1).toLowerCase()
+  } else if (opts?.mode === 'lowercase') {
+    u = (u || s).toLowerCase()
+  } else if (opts?.mode === 'uppercase') {
+    u = (u || s).toUpperCase()
+  }
+
+  return u
 }
 
 export function createDir(directory: string, { clean }: { clean?: boolean } = { clean: false }) {
@@ -70,20 +94,8 @@ export function prettifyEnum(arr: readonly string[]) {
   }, '')
 }
 
-export function prettifyName(s: string) {
-  return capitalize(s).replaceAll('-', ' ') || ''
-}
-
-export function renameFile(file: string) {
-  const filename = basename(file).toLowerCase().replace(/^\d{2}-/, '')
-  if (filename !== basename(file)) {
-    renameSync(file, resolve(dirname(file), filename))
-  }
-  return filename
-}
-
 export function getUserInfos() {
-  return JSON.parse(readFileSync(USER_INFOS).toString()) as Awaited<ReturnType<typeof fetchUserInfos>>
+  return JSON.parse(readFileSync(USER_INFOS).toString()) as Awaited<ReturnType<typeof getInfos>>['user']
 }
 
 export function getUserRepos() {

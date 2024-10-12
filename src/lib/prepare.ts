@@ -1,9 +1,9 @@
 import { basename, dirname, parse, resolve } from 'node:path'
-import { appendFileSync, cpSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, cpSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import YAML from 'yaml'
 import type { defineConfig } from 'vitepress'
 import type { getUserInfos } from '../utils/functions.js'
-import { createDir, extractFiles, getMdFiles, prettifyName, renameFile } from '../utils/functions.js'
+import { createDir, extractFiles, getMdFiles, prettify } from '../utils/functions.js'
 import { DOCS_DIR, INDEX_FILE, VITEPRESS_CONFIG } from '../utils/const.js'
 import { replaceReadmePath, replaceRelativePath } from '../utils/regex.js'
 import type { EnhancedRepository } from './fetch.js'
@@ -34,7 +34,7 @@ export interface Index {
   features: Feature[]
 }
 
-export function addSources(repoUrl: string, outputPath: string) {
+function addSources(repoUrl: string, outputPath: string) {
   const fileName = basename(outputPath)
   const title = fileName === 'readme.md' ? '\n## Sources' : '# Sources'
 
@@ -65,7 +65,7 @@ export function generateIndex(features: Feature[], user: ReturnType<typeof getUs
 
 export function generateFeatures(repoName: string, description: string, features?: Feature[]) {
   const content = {
-    title: prettifyName(repoName),
+    title: prettify(repoName, { mode: 'capitalize', replaceDash: true }),
     details: description,
     link: `/${repoName}/readme`,
   }
@@ -73,19 +73,9 @@ export function generateFeatures(repoName: string, description: string, features
   return features ? [...features, content] : [content]
 }
 
-export function generateSidebar(repoName: string, sidebarProjects: SidebarProject[]) {
-  const content = {
-    text: prettifyName(repoName),
-    collapsed: true,
-    items: sidebarProjects,
-  }
-
-  return sidebarProjects ? [...sidebarProjects, content] : [content]
-}
-
 export function generateSidebarProject(repoName: string, sidebarPages: Page[]) {
   return {
-    text: prettifyName(repoName),
+    text: prettify(repoName, { mode: 'capitalize', replaceDash: true }),
     collapsed: true,
     items: sidebarPages,
   }
@@ -93,7 +83,7 @@ export function generateSidebarProject(repoName: string, sidebarPages: Page[]) {
 
 export function generateSidebarPages(repoName: string, fileName: string, sidebarPages?: Page[]) {
   const content = {
-    text: fileName === 'readme' ? 'Introduction' : prettifyName(fileName),
+    text: fileName === 'readme' ? 'Introduction' : prettify(fileName, { mode: 'capitalize', replaceDash: true }),
     link: `/${repoName}/${fileName}`,
   }
 
@@ -120,12 +110,27 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
       })
       .sort((a, b) => a.localeCompare(b))
       .reduce((acc: Page[], cur, idx, arr) => {
-        const filename = renameFile(resolve(repository.docpress.projectPath, cur))
+        const file = resolve(repository.docpress.projectPath, cur)
+        const filename = prettify(basename(file), { mode: 'lowercase', removeIdx: true })
+
+        if (filename !== basename(file)) {
+          // console.log({ filename, basename: basename(file), file })
+          renameSync(file, resolve(dirname(file), filename))
+        }
 
         if (idx === arr.length - 1) {
-          const sourceFile = arr.length > 1
-            ? resolve(repository.docpress.projectPath, 'sources.md')
-            : resolve(repository.docpress.projectPath, 'readme.md')
+          let sourceFile
+          if (arr.length > 1) {
+            sourceFile = resolve(repository.docpress.projectPath, 'sources.md')
+            addSources(repository.html_url, sourceFile)
+
+            return generateSidebarPages(
+              repository.name,
+              parse(sourceFile).name,
+              generateSidebarPages(repository.name, parse(filename).name, acc),
+            )
+          }
+          sourceFile = resolve(repository.docpress.projectPath, 'readme.md')
           addSources(repository.html_url, sourceFile)
         }
 
@@ -136,8 +141,11 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
     features.push(...generateFeatures(repository.name, repository.description || ''))
   }
 
-  const index = generateIndex(features, user)
-  return { sidebar, index }
+  const index = generateIndex(features.sort((a, b) => a.title.localeCompare(b.title)), user)
+  return {
+    sidebar: sidebar.sort((a, b) => a.text.localeCompare(b.text)),
+    index,
+  }
 }
 
 export function addExtraPages(paths: string[]) {
@@ -148,7 +156,7 @@ export function addExtraPages(paths: string[]) {
     const src = resolve(process.cwd(), file)
     const dest = resolve(DOCS_DIR, basename(file))
     cpSync(src, dest)
-    nav.push({ text: prettifyName(parse(src).name), link: `/${parse(src).name}` })
+    nav.push({ text: prettify(parse(src).name, { replaceDash: true, removeIdx: true }), link: `/${parse(src).name}` })
   }
   return nav
 }
