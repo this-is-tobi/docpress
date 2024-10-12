@@ -154,7 +154,7 @@ export function addExtraPages(paths: string[]) {
 
   for (const file of files) {
     const src = resolve(process.cwd(), file)
-    const dest = resolve(DOCS_DIR, basename(file))
+    const dest = resolve(DOCS_DIR, prettify(basename(file), { mode: 'lowercase', removeIdx: true }))
     cpSync(src, dest)
     nav.push({ text: prettify(parse(src).name, { replaceDash: true, removeIdx: true }), link: `/${parse(src).name}` })
   }

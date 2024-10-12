@@ -36,7 +36,7 @@ export async function main({ username, branch, reposFilter, token }: FetchOpts) 
   createDir(DOCPRESS_DIR, { clean: true })
 
   await getInfos({ username, token, branch })
-    .then(async ({ user, repos, branch }) => generateInfos(user, repos, branch))
+    .then(async ({ user, repos, branch }) => generateInfos(user, repos, branch, reposFilter))
     .then(async ({ repos }) => fetchDoc(repos, reposFilter))
 }
 
@@ -85,10 +85,10 @@ async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos>>['rep
   return includes
 }
 
-async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'], repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch']) {
+async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'], repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter']) {
   writeFileSync(USER_INFOS, JSON.stringify(user, null, 2))
 
-  const enhancedRepos = await enhanceRepositories(repos, branch)
+  const enhancedRepos = await enhanceRepositories(repos, branch, reposFilter)
   writeFileSync(USER_REPOS_INFOS, JSON.stringify(enhancedRepos, null, 2))
 
   return { user, repos: enhancedRepos }
@@ -108,15 +108,18 @@ async function fetchDoc(repos?: EnhancedRepository[], reposFilter?: FetchOpts['r
 }
 
 export function isRepoFiltered(repo: EnhancedRepository | Awaited<ReturnType<typeof getInfos>>['repos'][number], reposFilter?: string[]) {
-  const isFiltered = reposFilter?.some(filter => filter.startsWith('!')
-    ? repo.name === filter.substring(1)
-    : repo.name !== filter.substring(1))
+  const isExcluded = reposFilter?.filter(filter => filter.startsWith('!'))
+    .some(filter => repo.name === filter.substring(1))
+  const isIncluded = reposFilter?.filter(filter => !filter.startsWith('!'))
+    .includes(repo.name)
+
+  const isFiltered = isExcluded || !isIncluded
 
   if ('docpress' in repo && !repo.docpress.includes.length) {
     return true
   }
 
-  if (repo.clone_url && !repo.fork && !repo.private && !isFiltered) {
+  if (!!repo.clone_url && !repo.fork && !repo.private && !isFiltered) {
     return false
   }
   return true

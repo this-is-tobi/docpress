@@ -24,7 +24,7 @@ export const fetchOpts = [
       fetchOptsSchema.shape.gitProvider._def.defaultValue(),
     ),
   createOption(
-    '-r, --repositories <string>',
+    '-r, --repos-filter <string>',
     fetchOptsSchema.shape.reposFilter._def.description,
 
   ),
