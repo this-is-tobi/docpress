@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import axios from 'axios'
+import { rimrafSync } from 'rimraf'
 import type { EnhancedRepository } from '../lib/fetch.js'
 import type { getInfos } from '../lib/git.js'
 import { USER_INFOS, USER_REPOS_INFOS } from './const.js'
@@ -47,8 +48,8 @@ export function prettify(s: string, opts: PrettifyOpts) {
 
 export function createDir(directory: string, { clean }: { clean?: boolean } = { clean: false }) {
   try {
-    if (existsSync(directory) && clean) {
-      rmSync(directory, { recursive: true })
+    if (clean && existsSync(directory)) {
+      rimrafSync(`${directory}/*`, { glob: true })
     }
     if (!existsSync(directory)) {
       mkdirSync(directory, { recursive: true })

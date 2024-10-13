@@ -1,6 +1,4 @@
-import { existsSync, rmSync } from 'node:fs'
 import { createCommand, createOption } from 'commander'
-import { DOCPRESS_DIR } from '../utils/const.js'
 import { addOptions, parseOptions } from '../utils/commands.js'
 import type { FetchOpts } from '../schemas/fetch.js'
 import { fetchOptsSchema } from '../schemas/fetch.js'
@@ -49,10 +47,6 @@ export const fetchCmd = addOptions(createCommand(cmdName), fetchOpts)
 export async function fetch(opts: FetchOpts) {
   const options = parseOptions(cmdName, opts) as FetchOpts
   const { username, reposFilter, token, branch } = options
-
-  if (existsSync(DOCPRESS_DIR)) {
-    rmSync(DOCPRESS_DIR, { recursive: true })
-  }
 
   await fetchDoc({ username, branch, reposFilter, gitProvider: 'github', token })
 }
