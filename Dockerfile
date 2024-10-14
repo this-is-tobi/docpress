@@ -7,17 +7,22 @@ ARG PNPM_VERSION=9.11.0
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 WORKDIR /app
-RUN npm install --ignore-scripts --location=global pnpm@${PNPM_VERSION} && corepack enable
+RUN corepack enable pnpm && corepack install -g pnpm@${PNPM_VERSION}
 COPY --chown=node:root . ./
-RUN pnpm install --frozen-lockfile
+
+
+# Dev stage
+FROM base AS dev
+
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 ENTRYPOINT [ "pnpm", "run" ]
 CMD [ "dev" ]
 
 
-# Dependencies stage
-FROM base AS deps
+# Prod dependencies stage
+FROM base AS prod-deps
 
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile --ignore-scripts
 
 
 # Build stage
@@ -32,13 +37,16 @@ FROM ${NODE_IMAGE} AS prod
 
 ARG APP_VERSION
 ENV APP_VERSION=$APP_VERSION
+# ENV GIT_DISCOVERY_ACROSS_FILESYSTEM=1
 WORKDIR /app
-RUN mkdir -p /home/node/logs && chmod 660 -R /home/node/logs \
+RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/* \
+  && mkdir -p /home/node/logs && chmod 660 -R /home/node/logs \
   && mkdir -p /home/node/.npm && chmod 660 -R /home/node/.npm \
-  && chown node:root /app
-COPY --chown=node:root --from=deps /app/node_modules ./node_modules
+  && chown -R node:root /app \
+  && git config --system --add safe.directory '*'
+COPY --chown=node:root --from=prod-deps /app/node_modules ./node_modules
 COPY --chown=node:root --from=build /app/dist ./dist
+COPY --chown=node:root --from=build /app/bin ./bin
 COPY --chown=node:root --from=build /app/package.json ./
 USER node
-EXPOSE 8080
-ENTRYPOINT ["node", "/app/dist/index.js"]
+ENTRYPOINT ["/app/bin/docpress.js"]

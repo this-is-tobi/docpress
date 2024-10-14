@@ -25,7 +25,7 @@
     "lint": "eslint .",
     "prepare": "husky",
     "start": "./bin/docpress.js",
-    "start:docker": "docker run --publish 8080:8080 --name docpress --rm -v $(pwd)/docpress-docker:/app/docpress:rw robots/docpress",
+    "start:docker": "docker run --publish 8080:8080 --name docpress --rm -v $(pwd)/docpress:/app/docpress:rw robots/docpress",
     "stop:docker": "docker rm --force docpress",
     "test": "echo 'wip'",
     "vp:build": "vitepress build ./docpress",
