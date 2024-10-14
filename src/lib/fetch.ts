@@ -110,7 +110,7 @@ async function fetchDoc(repos?: EnhancedRepository[], reposFilter?: FetchOpts['r
 export function isRepoFiltered(repo: EnhancedRepository | Awaited<ReturnType<typeof getInfos>>['repos'][number], reposFilter?: string[]) {
   const isExcluded = reposFilter?.filter(filter => filter.startsWith('!'))
     .some(filter => repo.name === filter.substring(1))
-  const isIncluded = reposFilter?.filter(filter => !filter.startsWith('!'))
+  const isIncluded = !reposFilter || reposFilter?.filter(filter => !filter.startsWith('!'))
     .includes(repo.name)
 
   const isFiltered = isExcluded || !isIncluded

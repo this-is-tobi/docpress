@@ -114,7 +114,6 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
         const filename = prettify(basename(file), { mode: 'lowercase', removeIdx: true })
 
         if (filename !== basename(file)) {
-          // console.log({ filename, basename: basename(file), file })
           renameSync(file, resolve(dirname(file), filename))
         }
 

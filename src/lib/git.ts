@@ -1,7 +1,7 @@
-import { appendFileSync, cpSync, existsSync, rmSync } from 'node:fs'
+import { appendFileSync, cpSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { Octokit } from 'octokit'
-import { CleanOptions, simpleGit } from 'simple-git'
+import { simpleGit } from 'simple-git'
 import { createDir } from '../utils/functions.js'
 import type { FetchOpts } from '../schemas/fetch.js'
 
@@ -14,14 +14,14 @@ export async function getInfos({ username, token, branch }: Pick<FetchOpts, 'use
 }
 
 export async function cloneRepo(url: string, projectDir: string, branch: string, includes: string[]) {
-  if (!existsSync(projectDir)) {
-    createDir(projectDir)
-  }
-
-  const git = simpleGit({ baseDir: projectDir }).clean(CleanOptions.FORCE)
+  createDir(projectDir, { clean: true })
 
   try {
-    await git.init().addRemote('origin', url).addConfig('core.sparseCheckout', 'true', true)
+    const git = simpleGit({ baseDir: projectDir })
+    await git.init()
+      .addConfig('core.sparseCheckout', 'true', true, 'local')
+      .addRemote('origin', url)
+
     for (const item of includes) {
       appendFileSync(resolve(projectDir, '.git/info/sparse-checkout'), `${item}\n`, 'utf8')
     }
