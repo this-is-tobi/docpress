@@ -16,7 +16,7 @@ export type EnhancedRepository = Awaited<ReturnType<typeof getInfos>>['repos'][n
   }
 }
 
-export async function checkDoc(repoOwner: string, repoName: string, branch: string) {
+export async function checkDoc(repoOwner: FetchOpts['username'], repoName: string, branch: FetchOpts['branch']) {
   const rootReadmeUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/README.md`
   const docsFolderUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/docs`
   const docsReadmeUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/docs/01-readme.md`
@@ -40,7 +40,7 @@ export async function main({ username, branch, reposFilter, token }: FetchOpts) 
     .then(async ({ repos }) => fetchDoc(repos, reposFilter))
 }
 
-async function enhanceRepositories(repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: string, reposFilter?: string[]) {
+async function enhanceRepositories(repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter']) {
   const enhancedRepos: EnhancedRepository[] = []
 
   await Promise.all(repos.map(async (repo) => {
@@ -69,7 +69,7 @@ async function enhanceRepositories(repos: Awaited<ReturnType<typeof getInfos>>['
   return enhancedRepos
 }
 
-async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos>>['repos'][number], branch: string) {
+async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos>>['repos'][number], branch: FetchOpts['branch']) {
   const docsStatus = await checkDoc(repo.owner.login, repo.name, branch)
 
   const includes: string[] = []
@@ -107,7 +107,7 @@ async function fetchDoc(repos?: EnhancedRepository[], reposFilter?: FetchOpts['r
   )
 }
 
-export function isRepoFiltered(repo: EnhancedRepository | Awaited<ReturnType<typeof getInfos>>['repos'][number], reposFilter?: string[]) {
+export function isRepoFiltered(repo: EnhancedRepository | Awaited<ReturnType<typeof getInfos>>['repos'][number], reposFilter?: FetchOpts['reposFilter']) {
   const isExcluded = reposFilter?.filter(filter => filter.startsWith('!'))
     .some(filter => repo.name === filter.substring(1))
   const isIncluded = !reposFilter || reposFilter?.filter(filter => !filter.startsWith('!'))
