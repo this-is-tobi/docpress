@@ -6,15 +6,15 @@ import { z } from 'zod'
 export const prepareOptsSchema = z.object({
   extraHeaderPages: z.string()
     .describe('List of comma separated additional files or directories to process Vitepress header pages.')
-    .transform(pages => pages.split(','))
+    .transform(paths => paths.split(','))
     .optional(),
   extraPublicContent: z.string()
     .describe('List of comma separated additional files or directories to process Vitepress public folder.')
-    .transform(pages => pages.split(','))
+    .transform(paths => paths.split(','))
     .optional(),
   extraTheme: z.string()
     .describe('List of comma separated additional files or directories to process Vitepress public folder.')
-    .transform(pages => pages.split(','))
+    .transform(paths => paths.split(','))
     .optional(),
   vitepressConfig: z.string()
     .describe('Path to the vitepress configuration.')
