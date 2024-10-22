@@ -40,8 +40,8 @@ jobs:
       NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
       PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
 
-  build:
-    uses: ./.github/workflows/build.yml
+  docker:
+    uses: ./.github/workflows/docker.yml
     needs:
     - expose-vars
     permissions:
@@ -57,7 +57,7 @@ jobs:
     if: ${{ !github.event.pull_request.draft && (github.base_ref == 'main' || github.base_ref == 'develop') }}
     needs:
     - expose-vars
-    - build
+    - docker
     permissions:
       issues: write
     with:
@@ -72,7 +72,7 @@ jobs:
     needs:
     - expose-vars
     - lint
-    - build
+    - docker
     - scan-vuln
     steps:
     - name: Check status of all required jobs

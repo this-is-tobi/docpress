@@ -45,8 +45,8 @@ jobs:
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  build:
-    uses: ./.github/workflows/build.yml
+  docker:
+    uses: ./.github/workflows/docker.yml
     if: ${{ needs.release.outputs.release-created == 'true' }}
     needs:
     - expose-vars
