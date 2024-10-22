@@ -13,8 +13,9 @@ export const fetchOptsSchema = z.object({
     .optional()
     .default('github'),
   reposFilter: z.string()
-    .describe('List of comma separated repositories to retrieve from Git provider. Default to all user\'s public repositories.')
     .transform(repos => repos.split(','))
+    .or(z.string().array())
+    .describe('List of comma separated repositories to retrieve from Git provider. Default to all user\'s public repositories.')
     .optional(),
   token: z.string()
     .describe('Git provider token used to collect data.')

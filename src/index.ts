@@ -1,25 +1,33 @@
 import { program } from 'commander'
 import pkg from '../package.json' with { type: 'json' }
-import { fetch, fetchCmd, fetchOpts } from './commands/fetch.js'
-import { prepare, prepareCmd, prepareOpts } from './commands/prepare.js'
-import { build, buildCmd } from './commands/build.js'
+import { fetchCmd, main as fetchFn, fetchOpts } from './commands/fetch.js'
+import { buildCmd, main as buildFn } from './commands/build.js'
+import { prepareCmd, main as prepareFn, prepareOpts } from './commands/prepare.js'
 import { addOptions } from './utils/commands.js'
+import { globalOpts } from './commands/global.js'
 
 export default function main() {
   const pm = program
     .name('docpress')
-    .description('Build your doc website faster than light ⚡️')
+    .description('Build your doc website faster than light ⚡️⚡️⚡️')
     .version(`${pkg.version}`)
-    .addCommand(fetchCmd)
+    .addCommand((fetchCmd))
     .addCommand(prepareCmd)
     .addCommand(buildCmd)
     .action(async (opts, _cmd) => {
-      await fetch(opts)
-      await prepare(opts)
-      await build()
+      await fetchFn(opts)
+      await prepareFn(opts)
+      await buildFn()
     })
+    .configureHelp({
+      sortSubcommands: true,
+      sortOptions: true,
+      showGlobalOptions: true,
+    })
+    .enablePositionalOptions()
+    .passThroughOptions()
 
-  addOptions(pm, [...fetchOpts, ...prepareOpts])
+  addOptions(pm, [...fetchOpts, ...prepareOpts, ...globalOpts])
 
   pm.parseAsync()
 }

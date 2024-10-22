@@ -32,12 +32,12 @@ export async function checkDoc(repoOwner: FetchOpts['username'], repoName: strin
   }
 }
 
-export async function main({ username, branch, reposFilter, token }: FetchOpts) {
+export async function fetchDoc({ username, branch, reposFilter, token }: FetchOpts) {
   createDir(DOCPRESS_DIR, { clean: true })
 
   await getInfos({ username, token, branch })
     .then(async ({ user, repos, branch }) => generateInfos(user, repos, branch, reposFilter))
-    .then(async ({ repos }) => fetchDoc(repos, reposFilter))
+    .then(async ({ repos }) => getDoc(repos, reposFilter))
 }
 
 async function enhanceRepositories(repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter']) {
@@ -94,7 +94,7 @@ async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'],
   return { user, repos: enhancedRepos }
 }
 
-async function fetchDoc(repos?: EnhancedRepository[], reposFilter?: FetchOpts['reposFilter']) {
+async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOpts['reposFilter']) {
   if (!repos) {
     console.warn('No repository respect docpress rules.')
     return

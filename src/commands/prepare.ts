@@ -9,37 +9,25 @@ import { prepareOptsSchema } from '../schemas/prepare.js'
 import type { EnhancedRepository } from '../lib/fetch.js'
 import type { Page } from '../lib/prepare.js'
 import type { PrepareOpts } from '../schemas/prepare.js'
+import { globalOpts } from './global.js'
 
 const cmdName = 'prepare'
 
 export const prepareOpts = [
-  createOption(
-    '-c, --extra-public-content <string>',
-    prepareOptsSchema.shape.extraPublicContent._def.description,
-  ),
-  createOption(
-    '-p, --extra-header-pages <string>',
-    prepareOptsSchema.shape.extraHeaderPages._def.description,
-  ),
-  createOption(
-    '-t, --extra-theme <string>',
-    prepareOptsSchema.shape.extraTheme._def.description,
-  ),
-  createOption(
-    '-v, --vitepress-config <string>',
-    prepareOptsSchema.shape.vitepressConfig._def.description,
-  ),
+  createOption('-c, --extra-public-content <string>', prepareOptsSchema.shape.extraPublicContent._def.description),
+  createOption('-p, --extra-header-pages <string>', prepareOptsSchema.shape.extraHeaderPages._def.description),
+  createOption('-t, --extra-theme <string>', prepareOptsSchema.shape.extraTheme._def.description),
+  createOption('-v, --vitepress-config <string>', prepareOptsSchema.shape.vitepressConfig._def.description),
 ]
 
-export const prepareCmd = addOptions(createCommand(cmdName), prepareOpts)
+export const prepareCmd = addOptions(createCommand(cmdName), [...prepareOpts, ...globalOpts])
   .description('Transform doc to the target vitepress format.')
   .action(async (opts) => {
-    await prepare(opts)
+    await main(opts)
   })
 
-export async function prepare(opts: PrepareOpts) {
-  const options = parseOptions(cmdName, opts) as PrepareOpts
-  const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig } = options
+export async function main(opts: PrepareOpts) {
+  const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig } = parseOptions(cmdName, opts)
 
   const user = getUserInfos()
   const repositories = getUserRepos()

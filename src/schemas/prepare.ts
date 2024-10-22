@@ -17,7 +17,7 @@ export const prepareOptsSchema = z.object({
     .transform(paths => paths.split(','))
     .optional(),
   vitepressConfig: z.string()
-    .describe('Path to the vitepress configuration.')
+    .describe('Path to the vitepress configuration file.')
     .transform(path => JSON.parse(readFileSync(resolve(process.cwd(), path)).toString()) as ReturnType<typeof defineConfig>)
     .optional(),
 })
