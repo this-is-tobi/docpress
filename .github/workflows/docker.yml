@@ -70,7 +70,7 @@ jobs:
         echo "REGISTRY=$(echo '${{ inputs.REGISTRY_NAMESPACE }}' | cut -d "/" -f 1)" >> $GITHUB_OUTPUT
 
   build:
-    name: Build application
+    name: Build CLI Docker image
     runs-on: ${{ matrix.runners }}
     needs:
     - infos
