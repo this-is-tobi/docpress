@@ -13,7 +13,7 @@ export const prepareOptsSchema = z.object({
     .transform(paths => paths.split(','))
     .optional(),
   extraTheme: z.string()
-    .describe('List of comma separated additional files or directories to process Vitepress public folder.')
+    .describe('List of comma separated additional files or directories to use as Vitepress theme.')
     .transform(paths => paths.split(','))
     .optional(),
   vitepressConfig: z.string()
