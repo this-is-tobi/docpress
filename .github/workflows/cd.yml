@@ -32,7 +32,7 @@ jobs:
       contents: write
       pull-requests: write
 
-  npm-publish:
+  npm:
     uses: ./.github/workflows/npm.yml
     if: ${{ needs.release.outputs.release-created == 'true' }}
     needs:
