@@ -1,4 +1,4 @@
-# Docpress :robot:
+# Docpress :zap:
 
 This project aims to automate the construction of documentation website based on a Github username and optionally a list of repositories.
 
@@ -9,14 +9,28 @@ After downloading all project documentation files, it will build a static websit
 
 > If a `docs/` folder is present, all files in it will be sorted and renamed without the prefix number so it will not appeared inside the generated website. Example: `docs/01-get-started.md` will become `get-started.md`.
 
+## Rules
+
+It is important to understand and respect some conventions for the script to work correctly :
+- Only the `docs/` root folder in the repository will be parsed to import advanced documentation (multi pages documentation, embed images or files, etc...).
+- The `README.md` root file will only be imported if there is no `./docs/01-readme.md` file (this allows you to manage differences between the readme file and the advanced documentation introduction page, for example using a table of contents in the readme file that makes no sense in the documentation website).
+- Any inline link in the `README.md` root file that does not point to `./docs/**` will be replaced by the appropriate Github link.
+- Each project description on the home page is extracted from the Github repository description.
+
 ## Quickstart
 
+Generate website using the Docpress docker image :
+
 ```sh
-git clone https://github.com/this-is-tobi/docpress.git
-cd ./docpress
-docker build --tag robots/docpress --target prod .
-docker run --publish 8080:8080 --name docpress --rm -v $(pwd)/docpress:/app/docpress:rw robots/docpress -u <username>
+docker run \
+  --publish 8080:8080 \
+  --name docpress \
+  --rm \
+  -v $(pwd)/docpress:/app/docpress:rw ghcr.io/this-is-tobi/docpress \
+  -u <github_username>
 ```
+
+The dist folder is available at `./docpress/.vitepress.dist`, ready to be delivered with a web server like Nginx, Apache, etc...
 
 ## Advanced usage
 
