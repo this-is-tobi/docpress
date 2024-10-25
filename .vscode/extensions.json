@@ -10,9 +10,6 @@
     // Vue.js
     "vue.volar",
     "vue.vscode-typescript-vue-plugin",
-    // Vitejs
-    "antfu.vite",
-    "antfu.browse-lite",
     // CSS
     "csstools.postcss",
     "stylelint.vscode-stylelint",
