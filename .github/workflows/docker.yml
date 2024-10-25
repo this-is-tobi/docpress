@@ -56,7 +56,8 @@ jobs:
       build-matrix: ${{ steps.infos.outputs.BUILD_MATRIX }}
       lower-branch: ${{ steps.infos.outputs.LOWER_BRANCH }}
       short-sha: ${{ steps.infos.outputs.SHORT_SHA }}
-      registry: ${{ steps.infos.outputs.REGISTRY }}
+      registry-domain: ${{ steps.infos.outputs.REGISTRY_DOMAIN }}
+      registry-user: ${{ steps.infos.outputs.REGISTRY_USER }}
     steps:
     - name: Checks-out repository
       uses: actions/checkout@v4
@@ -67,7 +68,8 @@ jobs:
         echo "BUILD_MATRIX=$(jq -c . < ./ci/matrix/docker.json)" >> $GITHUB_OUTPUT
         echo "LOWER_BRANCH=$(echo '${{ github.head_ref }}' | sed 's/\//-/g' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
         echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-        echo "REGISTRY=$(echo '${{ inputs.REGISTRY_NAMESPACE }}' | cut -d "/" -f 1)" >> $GITHUB_OUTPUT
+        echo "REGISTRY_DOMAIN=$(echo '${{ inputs.REGISTRY_NAMESPACE }}' | cut -d "/" -f 1)" >> $GITHUB_OUTPUT
+        echo "REGISTRY-USER=$(echo '${{ inputs.REGISTRY_NAMESPACE }}' | cut -d "/" -f 2)" >> $GITHUB_OUTPUT
 
   build:
     name: Build CLI Docker image
@@ -100,7 +102,7 @@ jobs:
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
       with:
-        registry: ${{ needs.infos.outputs.registry }}
+        registry: ${{ needs.infos.outputs.registry-domain }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
         logout: true
@@ -113,7 +115,7 @@ jobs:
         file: ${{ matrix.images.build.dockerfile }}
         provenance: false
         platforms: ${{ inputs.MULTI_ARCH && inputs.USE_QEMU && 'linux/amd64,linux/arm64' || (contains(runner.arch, 'ARM') && 'linux/arm64' || 'linux/amd64') }}
-        outputs: type=image,name=${{ inputs.REGISTRY_NAMESPACE }}/${{ matrix.images.name }},push-by-digest=true,name-canonical=true,push=true
+        outputs: type=image,name=${{ needs.infos.outputs.registry-domain }}/${{ needs.infos.outputs.registry-user }}/${{ matrix.images.name }},push-by-digest=true,name-canonical=true,push=true
         build-args: |
           API__VERSION=${{ inputs.TAG || needs.infos.outputs.short-sha }}
         # cache-from: type=gha
@@ -167,7 +169,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ inputs.REGISTRY_NAMESPACE }}/${{ matrix.images.name }}
+        images: ${{ needs.infos.outputs.registry-domain }}/${{ needs.infos.outputs.registry-user }}/${{ matrix.images.name }}
         tags: |
           type=raw,value=${{ needs.infos.outputs.lower-branch }},enable=${{ github.head_ref != 'main' }}
           type=raw,value=${{ needs.infos.outputs.short-sha }},enable=${{ inputs.TAG == '' }}
@@ -175,12 +177,12 @@ jobs:
           type=raw,value=${{ inputs.TAG }},enable=${{ inputs.TAG != '' }}
           type=raw,value=${{ inputs.MAJOR_TAG }}.${{ inputs.MINOR_TAG }},enable=${{ inputs.MAJOR_TAG != '' && inputs.MINOR_TAG != '' }}
           type=raw,value=${{ inputs.MAJOR_TAG }},enable=${{ inputs.MAJOR_TAG != '' }}
-          type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') && github.event_name == 'pull_request' }}
+          type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
 
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
       with:
-        registry: ${{ needs.infos.outputs.REGISTRY }}
+        registry: ${{ needs.infos.outputs.registry-domain }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
         logout: true
@@ -189,8 +191,8 @@ jobs:
       working-directory: /tmp/digests/${{ matrix.images.name }}
       run: |
         docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-          $(printf '${{ inputs.REGISTRY_NAMESPACE }}/${{ matrix.images.name }}@sha256:%s ' *)
+          $(printf '${{ needs.infos.outputs.registry-domain }}/${{ needs.infos.outputs.registry-user }}/${{ matrix.images.name }}@sha256:%s ' *)
 
     - name: Inspect image
       run: |
-        docker buildx imagetools inspect ${{ inputs.REGISTRY_NAMESPACE }}/${{ matrix.images.name }}:${{ steps.meta.outputs.version }}
+        docker buildx imagetools inspect ${{ needs.infos.outputs.registry-domain }}/${{ needs.infos.outputs.registry-user }}/${{ matrix.images.name }}:${{ steps.meta.outputs.version }}

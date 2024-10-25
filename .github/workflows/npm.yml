@@ -47,7 +47,7 @@ jobs:
     - name: Get variables
       id: infos
       run: |
-        echo "PUBLISH_MATRIX=$(jq -c '.' < ./ci/matrix-npm.json)" >> $GITHUB_OUTPUT
+        echo "PUBLISH_MATRIX=$(jq -c '.' < ./ci/matrix/npm.json)" >> $GITHUB_OUTPUT
 
   publish-npm:
     name: Pubish on npm
@@ -74,7 +74,7 @@ jobs:
     - name: Check for new package version
       id: check-version
       run: |
-        PACKAGE_VERSION=$(jq -cr '.version' < ${{ matrix.packages.path }}/s.json)
+        PACKAGE_VERSION=$(jq -cr '.version' < ${{ matrix.packages.path }}/package.json)
         if [ "$(curl -s -o /dev/null -I -w %{http_code} https://registry.npmjs.org/${{ matrix.packages.name }})" = 404 ]; then
           REMOTE=false
         else
