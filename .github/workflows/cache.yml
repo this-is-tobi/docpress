@@ -84,14 +84,13 @@ jobs:
     - name: Get repository owner and name
       id: image-infos
       run: |
-        echo "ORG_NAME=$(echo '${{ github.repository }}' | cut -d "/" -f 1)" >> $GITHUB_OUTPUT
+        echo "USER_NAME=$(echo '${{ github.repository }}' | cut -d "/" -f 1)" >> $GITHUB_OUTPUT
         echo "REPO_NAME=$(echo '${{ github.repository }}' | cut -d "/" -f 2)" >> $GITHUB_OUTPUT
 
     - name: Delete ${{ matrix.images.name }} image
       run: |
-        ./ci/scripts/delete-image.sh \
-          -o "${{ steps.image-infos.outputs.ORG_NAME }}" \
+        curl -s https://raw.githubusercontent.com/this-is-tobi/tools/main/shell/delete-ghcr-image.sh | bash -s -- \
+          -o "${{ steps.image-infos.outputs.USER_NAME }}" \
           -i "${{ steps.image-infos.outputs.REPO_NAME }}" \
-          -t "pr-${{ inputs.PR_NUMBER || inputs.COMMIT_SHA || github.event.pull_request.number || github.event.number }}" \
-          -t "${{ inputs.COMMIT_SHA  && format('sha-{0}', inputs.COMMIT_SHA) || format('pr-{0}', inputs.PR_NUMBER || inputs.COMMIT_SHA || github.event.pull_request.number || github.event.number) }}" \
+          -t "${{ inputs.COMMIT_SHA || format('pr-{0}', inputs.PR_NUMBER || inputs.COMMIT_SHA || github.event.pull_request.number || github.event.number) }}" \
           -g "${{ secrets.GITHUB_TOKEN }}"
