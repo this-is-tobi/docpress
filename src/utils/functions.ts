@@ -11,10 +11,7 @@ export async function checkHttpStatus(url: string): Promise<number> {
     const response = await axios.head(url)
     return response.status
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      return error.response.status
-    }
-    return 500
+    return error.response?.status || error.status || 500
   }
 }
 
@@ -43,7 +40,7 @@ export function prettify(s: string, opts: PrettifyOpts) {
     u = (u || s).toUpperCase()
   }
 
-  return u
+  return u || s
 }
 
 export function createDir(directory: string, { clean }: { clean?: boolean } = { clean: false }) {
@@ -86,11 +83,11 @@ export function getMdFiles(path: string[]) {
 export function prettifyEnum(arr: readonly string[]) {
   return arr.reduce((acc, cur, idx, arr) => {
     if (!idx) {
-      return cur
+      return `"${cur}"`
     } else if (idx === arr.length - 1) {
-      return `${JSON.stringify(acc)} or ${JSON.stringify(cur)}`
+      return `${acc} or "${cur}"`
     } else {
-      return `${JSON.stringify(acc)}, ${JSON.stringify(cur)}`
+      return `${acc}, "${cur}"`
     }
   }, '')
 }
@@ -103,10 +100,14 @@ export function getUserRepos() {
   return JSON.parse(readFileSync(USER_REPOS_INFOS).toString()) as EnhancedRepository[]
 }
 
-export function deepMerge<T extends Record<string, any>>(...objects: T[]): T {
+export function deepMerge<T extends Record<string, any> | null>(...objects: T[]): T {
   return objects.reduce((acc, obj) => {
+    if (obj === null) {
+      return acc
+    }
+
     Object.keys(obj).forEach((key) => {
-      const accValue = acc[key]
+      const accValue = acc ? acc[key] : null
       const objValue = obj[key]
 
       if (isObject(accValue) && isObject(objValue)) {
