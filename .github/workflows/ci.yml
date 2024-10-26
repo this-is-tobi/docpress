@@ -40,6 +40,14 @@ jobs:
       NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
       PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
 
+  tests-unit:
+    uses: ./.github/workflows/tests-unit.yml
+    needs:
+    - expose-vars
+    with:
+      NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
+      PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
+
   docker:
     uses: ./.github/workflows/docker.yml
     needs:
