@@ -40,36 +40,38 @@ export async function fetchDoc({ username, branch, reposFilter, token }: FetchOp
     .then(async ({ repos }) => getDoc(repos, reposFilter))
 }
 
-async function enhanceRepositories(repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter']) {
+export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter']) {
   const enhancedRepos: EnhancedRepository[] = []
 
-  await Promise.all(repos.map(async (repo) => {
-    const computedBranch = branch ?? repo.default_branch ?? 'main'
-    const projectPath = resolve(DOCS_DIR, repo.name)
-    const filtered = isRepoFiltered(repo, reposFilter)
-    let includes: string[] = []
+  await Promise.all(
+    repos.map(async (repo) => {
+      const computedBranch = branch ?? repo.default_branch ?? 'main'
+      const projectPath = resolve(DOCS_DIR, repo.name)
+      const filtered = isRepoFiltered(repo, reposFilter)
+      let includes: string[] = []
 
-    if (!repo.fork && !repo.private && !filtered) {
-      includes = await getSparseCheckout(repo, computedBranch)
-    }
+      if (!repo.fork && !repo.private && !filtered) {
+        includes = await getSparseCheckout(repo, computedBranch)
+      }
 
-    enhancedRepos.push({
-      ...repo,
-      docpress: {
-        filtered,
-        branch: computedBranch,
-        includes,
-        projectPath,
-        raw_url: `https://raw.githubusercontent.com/${repo.owner.login}/${repo.name}/${computedBranch}`,
-        replace_url: `https://github.com/${repo.owner.login}/${repo.name}/tree/${computedBranch}`,
-      },
-    })
-  }))
+      enhancedRepos.push({
+        ...repo,
+        docpress: {
+          filtered,
+          branch: computedBranch,
+          includes,
+          projectPath,
+          raw_url: `https://raw.githubusercontent.com/${repo.owner.login}/${repo.name}/${computedBranch}`,
+          replace_url: `https://github.com/${repo.owner.login}/${repo.name}/tree/${computedBranch}`,
+        },
+      })
+    }),
+  )
 
   return enhancedRepos
 }
 
-async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos>>['repos'][number], branch: FetchOpts['branch']) {
+export async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos>>['repos'][number], branch: FetchOpts['branch']) {
   const docsStatus = await checkDoc(repo.owner.login, repo.name, branch)
 
   const includes: string[] = []
@@ -85,7 +87,7 @@ async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos>>['rep
   return includes
 }
 
-async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'], repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter']) {
+export async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'], repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter']) {
   writeFileSync(USER_INFOS, JSON.stringify(user, null, 2))
 
   const enhancedRepos = await enhanceRepositories(repos, branch, reposFilter)
@@ -94,7 +96,7 @@ async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'],
   return { user, repos: enhancedRepos }
 }
 
-async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOpts['reposFilter']) {
+export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOpts['reposFilter']) {
   if (!repos) {
     console.warn('No repository respect docpress rules.')
     return

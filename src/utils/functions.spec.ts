@@ -1,20 +1,12 @@
-import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import axios from 'axios'
 import { rimrafSync } from 'rimraf'
-import { checkHttpStatus, createDir, deepMerge, extractFiles, getMdFiles, isDir, isFile, prettify, prettifyEnum } from './functions.js'
+import { checkHttpStatus, createDir, deepMerge, extractFiles, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, prettify, prettifyEnum } from './functions.js'
 
 vi.mock('axios')
 vi.mock('fs')
 vi.mock('rimraf')
-// vi.mock('./functions.js', async (importOriginal) => {
-//   const actualModule = await importOriginal()
-//   return {
-//     ...actualModule,
-//     isFile: vi.fn(),
-//     isDir: vi.fn(),
-//   }
-// })
 
 describe('checkHttpStatus', () => {
   const testUrl = 'http://example.com'
@@ -328,6 +320,35 @@ describe('prettifyEnum', () => {
   })
 })
 
+describe('getUserInfos', () => {
+  it('should return parsed user information from USER_INFOS file', () => {
+    const mockUserInfo = {
+      username: 'testUser',
+      name: 'Test User',
+      bio: 'This is a test user.',
+    }
+
+    ;(readFileSync as any).mockReturnValue(JSON.stringify(mockUserInfo))
+
+    const userInfo = getUserInfos()
+    expect(userInfo).toEqual(mockUserInfo)
+  })
+})
+
+describe('getUserRepos', () => {
+  it('should return parsed repository information from USER_REPOS_INFOS file', () => {
+    const mockRepos = [
+      { name: 'repo1', description: 'Test repo 1', stars: 5 },
+      { name: 'repo2', description: 'Test repo 2', stars: 3 },
+    ]
+
+    ;(readFileSync as any).mockReturnValue(JSON.stringify(mockRepos))
+
+    const repos = getUserRepos()
+    expect(repos).toEqual(mockRepos)
+  })
+})
+
 describe('deepMerge', () => {
   it('should merge two flat objects', () => {
     const obj1 = { a: 1, b: 2 } as { a?: number, b: number }
@@ -381,7 +402,7 @@ describe('deepMerge', () => {
     const obj1 = { a: [1, 2] }
     const obj2 = { a: [3, 4] }
     const result = deepMerge(obj1, obj2)
-    expect(result).toEqual({ a: [3, 4] }) // Note: The arrays should not be merged
+    expect(result).toEqual({ a: [3, 4] })
   })
 
   it('should ignore null values', () => {
