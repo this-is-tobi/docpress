@@ -67,7 +67,7 @@ jobs:
     - expose-vars
     - docker
     permissions:
-      issues: write
+      pull-requests: write
     with:
       REGISTRY_NAMESPACE: ${{ needs.expose-vars.outputs.REGISTRY_NAMESPACE }}
       TAG: pr-${{ github.event.pull_request.number || github.event.number }}
