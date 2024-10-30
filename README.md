@@ -14,7 +14,8 @@ After downloading all project documentation files, it will build a static websit
 It is important to understand and respect some conventions for the script to work correctly :
 - Only the `docs/` root folder in the repository will be parsed to import advanced documentation (multi pages documentation, embed images or files, etc...).
 - The `README.md` root file will only be imported if there is no `./docs/01-readme.md` file (this allows you to manage differences between the readme file and the advanced documentation introduction page, for example using a table of contents in the readme file that makes no sense in the documentation website).
-- Any inline link in the `README.md` root file that does not point to `./docs/**` will be replaced by the appropriate Github link.
+- Any inline link in the `./README.md` root file that does not point to `./docs/**` will be replaced by the appropriate Github link.
+- Any inline link in the `./docs/*.md` files that does not point to `./docs/**` will be replaced by the appropriate Github link.
 - Each project description on the home page is extracted from the Github repository description.
 
 ## Quickstart
@@ -30,7 +31,7 @@ docker run \
   -u <github_username>
 ```
 
-The dist folder is available at `./docpress/.vitepress.dist`, ready to be delivered with a web server like Nginx, Apache, etc...
+The dist folder is available at `./docpress/.vitepress/dist`, ready to be delivered with a web server like Nginx, Apache, etc...
 
 ## Advanced usage
 
