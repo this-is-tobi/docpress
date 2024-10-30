@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: 20.17.0
+  NODE_VERSION: 22.10.0
   PNPM_VERSION: 9.11.0
   REGISTRY_NAMESPACE: ghcr.io/${{ github.repository_owner }}
   MULTI_ARCH: true
@@ -40,6 +40,14 @@ jobs:
       NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
       PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
 
+  tests-unit:
+    uses: ./.github/workflows/tests-unit.yml
+    needs:
+    - expose-vars
+    with:
+      NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
+      PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
+
   docker:
     uses: ./.github/workflows/docker.yml
     needs:
@@ -59,7 +67,7 @@ jobs:
     - expose-vars
     - docker
     permissions:
-      issues: write
+      pull-requests: write
     with:
       REGISTRY_NAMESPACE: ${{ needs.expose-vars.outputs.REGISTRY_NAMESPACE }}
       TAG: pr-${{ github.event.pull_request.number || github.event.number }}

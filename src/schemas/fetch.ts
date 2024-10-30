@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { prettifyEnum } from '../utils/functions.js'
 
-const providers = ['github', 'gitlab'] as const
+const providers = ['github'] as const
 
 export const fetchOptsSchema = z.object({
   branch: z.string()

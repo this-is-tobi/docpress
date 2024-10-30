@@ -2,6 +2,11 @@
   "compilerOptions": {
     "baseUrl": "./",
     "rootDir": "./src",
+    "types": [
+      "node",
+      "vitest", 
+      "vitest/globals"
+    ],
 
     // Module
     "incremental": true,

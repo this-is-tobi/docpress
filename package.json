@@ -27,7 +27,8 @@
     "start": "./bin/docpress.js",
     "start:docker": "docker run --publish 8080:8080 --name docpress --rm -v $(pwd)/docpress:/app/docpress:rw robots/docpress",
     "stop:docker": "docker rm --force docpress",
-    "test": "echo 'wip'",
+    "test": "vitest run",
+    "test:cov": "vitest run --coverage",
     "vp:build": "vitepress build ./docpress",
     "vp:build:docker": "docker build --tag robots/docs --target prod .",
     "vp:dev": "vitepress dev ./docpress --port 8080",
@@ -49,12 +50,14 @@
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
     "@types/node": "^22.7.7",
+    "@vitest/coverage-v8": "^2.1.3",
     "eslint": "^9.13.0",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
     "typescript": "^5.6.3",
     "vite": "^5.4.9",
-    "vite-node": "^2.1.3"
+    "vite-node": "^2.1.3",
+    "vitest": "^2.1.3"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
