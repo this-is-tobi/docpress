@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/this-is-tobi/docpress/compare/v0.1.0...v0.1.1) (2024-10-30)
+
+
+### Bug Fixes
+
+* correctly handle node option in shebang ([fcebfa4](https://github.com/this-is-tobi/docpress/commit/fcebfa47744d3132c0ab406f839b81be68057246))
+
 ## [0.1.0](https://github.com/this-is-tobi/docpress/compare/v0.0.1...v0.1.0) (2024-10-25)
 
 
