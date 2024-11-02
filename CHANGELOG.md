@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/this-is-tobi/docpress/compare/v0.1.2...v0.1.3) (2024-11-02)
+
+
+### Bug Fixes
+
+* remove vitepress import in generated vitepress config ([d57e9e5](https://github.com/this-is-tobi/docpress/commit/d57e9e515850fd8dafaea6175d0b853af57a64f3))
+
 ## [0.1.2](https://github.com/this-is-tobi/docpress/compare/v0.1.1...v0.1.2) (2024-11-02)
 
 
