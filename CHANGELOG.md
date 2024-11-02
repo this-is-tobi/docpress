@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/this-is-tobi/docpress/compare/v0.1.3...v0.1.4) (2024-11-02)
+
+
+### Bug Fixes
+
+* add missing vue dependency ([76bf4fb](https://github.com/this-is-tobi/docpress/commit/76bf4fb05bf3624ab93228328d575266019c301b))
+
 ## [0.1.3](https://github.com/this-is-tobi/docpress/compare/v0.1.2...v0.1.3) (2024-11-02)
 
 
