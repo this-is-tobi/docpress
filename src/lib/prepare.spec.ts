@@ -209,7 +209,7 @@ describe('generateVitepressFiles', () => {
     generateVitepressFiles(vitepressConfig, index)
     expect(writeFileSync).toHaveBeenCalledWith(
       '/mock/config.js',
-      expect.stringContaining('export default defineConfig({'),
+      expect.stringContaining('export default {'),
     )
     expect(writeFileSync).toHaveBeenCalledWith(
       '/mock/docs/index.md',
