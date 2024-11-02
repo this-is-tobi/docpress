@@ -183,6 +183,6 @@ export function parseVitepressConfig(path: string) {
 export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeof defineConfig>>, index: Index) {
   createDir(dirname(VITEPRESS_CONFIG))
 
-  writeFileSync(VITEPRESS_CONFIG, `import { defineConfig } from 'vitepress'\n\nexport default defineConfig(${JSON.stringify(vitepressConfig, null, 2)})\n`)
+  writeFileSync(VITEPRESS_CONFIG, `export default ${JSON.stringify(vitepressConfig, null, 2)}\n`)
   writeFileSync(INDEX_FILE, '---\n'.concat(YAML.stringify(index)))
 }
