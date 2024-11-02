@@ -37,7 +37,6 @@ FROM ${NODE_IMAGE} AS prod
 
 ARG APP_VERSION
 ENV APP_VERSION=$APP_VERSION
-# ENV GIT_DISCOVERY_ACROSS_FILESYSTEM=1
 WORKDIR /app
 RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/* \
   && mkdir -p /home/node/logs && chmod 660 -R /home/node/logs \
@@ -46,6 +45,7 @@ RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/* \
   && git config --system --add safe.directory '*'
 COPY --chown=node:root --from=prod-deps /app/node_modules ./node_modules
 COPY --chown=node:root --from=build /app/dist ./dist
+COPY --chown=node:root --from=build /app/types ./types
 COPY --chown=node:root --from=build /app/bin ./bin
 COPY --chown=node:root --from=build /app/package.json ./
 USER node

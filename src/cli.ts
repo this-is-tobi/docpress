@@ -32,7 +32,7 @@ export function getProgram() {
   return pm
 }
 
-export default function main() {
+export function main() {
   const pm = getProgram()
   pm.parseAsync()
 }
