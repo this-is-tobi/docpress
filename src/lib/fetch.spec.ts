@@ -226,9 +226,23 @@ describe.skip('fetchDoc', () => {
   it('should create the DOCPRESS_DIR and fetch and process repositories', async () => {
     const mockUser = { login: mockUsername }
     const mockRepos = [
-      { name: 'repo1', owner: { login: mockUsername }, default_branch: mockBranch },
-      { name: 'repo2', owner: { login: mockUsername }, default_branch: mockBranch },
-    ]
+      {
+        name: 'repo1',
+        owner: mockUser,
+        clone_url: 'https://github.com/testUser/repo1',
+        fork: false,
+        private: false,
+        docpress: { projectPath: '/path/to/repo1', branch: 'main', includes: ['README.md'] },
+      },
+      {
+        name: 'repo2',
+        owner: mockUser,
+        clone_url: 'https://github.com/testUser/repo2',
+        fork: true,
+        private: false,
+        docpress: { projectPath: '/path/to/repo2', branch: 'main', includes: [] },
+      },
+    ] as unknown as EnhancedRepository[]
     const mockEnhancedRepos = [
       { ...mockRepos[0], docpress: { branch: mockBranch, filtered: false, includes: [], projectPath: '', raw_url: '', replace_url: '' } },
     ]
