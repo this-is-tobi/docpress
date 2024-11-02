@@ -25,10 +25,15 @@ export const options = {
 }
 
 export function parseOptions<T extends Cmd>(cmd: T, opts: Options[T]) {
-  return options[cmd].parse({
+  const res = options[cmd].safeParse({
     ...globalOptsSchema.parse(opts).config,
     ...opts,
-  }) as Options[T]
+  })
+
+  if (res.success) {
+    return res.data as Options[T]
+  }
+  throw new Error(`Invalid options: ${res.error}`)
 }
 
 export function addOptions(cmd: Command, opts: Option[]) {

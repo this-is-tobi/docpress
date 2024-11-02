@@ -157,7 +157,7 @@ export function addExtraPages(paths: string[]) {
     cpSync(src, dest)
     nav.push({
       text: prettify(parse(src).name, { replaceDash: true, removeIdx: true }),
-      link: `/${prettify(parse(src).name, { removeIdx: true })}`,
+      link: `/${prettify(parse(src).name, { removeIdx: true, mode: 'lowercase' })}`,
     })
   }
   return nav
