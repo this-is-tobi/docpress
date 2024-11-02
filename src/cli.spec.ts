@@ -6,7 +6,7 @@ import { main as buildFn } from './commands/build.js'
 import { main as prepareFn, prepareOpts } from './commands/prepare.js'
 import { addOptions } from './utils/commands.js'
 import { globalOpts } from './commands/global.js'
-import main, { getProgram } from './index.js'
+import { getProgram, main } from './cli.js'
 
 vi.mock('./commands/fetch.js', () => ({
   fetchCmd: new Command('fetch'),
