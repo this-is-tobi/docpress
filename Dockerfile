@@ -1,9 +1,9 @@
-ARG NODE_IMAGE=docker.io/node:22.10.0-slim
+ARG NODE_IMAGE=docker.io/node:22.11.0-slim
 
 # Base stage
 FROM ${NODE_IMAGE} AS base
 
-ARG PNPM_VERSION=9.11.0
+ARG PNPM_VERSION=9.12.3
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 WORKDIR /app
