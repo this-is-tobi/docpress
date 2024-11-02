@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/this-is-tobi/docpress/compare/v0.1.4...v0.1.5) (2024-11-02)
+
+
+### Bug Fixes
+
+* add bundledDependencies ([a16e1fa](https://github.com/this-is-tobi/docpress/commit/a16e1fa1999b52bca3807c17977d40e7954bad2b))
+
 ## [0.1.4](https://github.com/this-is-tobi/docpress/compare/v0.1.3...v0.1.4) (2024-11-02)
 
 
