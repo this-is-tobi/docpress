@@ -91,7 +91,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /tmp/.buildx-cache
-        key: buildx-${{ runner.os }}-${{ runner.arch }}-${{ matrix.images.name }}-${{ hashFiles(format('apps/{0}/**', matrix.images.name)) }}
+        key: buildx-${{ runner.os }}-${{ runner.arch }}-${{ matrix.images.name }}-${{ hashFiles('src/**') }}
         restore-keys: |
           buildx-${{ runner.os }}-${{ runner.arch }}-${{ matrix.images.name }}-
 

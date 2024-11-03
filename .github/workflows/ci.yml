@@ -14,6 +14,8 @@ on:
 env:
   NODE_VERSION: 22.11.0
   PNPM_VERSION: 9.12.3
+  NPM_VERSION: latest
+  BUN_VERSION: latest
   REGISTRY_NAMESPACE: ghcr.io/${{ github.repository_owner }}
   MULTI_ARCH: true
   USE_QEMU: true
@@ -25,6 +27,7 @@ jobs:
     outputs:
       NODE_VERSION: ${{ env.NODE_VERSION }}
       PNPM_VERSION: ${{ env.PNPM_VERSION }}
+      BUN_VERSION: ${{ env.BUN_VERSION }}
       REGISTRY_NAMESPACE: ${{ env.REGISTRY_NAMESPACE }}
       MULTI_ARCH: ${{ env.MULTI_ARCH }}
       USE_QEMU: ${{ env.USE_QEMU }}
@@ -48,7 +51,16 @@ jobs:
       NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
       PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
 
-  docker:
+  tests-cli:
+    uses: ./.github/workflows/tests-cli.yml
+    needs:
+    - expose-vars
+    with:
+      NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
+      PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
+      BUN_VERSION: ${{ needs.expose-vars.outputs.BUN_VERSION }}
+
+  build-docker:
     uses: ./.github/workflows/docker.yml
     needs:
     - expose-vars
@@ -60,12 +72,21 @@ jobs:
       MULTI_ARCH: ${{ needs.expose-vars.outputs.MULTI_ARCH == 'true' }}
       USE_QEMU: ${{ needs.expose-vars.outputs.USE_QEMU == 'true' }}
 
+  tests-docker:
+    uses: ./.github/workflows/tests-docker.yml
+    needs:
+    - expose-vars
+    - build-docker
+    with:
+      PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
+      DOCKER_IMAGE: ${{ (github.event.pull_request.number || github.event.number) && format('{0}/{1}:pr-{2}', needs.expose-vars.outputs.REGISTRY_NAMESPACE, 'docpress', (github.event.pull_request.number || github.event.number)) }}
+
   scan-vuln:
     uses: ./.github/workflows/scan.yml
     if: ${{ !github.event.pull_request.draft && (github.base_ref == 'main' || github.base_ref == 'develop') }}
     needs:
     - expose-vars
-    - docker
+    - build-docker
     permissions:
       pull-requests: write
     with:
@@ -80,7 +101,10 @@ jobs:
     needs:
     - expose-vars
     - lint
-    - docker
+    - tests-unit
+    - tests-cli
+    - build-docker
+    - tests-docker
     - scan-vuln
     steps:
     - name: Check status of all required jobs
