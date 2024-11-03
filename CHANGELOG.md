@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/this-is-tobi/docpress/compare/v0.1.5...v0.1.6) (2024-11-03)
+
+
+### Bug Fixes
+
+* remove bundledDependencies from package.json ([e56ae4d](https://github.com/this-is-tobi/docpress/commit/e56ae4d41529c7c6682fefca5208db02a3068220))
+
 ## [0.1.5](https://github.com/this-is-tobi/docpress/compare/v0.1.4...v0.1.5) (2024-11-02)
 
 
