@@ -7,12 +7,11 @@ This project aims to automate the construction of documentation website based on
 The package will download the documentation files for the given repository list, to do this it will check if a `docs/` folder is present at root level and download this entire folder or only the `README.md` file if this is not the case.
 After downloading all project documentation files, it will build a static website using [vitepress](https://vitepress.dev/).
 
-> If a `docs/` folder is present, all files in it will be sorted and renamed without the prefix number so it will not appeared inside the generated website. Example: `docs/01-get-started.md` will become `get-started.md`.
-
 ## Rules
 
 It is important to understand and respect some conventions for the script to work correctly :
 - Only the `docs/` root folder in the repository will be parsed to import advanced documentation (multi pages documentation, embed images or files, etc...).
+- If a `docs/` folder is present, all files in it will be sorted and renamed without the prefix number so it will not appeared inside the generated website. Example: `docs/01-get-started.md` will become `get-started.md`.
 - The `README.md` root file will only be imported if there is no `./docs/01-readme.md` file (this allows you to manage differences between the readme file and the advanced documentation introduction page, for example using a table of contents in the readme file that makes no sense in the documentation website).
 - Any inline link in the `./README.md` root file that does not point to `./docs/**` will be replaced by the appropriate Github link.
 - Any inline link in the `./docs/*.md` files that does not point to `./docs/**` will be replaced by the appropriate Github link.
@@ -23,12 +22,8 @@ It is important to understand and respect some conventions for the script to wor
 Generate website using the Docpress docker image :
 
 ```sh
-docker run \
-  --publish 8080:8080 \
-  --name docpress \
-  --rm \
-  -v $(pwd)/docpress:/app/docpress:rw ghcr.io/this-is-tobi/docpress \
-  -u <github_username>
+docker run --name docpress --rm -v $(pwd)/docpress:/app/docpress:rw \
+  ghcr.io/this-is-tobi/docpress -u <github_username>
 ```
 
 The dist folder is available at `./docpress/.vitepress/dist`, ready to be delivered with a web server like Nginx, Apache, etc...
