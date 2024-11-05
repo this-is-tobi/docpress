@@ -1,4 +1,5 @@
 import type { Command, Option } from 'commander'
+import { fromError } from 'zod-validation-error'
 import type { GlobalOpts } from '../schemas/global.js'
 import { globalOptsSchema } from '../schemas/global.js'
 import type { BuildOpts } from '../schemas/build.js'
@@ -33,7 +34,8 @@ export function parseOptions<T extends Cmd>(cmd: T, opts: Options[T]) {
   if (res.success) {
     return res.data as Options[T]
   }
-  throw new Error(`Invalid options: ${res.error}`)
+  console.error(fromError(res.error).toString())
+  process.exit(0)
 }
 
 export function addOptions(cmd: Command, opts: Option[]) {

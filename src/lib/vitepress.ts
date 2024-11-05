@@ -11,7 +11,7 @@ const defaultVitepressConfig: ReturnType<typeof defineConfig> = {
   title: 'Home',
   description: 'Docpress',
   srcDir: './docs',
-  cleanUrls: true,
+  cleanUrls: false,
   ignoreDeadLinks: 'localhostLinks',
   themeConfig: {
     outline: [2, 3],
@@ -41,14 +41,7 @@ const defaultVitepressConfig: ReturnType<typeof defineConfig> = {
 }
 
 export function getVitepressConfig(sidebar: SidebarProject[], nav: Page[], vitepressConfig?: ReturnType<typeof defineConfig>): Partial<ReturnType<typeof defineConfig>> {
-  const mergedConfig = deepMerge(defaultVitepressConfig, vitepressConfig ?? {})
-
-  return {
-    ...mergedConfig,
-    themeConfig: {
-      ...mergedConfig.themeConfig,
-      sidebar,
-      nav,
-    },
-  }
+  return vitepressConfig
+    ? deepMerge(defaultVitepressConfig, vitepressConfig, { themeConfig: { sidebar, nav } })
+    : deepMerge(defaultVitepressConfig, { themeConfig: { sidebar, nav } })
 }

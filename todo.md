@@ -1,15 +1,25 @@
 - [x] Generate vitepress sources with javascript
-- [ ] Build vitepress website with javascript
-- [ ] Add tests
-- [ ] Add release system for application
+- [x] Add tests
+- [x] Add release system for application
+- [x] Build vitepress website programatically
+- [x] Handle vitepress header page links customization (it should build headers by reading root markdown files)
+- [x] Handle vitepress config customization
+- [x] Handle vitepress css customization
+- [x] Add repository exclusion with `!` prefix
 - [ ] Create a Github Action that build the docs and optionally deploy it to github.io
+- [ ] Add support for private repositories (without link ?)
 - [ ] Build a dedicated page for fork (list every public fork where user contribute with a small description)
-- [ ] Build vitepress website programatically
+- [ ] Handle vitepress about page customization (docpress config option with defaukt theme)
 - [ ] Add advanced app config by parsing file (yaml / json)
-- [ ] Handle vitepress about page customization
-- [ ] Handle vitepress header page links customization (it should build headers by reading root markdown files)
-- [ ] Handle vitepress config customization
-- [ ] Handle vitepress css customization
-- [ ] Add repository exclusion with `!` prefix
-- [ ] Add documentation
-- [ ] Add support for private repositories
+  - [x] json parsing
+  - [ ] yaml parsing
+- [x] Add documentation
+  - [x] Repofilter (inclusion / exclusion)
+  - [x] Default values
+  - [x] Docpress config file
+  - [x] Vitepress config file
+  - [x] Extra pages
+  - [x] Extra public
+  - [x] Extra theme
+  - [x] Usage (npx / pnpx / bunx / docker) + exemple with nginx
+  - [x] Github token (ratelimit / private)

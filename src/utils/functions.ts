@@ -57,11 +57,19 @@ export function createDir(directory: string, { clean }: { clean?: boolean } = { 
 }
 
 export function isDir(path: string) {
-  return statSync(path).isDirectory()
+  try {
+    return statSync(path).isDirectory()
+  } catch (_error) {
+    return false
+  }
 }
 
 export function isFile(path: string) {
-  return statSync(path).isFile()
+  try {
+    return statSync(path).isFile()
+  } catch (_error) {
+    return false
+  }
 }
 
 export function extractFiles(paths: string[] | string): string[] {

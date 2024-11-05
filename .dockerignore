@@ -1,3 +1,10 @@
+# General
+README.md
+CHANGELOG.md
+.prototools
+release-pelase-config.json
+.release-pelase-manifest.json
+
 # Npm
 node_modules
 npm-debug.log
@@ -6,12 +13,16 @@ npm-debug.log
 .gitkeep
 
 # Lint
+.editorconfig
+.eslint.config.js
 .eslintrc.js
 .eslintrc.cjs
 .eslintrc.json
 .eslintignore
 .stylelintrc.js
 .stylelintrc.cjs
+.commitlintrc.json
+.lintstagedrc.json
 
 # Cypress
 **/cypress.config.ts
@@ -20,6 +31,7 @@ npm-debug.log
 # Tests
 .turbo/
 coverage/
+vitest.config.ts
 
 # Docker
 **/Dockerfile
@@ -28,3 +40,9 @@ docker/
 
 # Env
 .env*
+
+# CI/CD
+ci/
+.husky/
+.vscode/
+.commitlintrc.json

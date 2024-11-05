@@ -22,7 +22,7 @@
     "build:docker": "docker build --tag tobi-or-not/docpress --target prod .",
     "build:types": "tsc",
     "build:vite": "vite build",
-    "dev": "vite-node ./dev/docpress.ts",
+    "dev": "rimraf ./docpress && vite-node ./dev/docpress.ts",
     "format": "eslint . --fix",
     "lint": "eslint .",
     "prepare": "husky",
@@ -45,7 +45,8 @@
     "simple-git": "^3.27.0",
     "vitepress": "^1.4.1",
     "yaml": "^2.6.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^3.8.0",
