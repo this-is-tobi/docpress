@@ -9,7 +9,7 @@ export const fetchOptsSchema = z.object({
     .optional()
     .default('main'),
   gitProvider: z.enum(providers)
-    .describe(`Git provider used to retrieve data. Values should be one of ${prettifyEnum(providers)}.`)
+    .describe(`Git provider used to retrieve data. Values should be ${prettifyEnum(providers)}.`)
     .optional()
     .default('github'),
   reposFilter: z.string()
