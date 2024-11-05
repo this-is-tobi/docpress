@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/this-is-tobi/docpress/compare/v0.1.6...v0.1.7) (2024-11-05)
+
+
+### Bug Fixes
+
+* handle missing extras files ([075001c](https://github.com/this-is-tobi/docpress/commit/075001c119dcc9c4ea38a12ef1039a0f3db03bb1))
+
 ## [0.1.6](https://github.com/this-is-tobi/docpress/compare/v0.1.5...v0.1.6) (2024-11-03)
 
 
