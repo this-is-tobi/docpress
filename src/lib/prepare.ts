@@ -36,7 +36,7 @@ export interface Index {
 
 function addSources(repoUrl: string, outputPath: string) {
   const fileName = basename(outputPath)
-  const title = fileName === 'readme.md' ? '\n## Sources' : '# Sources'
+  const title = fileName === 'introduction.md' ? '\n## Sources' : '# Sources'
 
   const sourcesContent = `${title}\n\nTake a look at the [project sources](${repoUrl}).\n`
 
@@ -67,7 +67,7 @@ export function generateFeatures(repoName: string, description: string, features
   const content = {
     title: prettify(repoName, { mode: 'capitalize', replaceDash: true }),
     details: description,
-    link: `/${repoName}/readme`,
+    link: `/${repoName}/introduction`,
   }
 
   return features ? [...features, content] : [content]
@@ -83,7 +83,7 @@ export function generateSidebarProject(repoName: string, sidebarPages: Page[]) {
 
 export function generateSidebarPages(repoName: string, fileName: string, sidebarPages?: Page[]) {
   const content = {
-    text: fileName === 'readme' ? 'Introduction' : prettify(fileName, { mode: 'capitalize', replaceDash: true }),
+    text: fileName === 'introduction' ? 'Introduction' : prettify(fileName, { mode: 'capitalize', replaceDash: true }),
     link: `/${repoName}/${fileName}`,
   }
 
@@ -111,8 +111,11 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
       .sort((a, b) => a.localeCompare(b))
       .reduce((acc: Page[], cur, idx, arr) => {
         const file = resolve(repository.docpress.projectPath, cur)
-        const filename = prettify(basename(file), { mode: 'lowercase', removeIdx: true })
+        let filename = prettify(basename(file), { mode: 'lowercase', removeIdx: true })
 
+        if (filename === 'readme.md') {
+          filename = 'introduction.md'
+        }
         if (filename !== basename(file)) {
           renameSync(file, resolve(dirname(file), filename))
         }
@@ -129,7 +132,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
               generateSidebarPages(repository.name, parse(filename).name, acc),
             )
           }
-          sourceFile = resolve(repository.docpress.projectPath, 'readme.md')
+          sourceFile = resolve(repository.docpress.projectPath, filename)
           addSources(repository.html_url, sourceFile)
         }
 
