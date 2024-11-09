@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/this-is-tobi/docpress/compare/v0.2.0...v0.2.1) (2024-11-09)
+
+
+### Bug Fixes
+
+* add end frontmatter separtor in index file ([17d70f2](https://github.com/this-is-tobi/docpress/commit/17d70f275d68c0b6e8932af47a292e0996d48789))
+* do not transform link if it refers to a local section ([5440f24](https://github.com/this-is-tobi/docpress/commit/5440f2426cbef0a353a1f61a7f2806800821d875))
+
 ## [0.2.0](https://github.com/this-is-tobi/docpress/compare/v0.1.7...v0.2.0) (2024-11-09)
 
 
