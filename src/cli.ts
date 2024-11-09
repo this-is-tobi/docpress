@@ -3,7 +3,7 @@ import pkg from '../package.json' with { type: 'json' }
 import { fetchCmd, main as fetchFn, fetchOpts } from './commands/fetch.js'
 import { buildCmd, main as buildFn } from './commands/build.js'
 import { prepareCmd, main as prepareFn, prepareOpts } from './commands/prepare.js'
-import { addOptions } from './utils/commands.js'
+import { addOptions, parseOptions } from './utils/commands.js'
 import { globalOpts } from './commands/global.js'
 
 export function getProgram() {
@@ -15,8 +15,9 @@ export function getProgram() {
     .addCommand(prepareCmd)
     .addCommand(buildCmd)
     .action(async (opts, _cmd) => {
-      await fetchFn(opts)
-      await prepareFn(opts)
+      const parsedOpts = parseOptions(['fetch', 'prepare'], opts)
+      await fetchFn(parsedOpts)
+      await prepareFn(parsedOpts)
       await buildFn()
     })
     .configureHelp({

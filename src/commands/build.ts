@@ -2,6 +2,7 @@ import { build as vitepressBuild } from 'vitepress'
 import { createCommand } from 'commander'
 import { addOptions } from '../utils/commands.js'
 import { DOCPRESS_DIR } from '../utils/const.js'
+import { log } from '../utils/logger.js'
 import { globalOpts } from './global.js'
 
 const cmdName = 'build'
@@ -15,5 +16,12 @@ export const buildCmd = addOptions(createCommand(cmdName), globalOpts)
   })
 
 export async function main() {
-  await vitepressBuild(DOCPRESS_DIR)
+  log(`\n-> Start building Vitepress website.\n\n`, 'info')
+
+  try {
+    await vitepressBuild(DOCPRESS_DIR)
+    log(`\n\nDocpress build succedeed.`, 'success')
+  } catch (error) {
+    log(`\n\nDocpress build failed : ${error}`, 'error')
+  }
 }

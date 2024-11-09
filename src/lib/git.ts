@@ -4,8 +4,10 @@ import { Octokit } from 'octokit'
 import { simpleGit } from 'simple-git'
 import { createDir } from '../utils/functions.js'
 import type { FetchOpts } from '../schemas/fetch.js'
+import { log } from '../utils/logger.js'
 
 export async function getInfos({ username, token, branch }: Pick<FetchOpts, 'username' | 'branch' | 'token'>) {
+  log(`   Get infos for username '${username}'.`, 'info')
   const octokit = new Octokit({ auth: token })
   const { data: user } = await octokit.request('GET /users/{username}', { username })
   const { data: repos } = await octokit.request('GET /users/{username}/repos', { username, sort: 'full_name' })
@@ -33,7 +35,7 @@ export async function cloneRepo(url: string, projectDir: string, branch: string,
       rmSync(resolve(projectDir, 'docs'), { recursive: true })
     }
     rmSync(resolve(projectDir, '.git'), { recursive: true })
-  } catch (e) {
-    console.error(e)
+  } catch (error) {
+    log(`   Error when cloning repository: ${error}.`, 'error')
   }
 }

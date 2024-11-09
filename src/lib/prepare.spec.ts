@@ -63,7 +63,7 @@ describe('generateFeatures', () => {
       {
         title: 'My repo',
         details: 'Description',
-        link: '/my-repo/readme',
+        link: '/my-repo/introduction',
       },
     ])
   })
@@ -82,12 +82,22 @@ describe('generateSidebarProject', () => {
 })
 
 describe('generateSidebarPages', () => {
-  it('should generate sidebar pages with Introduction if filename is readme', () => {
-    const result = generateSidebarPages('my-repo', 'readme')
+  it('should generate sidebar pages with Introduction if filename is introduction', () => {
+    const result = generateSidebarPages('my-repo', 'introduction')
     expect(result).toEqual([
       {
         text: 'Introduction',
-        link: '/my-repo/readme',
+        link: '/my-repo/introduction',
+      },
+    ])
+  })
+
+  it('should generate sidebar pages with Introduction if filename is not introduction', () => {
+    const result = generateSidebarPages('my-repo', 'foo')
+    expect(result).toEqual([
+      {
+        text: 'Foo',
+        link: '/my-repo/foo',
       },
     ])
   })
@@ -135,7 +145,7 @@ describe('transformDoc', () => {
           },
           {
             text: 'Introduction',
-            link: '/my-repo/readme',
+            link: '/my-repo/introduction',
           },
           {
             text: 'Sources',
@@ -159,7 +169,7 @@ describe('transformDoc', () => {
         items: [
           {
             text: 'Introduction',
-            link: '/my-repo/readme',
+            link: '/my-repo/introduction',
           },
         ],
       },

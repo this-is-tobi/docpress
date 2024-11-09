@@ -7,8 +7,9 @@ import { prepareOptsSchema } from '../schemas/prepare.js'
 import { getUserInfos, getUserRepos } from '../utils/functions.js'
 import { addContent, addExtraPages, generateVitepressFiles, transformDoc } from '../lib/prepare.js'
 import { getVitepressConfig } from '../lib/vitepress.js'
-import type { getInfos } from '../lib/git.js'
+import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from '../lib/fetch.js'
+import type { getInfos } from '../lib/git.js'
 import * as prepareMod from './prepare.js'
 import { globalOpts } from './global.js'
 
@@ -22,31 +23,65 @@ vi.mock('../lib/prepare.js', () => ({
   addContent: vi.fn(),
   addExtraPages: vi.fn(),
   generateVitepressFiles: vi.fn(),
-  transformDoc: vi.fn(() => ({
-    sidebar: [{
-      text: 'repo1',
-      collapsed: true,
-      items: [{ text: 'Introduction', link: '/readme' }],
-    }],
-    index: {
-      layout: 'foo',
-      hero: { name: 'myDocs', tagline: 'faster than light' },
-      features: [{
-        title: 'Dotfiles',
-        details: 'blablabla',
-        link: '/readme',
-      }],
-    },
-  })),
+  transformDoc: vi.fn(),
 }))
 vi.mock('../lib/vitepress.js', () => ({
   getVitepressConfig: vi.fn(),
+}))
+vi.mock('../utils/logger.js', () => ({
+  log: vi.fn(),
 }))
 vi.spyOn(prepareMod, 'main')
 
 const { prepareCmd, prepareOpts, main } = prepareMod
 
+const mockUser = { name: 'testUser' } as Awaited<ReturnType<typeof getInfos>>['user']
+const mockRepos = [
+  {
+    clone_url: 'https://github.com/test/repo1',
+    fork: false,
+    private: false,
+    description: 'blablabla',
+    docpress: { includes: ['docs'], filtered: false },
+  },
+  {
+    clone_url: 'https://github.com/test/repo2',
+    fork: true,
+    private: false,
+    description: '',
+    docpress: { includes: [], filtered: false },
+  },
+] as EnhancedRepository[]
+const mockTransformed = {
+  sidebar: [{
+    text: 'Repo1',
+    collapsed: true,
+    items: [{ text: 'Introduction', link: '/introduction' }],
+  }],
+  index: {
+    layout: 'home',
+    hero: { name: 'myDocs', tagline: 'faster than light' },
+    features: [{
+      title: 'Repo1',
+      details: 'blablabla',
+      link: '/introduction',
+    }],
+  },
+}
+const mockNav = [{ text: 'About', link: '/about' }]
+const mockVitepressConfig = { title: 'My Project' }
+const mockOpts = {
+  extraHeaderPages: ['header/pages'],
+  extraPublicContent: ['public/content'],
+  extraTheme: ['theme/path'],
+  vitepressConfig: mockVitepressConfig,
+} as unknown as PrepareOpts
+
 describe('prepareCmd', () => {
+  beforeEach(() => {
+    vi.mocked(transformDoc).mockReturnValue(mockTransformed)
+  })
+
   it('should have the correct command name', () => {
     expect(prepareCmd.name()).toBe('prepare')
   })
@@ -69,59 +104,21 @@ describe('prepareCmd', () => {
 })
 
 describe('main', () => {
-  const mockOpts = {
-    extraHeaderPages: 'header/pages',
-    extraPublicContent: 'public/content',
-    extraTheme: 'theme/path',
-    vitepressConfig: '/path/to/vitepress-config',
-  } as unknown as PrepareOpts
-
-  const mockUser = { name: 'testUser' }
-  const mockRepos = [
-    {
-      clone_url: 'https://github.com/test/repo1',
-      fork: false,
-      private: false,
-      docpress: { includes: ['docs'], filtered: false },
-    },
-    {
-      clone_url: 'https://github.com/test/repo2',
-      fork: true,
-      private: false,
-      docpress: { includes: [], filtered: false },
-    },
-  ]
-
-  const mockTransformed = {
-    sidebar: [{
-      text: 'repo1',
-      collapsed: true,
-      items: [{ text: 'Introduction', link: '/readme' }],
-    }],
-    index: {
-      layout: 'foo',
-      hero: { name: 'myDocs', tagline: 'faster than light' },
-      features: [{
-        title: 'Dotfiles',
-        details: 'blablabla',
-        link: '/readme',
-      }],
-    },
-  }
-  const mockNav = [{ text: 'About', link: '/about' }]
-  const mockVitepressConfig = { title: 'My Project' }
-
   beforeEach(() => {
-    vi.mocked(getUserInfos).mockReturnValue(mockUser as Awaited<ReturnType<typeof getInfos>>['user'])
-    vi.mocked(getUserRepos).mockReturnValue(mockRepos as EnhancedRepository[])
+    vi.mocked(getUserInfos).mockReturnValue(mockUser)
+    vi.mocked(getUserRepos).mockReturnValue(mockRepos)
     vi.mocked(transformDoc).mockReturnValue(mockTransformed)
     vi.mocked(addExtraPages).mockReturnValue(mockNav)
     vi.mocked(getVitepressConfig).mockReturnValue(mockVitepressConfig)
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(mockVitepressConfig))
   })
 
-  it('should call getUserInfos and getUserRepos', async () => {
+  it('should log the start message and call getUserInfos and getUserRepos', async () => {
     await main(mockOpts)
+    expect(log).toHaveBeenCalledWith(
+      `\n-> Start transform files to prepare Vitepress build.`,
+      'info',
+    )
     expect(getUserInfos).toHaveBeenCalled()
     expect(getUserRepos).toHaveBeenCalled()
   })
@@ -136,13 +133,19 @@ describe('main', () => {
 
   it('should add extra header pages if provided', async () => {
     await main(mockOpts)
-    expect(addExtraPages).toHaveBeenCalledWith([mockOpts.extraHeaderPages])
+    expect(addExtraPages).toHaveBeenCalledWith(mockOpts.extraHeaderPages)
   })
 
-  it('should add extra public content and theme if provided', async () => {
+  it('should log and add extra public content if provided', async () => {
     await main(mockOpts)
-    expect(addContent).toHaveBeenCalledWith([mockOpts.extraPublicContent], resolve(DOCPRESS_DIR, 'public'))
-    expect(addContent).toHaveBeenCalledWith([mockOpts.extraTheme], resolve(DOCPRESS_DIR, '.vitepress/theme'))
+    expect(log).toHaveBeenCalledWith(`   Add extras Vitepress public folder content.`, 'info')
+    expect(addContent).toHaveBeenCalledWith(mockOpts.extraPublicContent, resolve(DOCPRESS_DIR, 'public'))
+  })
+
+  it('should log and add extra theme if provided', async () => {
+    await main(mockOpts)
+    expect(log).toHaveBeenCalledWith(`   Add extras Vitepress theme files.`, 'info')
+    expect(addContent).toHaveBeenCalledWith(mockOpts.extraTheme, resolve(DOCPRESS_DIR, '.vitepress/theme'))
   })
 
   it('should call getVitepressConfig with sidebar, nav, and vitepressConfig options', async () => {

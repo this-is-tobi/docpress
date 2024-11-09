@@ -16,9 +16,9 @@ describe('parseOptions', () => {
       reposFilter: 'repo1,repo2',
       token: 'token123',
       username: 'username',
-    }
+    } as unknown as FetchOpts
 
-    const result = parseOptions('fetch', validFetchOptions as unknown as FetchOpts)
+    const result = parseOptions(['fetch'], validFetchOptions)
     expect(result).toEqual({
       ...validFetchOptions,
       reposFilter: ['repo1', 'repo2'],
@@ -32,13 +32,13 @@ describe('parseOptions', () => {
       username: 'username',
     }
 
-    expect(() => parseOptions('fetch', invalidFetchOptions as any)).toThrow()
+    expect(() => parseOptions(['fetch'], invalidFetchOptions as any)).toThrow()
   })
 
   it('should parse valid global options', () => {
     const validGlobalOptions = {
       config: './valid-config.json',
-    }
+    } as unknown as GlobalOpts
     const config = {
       branch: 'main',
       gitProvider: 'github',
@@ -52,7 +52,7 @@ describe('parseOptions', () => {
     } as GlobalOpts['config']
 
     ;(readFileSync as any).mockReturnValue(JSON.stringify(config))
-    const result = parseOptions('global', validGlobalOptions as unknown as GlobalOpts)
+    const result = parseOptions(['global'], validGlobalOptions)
 
     expect(result).toEqual({ config })
   })
@@ -60,7 +60,7 @@ describe('parseOptions', () => {
   it('should parse valid build options', () => {
     const validBuildOptions = {}
 
-    const result = parseOptions('build', validBuildOptions)
+    const result = parseOptions(['build'], validBuildOptions)
     expect(result).toEqual(validBuildOptions)
   })
 
@@ -70,7 +70,7 @@ describe('parseOptions', () => {
       extraPublicContent: 'public1,public2',
       extraTheme: 'theme1,theme2',
       vitepressConfig: './vitepress.config.js',
-    }
+    } as unknown as PrepareOpts
     const vitepressConfig = {
       lang: 'en-US',
       title: 'Home',
@@ -78,7 +78,7 @@ describe('parseOptions', () => {
     }
 
     ;(readFileSync as any).mockReturnValue(JSON.stringify(vitepressConfig))
-    const result = parseOptions('prepare', validPrepareOptions as unknown as PrepareOpts)
+    const result = parseOptions(['prepare'], validPrepareOptions)
 
     expect(result).toEqual({
       ...validPrepareOptions,

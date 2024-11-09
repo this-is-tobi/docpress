@@ -6,6 +6,7 @@ import type { getUserInfos } from '../utils/functions.js'
 import { createDir, extractFiles, getMdFiles, prettify } from '../utils/functions.js'
 import { DOCS_DIR, INDEX_FILE, VITEPRESS_CONFIG } from '../utils/const.js'
 import { replaceReadmePath, replaceRelativePath } from '../utils/regex.js'
+import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
 
 export interface Page {
@@ -36,7 +37,7 @@ export interface Index {
 
 function addSources(repoUrl: string, outputPath: string) {
   const fileName = basename(outputPath)
-  const title = fileName === 'readme.md' ? '\n## Sources' : '# Sources'
+  const title = fileName === 'introduction.md' ? '\n## Sources' : '# Sources'
 
   const sourcesContent = `${title}\n\nTake a look at the [project sources](${repoUrl}).\n`
 
@@ -67,7 +68,7 @@ export function generateFeatures(repoName: string, description: string, features
   const content = {
     title: prettify(repoName, { mode: 'capitalize', replaceDash: true }),
     details: description,
-    link: `/${repoName}/readme`,
+    link: `/${repoName}/introduction`,
   }
 
   return features ? [...features, content] : [content]
@@ -83,7 +84,7 @@ export function generateSidebarProject(repoName: string, sidebarPages: Page[]) {
 
 export function generateSidebarPages(repoName: string, fileName: string, sidebarPages?: Page[]) {
   const content = {
-    text: fileName === 'readme' ? 'Introduction' : prettify(fileName, { mode: 'capitalize', replaceDash: true }),
+    text: fileName === 'introduction' ? 'Introduction' : prettify(fileName, { mode: 'capitalize', replaceDash: true }),
     link: `/${repoName}/${fileName}`,
   }
 
@@ -95,6 +96,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
   const sidebar: SidebarProject[] = []
 
   for (const repository of repositories) {
+    log(`   Replace urls for repository '${repository.name}'.`, 'info')
     getMdFiles([repository.docpress.projectPath]).forEach((file) => {
       replaceRelativePath(file, `https://github.com/${repository.owner.login}/${repository.name}/tree/${repository.docpress.branch}`)
 
@@ -103,6 +105,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
       }
     })
 
+    log(`   Generate sidebar for repository '${repository.name}'.`, 'info')
     const sidebarItems = readdirSync(repository.docpress.projectPath)
       .filter((file) => {
         return statSync(resolve(repository.docpress.projectPath, file)).isFile()
@@ -111,8 +114,11 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
       .sort((a, b) => a.localeCompare(b))
       .reduce((acc: Page[], cur, idx, arr) => {
         const file = resolve(repository.docpress.projectPath, cur)
-        const filename = prettify(basename(file), { mode: 'lowercase', removeIdx: true })
+        let filename = prettify(basename(file), { mode: 'lowercase', removeIdx: true })
 
+        if (filename === 'readme.md') {
+          filename = 'introduction.md'
+        }
         if (filename !== basename(file)) {
           renameSync(file, resolve(dirname(file), filename))
         }
@@ -129,7 +135,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
               generateSidebarPages(repository.name, parse(filename).name, acc),
             )
           }
-          sourceFile = resolve(repository.docpress.projectPath, 'readme.md')
+          sourceFile = resolve(repository.docpress.projectPath, filename)
           addSources(repository.html_url, sourceFile)
         }
 
@@ -140,6 +146,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
     features.push(...generateFeatures(repository.name, repository.description || ''))
   }
 
+  log(`   Generate index content.`, 'info')
   const index = generateIndex(features.sort((a, b) => a.title.localeCompare(b.title)), user)
   return {
     sidebar: sidebar.sort((a, b) => a.text.localeCompare(b.text)),
@@ -151,6 +158,7 @@ export function addExtraPages(paths: string[]) {
   const files = getMdFiles(paths)
   const nav: Page[] = []
 
+  log(`   Add extras Vitepress headers pages.`, 'info')
   for (const file of files) {
     const src = resolve(process.cwd(), file)
     const dest = resolve(DOCS_DIR, prettify(basename(file), { mode: 'lowercase', removeIdx: true }))
@@ -183,6 +191,8 @@ export function parseVitepressConfig(path: string) {
 export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeof defineConfig>>, index: Index) {
   createDir(dirname(VITEPRESS_CONFIG))
 
+  log(`   Generate Vitepress config.`, 'info')
   writeFileSync(VITEPRESS_CONFIG, `export default ${JSON.stringify(vitepressConfig, null, 2)}\n`)
+  log(`   Generate index file.`, 'info')
   writeFileSync(INDEX_FILE, '---\n'.concat(YAML.stringify(index)))
 }

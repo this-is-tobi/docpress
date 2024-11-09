@@ -127,7 +127,7 @@ describe('getDoc', () => {
 
     await getDoc()
 
-    expect(console.warn).toHaveBeenCalledWith('No repository respect docpress rules.')
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('No repository respect docpress rules.'))
   })
 })
 

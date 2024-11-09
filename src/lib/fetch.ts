@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs'
 import type { FetchOpts } from '../schemas/fetch.js'
 import { checkHttpStatus, createDir } from '../utils/functions.js'
 import { DOCPRESS_DIR, DOCS_DIR, USER_INFOS, USER_REPOS_INFOS } from '../utils/const.js'
+import { log } from '../utils/logger.js'
 import { cloneRepo, getInfos } from './git.js'
 
 export type EnhancedRepository = Awaited<ReturnType<typeof getInfos>>['repos'][number] & {
@@ -98,14 +99,17 @@ export async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['
 
 export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOpts['reposFilter']) {
   if (!repos) {
-    console.warn('No repository respect docpress rules.')
+    log(`   No repository respect docpress rules.`, 'warn')
     return
   }
 
   await Promise.all(
     repos
       .filter(repo => !isRepoFiltered(repo, reposFilter))
-      .map(async repo => cloneRepo(repo.clone_url as string, repo.docpress.projectPath, repo.docpress.branch, repo.docpress.includes)),
+      .map(async (repo) => {
+        log(`   Clone repository '${repo.name}'.`, 'info')
+        await cloneRepo(repo.clone_url as string, repo.docpress.projectPath, repo.docpress.branch, repo.docpress.includes)
+      }),
   )
 }
 

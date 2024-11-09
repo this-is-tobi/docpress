@@ -1,12 +1,16 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createOption } from 'commander'
 import { fetchDoc } from '../lib/fetch.js'
 import { fetchOptsSchema } from '../schemas/fetch.js'
+import { log } from '../utils/logger.js'
 import * as fetchMod from './fetch.js'
 import { globalOpts } from './global.js'
 
 vi.mock('../lib/fetch.js', () => ({
   fetchDoc: vi.fn(),
+}))
+vi.mock('../utils/logger.js', () => ({
+  log: vi.fn(),
 }))
 vi.mock('./global.js', () => ({
   globalOpts: [
@@ -40,7 +44,11 @@ describe('fetchCmd', () => {
 })
 
 describe('main', () => {
-  it('should parse options correctly and call fetchDoc with expected arguments', async () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should log the start message and call fetchDoc with expected arguments', async () => {
     const mockOpts = {
       username: 'testUser',
       reposFilter: ['testRepo'],
@@ -51,6 +59,10 @@ describe('main', () => {
 
     await main(mockOpts)
 
+    expect(log).toHaveBeenCalledWith(
+      `\n-> Start fetching documentation files. This may take a moment, especially for larger repositories.`,
+      'info',
+    )
     expect(fetchDoc).toHaveBeenCalledWith({
       username: mockOpts.username,
       reposFilter: mockOpts.reposFilter,
