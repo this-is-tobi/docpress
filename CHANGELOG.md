@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/this-is-tobi/docpress/compare/v0.1.7...v0.2.0) (2024-11-09)
+
+
+### Features
+
+* add logger and logs ([107a434](https://github.com/this-is-tobi/docpress/commit/107a434257df8241b380241a5c9d4c9121b545bb))
+* rename introduction file to introduction.md ([cb68e5f](https://github.com/this-is-tobi/docpress/commit/cb68e5ff524b59c263a261eba8c36ab517a56644))
+
 ## [0.1.7](https://github.com/this-is-tobi/docpress/compare/v0.1.6...v0.1.7) (2024-11-05)
 
 
