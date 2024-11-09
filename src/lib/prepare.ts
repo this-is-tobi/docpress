@@ -189,10 +189,11 @@ export function parseVitepressConfig(path: string) {
 }
 
 export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeof defineConfig>>, index: Index) {
+  const separator = '---\n'
   createDir(dirname(VITEPRESS_CONFIG))
 
   log(`   Generate Vitepress config.`, 'info')
   writeFileSync(VITEPRESS_CONFIG, `export default ${JSON.stringify(vitepressConfig, null, 2)}\n`)
   log(`   Generate index file.`, 'info')
-  writeFileSync(INDEX_FILE, '---\n'.concat(YAML.stringify(index)))
+  writeFileSync(INDEX_FILE, separator.concat(YAML.stringify(index), separator))
 }
