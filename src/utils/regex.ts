@@ -11,7 +11,7 @@ export function replaceRelativePath(file: string, url: string) {
 export function replaceReadmePath(file: string, url: string) {
   const readmeContent = readFileSync(file, 'utf8')
   const updatedContent = readmeContent
-    .replace(/\[([^\]]+)\]\((?!\.?\/docs\/|docs\/|http)(\.?\/)?([^/][^)]+)\)/g, (_match, p1, _p2, p3) => {
+    .replace(/\[([^\]]+)\]\((?!\.?\/docs\/|docs\/|http|#)(\.?\/)?([^/][^)]+)\)/g, (_match, p1, _p2, p3) => {
       return `[${p1}](${url}/${p3})`
     })
     .replace(/\[([^\]]+)\]\((\.?\/docs\/|docs\/)([^)]*)\)/g, (_match, p1, _p2, p3) => {

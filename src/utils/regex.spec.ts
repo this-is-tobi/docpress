@@ -54,7 +54,7 @@ describe('file Path Replacements', () => {
     it('should not modify content if there are no matching paths', () => {
       const file = 'README.md'
       const url = 'https://example.com'
-      const content = '[Link](https://google.com)'
+      const content = '[Link](https://google.com) and [Section](#section)'
 
       ;(readFileSync as any).mockReturnValue(content)
 
