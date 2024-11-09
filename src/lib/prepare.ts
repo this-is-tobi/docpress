@@ -6,6 +6,7 @@ import type { getUserInfos } from '../utils/functions.js'
 import { createDir, extractFiles, getMdFiles, prettify } from '../utils/functions.js'
 import { DOCS_DIR, INDEX_FILE, VITEPRESS_CONFIG } from '../utils/const.js'
 import { replaceReadmePath, replaceRelativePath } from '../utils/regex.js'
+import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
 
 export interface Page {
@@ -95,6 +96,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
   const sidebar: SidebarProject[] = []
 
   for (const repository of repositories) {
+    log(`   Replace urls for repository '${repository.name}'.`, 'info')
     getMdFiles([repository.docpress.projectPath]).forEach((file) => {
       replaceRelativePath(file, `https://github.com/${repository.owner.login}/${repository.name}/tree/${repository.docpress.branch}`)
 
@@ -103,6 +105,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
       }
     })
 
+    log(`   Generate sidebar for repository '${repository.name}'.`, 'info')
     const sidebarItems = readdirSync(repository.docpress.projectPath)
       .filter((file) => {
         return statSync(resolve(repository.docpress.projectPath, file)).isFile()
@@ -143,6 +146,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
     features.push(...generateFeatures(repository.name, repository.description || ''))
   }
 
+  log(`   Generate index content.`, 'info')
   const index = generateIndex(features.sort((a, b) => a.title.localeCompare(b.title)), user)
   return {
     sidebar: sidebar.sort((a, b) => a.text.localeCompare(b.text)),
@@ -154,6 +158,7 @@ export function addExtraPages(paths: string[]) {
   const files = getMdFiles(paths)
   const nav: Page[] = []
 
+  log(`   Add extras Vitepress headers pages.`, 'info')
   for (const file of files) {
     const src = resolve(process.cwd(), file)
     const dest = resolve(DOCS_DIR, prettify(basename(file), { mode: 'lowercase', removeIdx: true }))
@@ -186,6 +191,8 @@ export function parseVitepressConfig(path: string) {
 export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeof defineConfig>>, index: Index) {
   createDir(dirname(VITEPRESS_CONFIG))
 
+  log(`   Generate Vitepress config.`, 'info')
   writeFileSync(VITEPRESS_CONFIG, `export default ${JSON.stringify(vitepressConfig, null, 2)}\n`)
+  log(`   Generate index file.`, 'info')
   writeFileSync(INDEX_FILE, '---\n'.concat(YAML.stringify(index)))
 }

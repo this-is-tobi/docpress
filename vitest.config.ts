@@ -19,6 +19,7 @@ export default defineConfig({
         '**/types.ts',
       ],
     },
+    onConsoleLog: () => false,
     include: ['src/**/*.spec.ts'],
     exclude: [...configDefaults.exclude],
     root: fileURLToPath(new URL('./', import.meta.url)),

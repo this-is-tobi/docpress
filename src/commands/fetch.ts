@@ -1,4 +1,5 @@
 import { createCommand, createOption } from 'commander'
+import { log } from '../utils/logger.js'
 import { addOptions, parseOptions } from '../utils/commands.js'
 import { fetchOptsSchema } from '../schemas/fetch.js'
 import { fetchDoc } from '../lib/fetch.js'
@@ -20,11 +21,13 @@ export const fetchOpts = [
 export const fetchCmd = addOptions(createCommand(cmdName), [...fetchOpts, ...globalOpts])
   .description('Fetch docs with the given username and git provider.')
   .action(async (opts) => {
-    await main(opts)
+    const parsedOpts = parseOptions([cmdName], opts)
+    await main(parsedOpts)
   })
 
 export async function main(opts: Config) {
-  const { username, reposFilter, token, branch, gitProvider } = parseOptions(cmdName, opts)
+  const { username, reposFilter, token, branch, gitProvider } = opts
+  log(`\n-> Start fetching documentation files. This may take a moment, especially for larger repositories.`, 'info')
 
   await fetchDoc({ username, branch, reposFilter, gitProvider, token })
 }

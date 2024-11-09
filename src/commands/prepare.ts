@@ -9,6 +9,7 @@ import { prepareOptsSchema } from '../schemas/prepare.js'
 import type { EnhancedRepository } from '../lib/fetch.js'
 import type { Page } from '../lib/prepare.js'
 import type { PrepareOpts } from '../schemas/prepare.js'
+import { log } from '../utils/logger.js'
 import { globalOpts } from './global.js'
 
 const cmdName = 'prepare'
@@ -23,11 +24,13 @@ export const prepareOpts = [
 export const prepareCmd = addOptions(createCommand(cmdName), [...prepareOpts, ...globalOpts])
   .description('Transform doc to the target vitepress format.')
   .action(async (opts) => {
-    await main(opts)
+    const parsedOpts = parseOptions([cmdName], opts)
+    await main(parsedOpts)
   })
 
 export async function main(opts: PrepareOpts) {
-  const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig } = parseOptions(cmdName, opts)
+  const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig } = opts
+  log(`\n-> Start transform files to prepare Vitepress build.`, 'info')
 
   const user = getUserInfos()
   const repositories = getUserRepos()
@@ -45,9 +48,11 @@ export async function main(opts: PrepareOpts) {
     nav.push(...addExtraPages(extraHeaderPages))
   }
   if (extraPublicContent) {
+    log(`   Add extras Vitepress public folder content.`, 'info')
     addContent(extraPublicContent, resolve(DOCPRESS_DIR, 'public'))
   }
   if (extraTheme) {
+    log(`   Add extras Vitepress theme files.`, 'info')
     addContent(extraTheme, resolve(DOCPRESS_DIR, '.vitepress/theme'))
   }
 

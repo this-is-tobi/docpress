@@ -92,9 +92,10 @@ describe('cloneRepo', () => {
   })
 
   it('should handle errors and log them to the console', async () => {
+    const gitError = new Error('Git error')
     const mockGit = {
       init: vi.fn().mockReturnThis(),
-      addConfig: vi.fn().mockImplementation(() => { throw new Error('Git error') }),
+      addConfig: vi.fn().mockImplementation(() => { throw gitError }),
     }
 
     ;(simpleGit as any).mockImplementation(() => mockGit)
@@ -103,7 +104,7 @@ describe('cloneRepo', () => {
 
     await cloneRepo('https://github.com/testUser/repo.git', 'testDir', 'main', ['docs'])
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(`Error when cloning repository: ${gitError}`))
     consoleSpy.mockRestore()
   })
 })

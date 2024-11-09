@@ -3,7 +3,6 @@ import type { defineConfig } from 'vitepress'
 import { getVitepressConfig } from './vitepress.js'
 
 describe('getVitepressConfig', () => {
-  // const defaultSidebar = [{ title: 'Project 1', link: '/project1' }]
   const defaultSidebar = [{ text: 'Project 1', collapsed: true, items: [] }]
   const defaultNav = [{ text: 'Home', link: '/' }]
   const defaultConfig = {
