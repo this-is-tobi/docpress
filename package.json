@@ -1,7 +1,7 @@
 {
   "name": "@tobi-or-not/docpress",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "packageManager": "pnpm@9.12.3",
   "module": "dist/docpress.js",
   "types": "types/index.d.ts",
