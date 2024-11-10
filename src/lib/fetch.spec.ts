@@ -31,9 +31,9 @@ vi.spyOn(await import('./fetch.js'), 'getDoc')
 describe('checkDoc', () => {
   it('should return the correct status for each document URL', async () => {
     (checkHttpStatus as any)
-      .mockResolvedValueOnce(404)
-      .mockResolvedValueOnce(200)
-      .mockResolvedValueOnce(404)
+      .mockResolvedValueOnce(404) // rootReadmeStatus
+      .mockResolvedValueOnce(200) // docsFolderStatus
+      .mockResolvedValueOnce(404) // docsReadmeStatus
 
     const result = await checkDoc('testUser', 'testRepo', 'main')
 
@@ -69,6 +69,18 @@ describe('isRepoFiltered', () => {
 
     expect(isRepoFiltered(repo, filter)).toBe(false)
   })
+
+  it('should correctly identify repos to include if they are not excluded and all filters are exclusions', () => {
+    const repo = {
+      name: 'repo3',
+      clone_url: 'https://github.com/testUser/repo3',
+      fork: false,
+      private: false,
+    } as unknown as Awaited<ReturnType<typeof getInfos>>['repos'][number]
+    const filter = ['!repo1', '!repo2']
+
+    expect(isRepoFiltered(repo, filter)).toBe(false)
+  })
 })
 
 describe('getSparseCheckout', () => {
@@ -86,9 +98,9 @@ describe('getSparseCheckout', () => {
 
   it('should return an empty array if all statuses are 404', async () => {
     (checkHttpStatus as any)
-      .mockResolvedValueOnce(404)
-      .mockResolvedValueOnce(404)
-      .mockResolvedValueOnce(404)
+      .mockResolvedValueOnce(404) // rootReadmeStatus
+      .mockResolvedValueOnce(404) // docsFolderStatus
+      .mockResolvedValueOnce(404) // docsReadmeStatus
 
     const repo = { name: 'repo2', owner: { login: 'user2' }, size: 100 } as Awaited<ReturnType<typeof getInfos>>['repos'][number]
     const result = await getSparseCheckout(repo, 'main')

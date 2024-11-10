@@ -114,10 +114,12 @@ export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOp
 }
 
 export function isRepoFiltered(repo: EnhancedRepository | Awaited<ReturnType<typeof getInfos>>['repos'][number], reposFilter?: FetchOpts['reposFilter']) {
+  const hasOnlyExclusions = reposFilter?.every(filter => filter.startsWith('!'))
   const isExcluded = reposFilter?.filter(filter => filter.startsWith('!'))
     .some(filter => repo.name === filter.substring(1))
-  const isIncluded = !reposFilter || reposFilter?.filter(filter => !filter.startsWith('!'))
-    .includes(repo.name)
+  const isIncluded = !reposFilter
+    || reposFilter?.filter(filter => !filter.startsWith('!')).includes(repo.name)
+    || (hasOnlyExclusions && !isExcluded)
 
   const isFiltered = isExcluded || !isIncluded
 
