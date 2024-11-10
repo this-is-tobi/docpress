@@ -18,14 +18,20 @@ For optimal use of Docpress, please check the [rules section](#rules) to underst
 
 ## Quickstart
 
-Generate website using the Docpress docker image :
+1. Generate website using the Docpress docker image.
+    ```sh
+    docker run --name docpress --rm -v $(pwd)/docpress:/app/docpress:rw \
+      ghcr.io/this-is-tobi/docpress -u <github_username>
+    ```
+    > The dist folder is available at `./docpress/.vitepress/dist`, ready to be served by a web server like Nginx, Apache, etc...
 
-```sh
-docker run --name docpress --rm -v $(pwd)/docpress:/app/docpress:rw \
-  ghcr.io/this-is-tobi/docpress -u <github_username>
-```
+2. Start an Nginx docker image using the generated static folder.
+    ```sh
+    docker run --name my-docs --rm -v ./docpress/.vitepress/dist:/usr/share/nginx/html:ro -p 8080:80 \
+      docker.io/nginx
+    ```
 
-The dist folder is available at `./docpress/.vitepress/dist`, ready to be delivered with a web server like Nginx, Apache, etc...
+3. Access the website at the following address : <http://localhost:8080>.
 
 ## Rules
 
