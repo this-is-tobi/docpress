@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/this-is-tobi/docpress/compare/v0.2.1...v0.2.2) (2024-11-10)
+
+
+### Bug Fixes
+
+* include repo if not exculded and only exclusions ([b3984d5](https://github.com/this-is-tobi/docpress/commit/b3984d5e4793d589204c797ea154e34258432d4d))
+
 ## [0.2.1](https://github.com/this-is-tobi/docpress/compare/v0.2.0...v0.2.1) (2024-11-09)
 
 
