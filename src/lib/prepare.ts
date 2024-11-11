@@ -171,16 +171,19 @@ export function addExtraPages(paths: string[]) {
   return nav
 }
 
-export function addContent(path: string | string[], dir: string, fn?: () => void) {
-  const files = extractFiles(path)
+export function addContent(paths: string | string[], dir: string, fn?: () => void) {
+  for (const path of Array.isArray(paths) ? paths : [paths]) {
+    const absolutePath = resolve(process.cwd(), path)
+    const files = extractFiles(absolutePath)
 
-  for (const file of files) {
-    const src = resolve(process.cwd(), file)
-    const dest = resolve(dir, basename(file))
-    if (fn) {
-      fn()
+    for (const file of files) {
+      const src = resolve(process.cwd(), file)
+      const dest = resolve(dir, file.replace(absolutePath, '.'))
+      if (fn) {
+        fn()
+      }
+      cpSync(src, dest)
     }
-    cpSync(src, dest)
   }
 }
 
