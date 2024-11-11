@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/this-is-tobi/docpress/compare/v0.2.2...v0.2.3) (2024-11-11)
+
+
+### Bug Fixes
+
+* keep directories sctructures when adding content ([fbae6a5](https://github.com/this-is-tobi/docpress/commit/fbae6a53ce776d6039e703d21bab4ff043c4a3e9))
+
 ## [0.2.2](https://github.com/this-is-tobi/docpress/compare/v0.2.1...v0.2.2) (2024-11-10)
 
 
