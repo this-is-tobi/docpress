@@ -98,6 +98,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
   for (const repository of repositories) {
     log(`   Replace urls for repository '${repository.name}'.`, 'info')
     getMdFiles([repository.docpress.projectPath]).forEach((file) => {
+      log(`   Processing file '${basename(file)}' for repository '${repository.name}'.`, 'debug')
       replaceRelativePath(file, `https://github.com/${repository.owner.login}/${repository.name}/tree/${repository.docpress.branch}`)
 
       if (basename(file).toLowerCase() === 'readme.md') {
@@ -127,6 +128,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
           let sourceFile
           if (arr.length > 1) {
             sourceFile = resolve(repository.docpress.projectPath, 'sources.md')
+            log(`   Add sources for repository '${repository.name}'.`, 'info')
             addSources(repository.html_url, sourceFile)
 
             return generateSidebarPages(
@@ -160,6 +162,7 @@ export function addExtraPages(paths: string[]) {
 
   log(`   Add extras Vitepress headers pages.`, 'info')
   for (const file of files) {
+    log(`   Processing file '${file}'.`, 'debug')
     const src = resolve(process.cwd(), file)
     const dest = resolve(DOCS_DIR, prettify(basename(file), { mode: 'lowercase', removeIdx: true }))
     cpSync(src, dest)
@@ -177,8 +180,10 @@ export function addContent(paths: string | string[], dir: string, fn?: () => voi
     const files = extractFiles(absolutePath)
 
     for (const file of files) {
+      const formattedFile = file.replace(absolutePath, '.')
+      log(`   Processing file '${formattedFile}' for entry '${path}'.`, 'debug')
       const src = resolve(process.cwd(), file)
-      const dest = resolve(dir, file.replace(absolutePath, '.'))
+      const dest = resolve(dir, formattedFile)
       if (fn) {
         fn()
       }

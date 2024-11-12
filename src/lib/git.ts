@@ -9,13 +9,15 @@ import { log } from '../utils/logger.js'
 export async function getInfos({ username, token, branch }: Pick<FetchOpts, 'username' | 'branch' | 'token'>) {
   log(`   Get infos for username '${username}'.`, 'info')
   const octokit = new Octokit({ auth: token })
+  log(`   Get user infos.`, 'debug')
   const { data: user } = await octokit.request('GET /users/{username}', { username })
+  log(`   Get repositories infos.`, 'debug')
   const { data: repos } = await octokit.request('GET /users/{username}/repos', { username, sort: 'full_name' })
 
   return { user, repos, branch }
 }
 
-export async function cloneRepo(url: string, projectDir: string, branch: string, includes: string[]) {
+export async function cloneRepo(name: string, url: string, projectDir: string, branch: string, includes: string[]) {
   createDir(projectDir, { clean: true })
 
   try {
@@ -25,9 +27,11 @@ export async function cloneRepo(url: string, projectDir: string, branch: string,
       .addRemote('origin', url)
 
     for (const item of includes) {
+      log(`   Add '${item}' to '${name}' sparse-checkout file.`, 'debug')
       appendFileSync(resolve(projectDir, '.git/info/sparse-checkout'), `${item}\n`, 'utf8')
     }
 
+    log(`   Clone repository '${name}'.`, 'info')
     await git.pull('origin', branch)
 
     if (includes.some(item => item.includes('docs'))) {

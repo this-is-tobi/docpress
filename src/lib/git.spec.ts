@@ -55,11 +55,12 @@ describe('cloneRepo', () => {
 
     ;(simpleGit as any).mockImplementation(() => mockGit)
 
+    const repoName = 'repo1'
     const projectDir = 'testDir'
     const includes = ['docs/file1.md', 'docs/file2.md']
     const branch = 'main'
 
-    await cloneRepo('https://github.com/testUser/repo.git', projectDir, branch, includes)
+    await cloneRepo(repoName, 'https://github.com/testUser/repo.git', projectDir, branch, includes)
 
     expect(createDir).toHaveBeenCalledWith(projectDir, { clean: true })
     expect(mockGit.init).toHaveBeenCalled()
@@ -80,11 +81,12 @@ describe('cloneRepo', () => {
 
     ;(simpleGit as any).mockImplementation(() => mockGit)
 
+    const repoName = 'repo1'
     const projectDir = 'testDir'
     const includes = ['docs/file1.md']
     const branch = 'main'
 
-    await cloneRepo('https://github.com/testUser/repo.git', projectDir, branch, includes)
+    await cloneRepo(repoName, 'https://github.com/testUser/repo.git', projectDir, branch, includes)
 
     expect(cpSync).toHaveBeenCalledWith(`${projectDir}/docs`, projectDir, { recursive: true })
     expect(rmSync).toHaveBeenCalledWith(`${projectDir}/docs`, { recursive: true })
@@ -102,7 +104,7 @@ describe('cloneRepo', () => {
 
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    await cloneRepo('https://github.com/testUser/repo.git', 'testDir', 'main', ['docs'])
+    await cloneRepo('repo1', 'https://github.com/testUser/repo.git', 'testDir', 'main', ['docs'])
 
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(`Error when cloning repository: ${gitError}`))
     consoleSpy.mockRestore()

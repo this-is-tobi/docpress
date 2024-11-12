@@ -107,8 +107,7 @@ export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOp
     repos
       .filter(repo => !isRepoFiltered(repo, reposFilter))
       .map(async (repo) => {
-        log(`   Clone repository '${repo.name}'.`, 'info')
-        await cloneRepo(repo.clone_url as string, repo.docpress.projectPath, repo.docpress.branch, repo.docpress.includes)
+        await cloneRepo(repo.name, repo.clone_url as string, repo.docpress.projectPath, repo.docpress.branch, repo.docpress.includes)
       }),
   )
 }

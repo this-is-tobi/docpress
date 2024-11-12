@@ -130,8 +130,14 @@ describe('getDoc', () => {
 
     await getDoc(repos, ['repo1'])
 
-    expect(cloneRepo).toHaveBeenCalledWith('https://github.com/testUser/repo1', '/path/to/repo1', 'main', ['README.md'])
-    expect(cloneRepo).not.toHaveBeenCalledWith('https://github.com/testUser/repo2', expect.anything(), expect.anything(), expect.anything())
+    expect(cloneRepo).toHaveBeenCalledWith(
+      repos[0].name,
+      repos[0].clone_url,
+      repos[0].docpress.projectPath,
+      repos[0].docpress.branch,
+      repos[0].docpress.includes,
+    )
+    expect(cloneRepo).not.toHaveBeenCalledWith(repos[1].name, expect.anything(), expect.anything(), expect.anything(), expect.anything())
   })
 
   it('should warn if no repositories are provided', async () => {
