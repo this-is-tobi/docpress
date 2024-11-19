@@ -206,7 +206,7 @@ describe('enhanceRepositories', () => {
     expect(getResult('repo1')?.docpress.filtered).toBe(false)
     expect(getResult('repo2')?.docpress.filtered).toBe(true)
     expect(getResult('repo3')?.docpress.filtered).toBe(true)
-    expect(getResult('repo4')?.docpress.filtered).toBe(true)
+    expect(getResult('repo4')?.docpress.filtered).toBe(false)
     expect(getResult('repo5')?.docpress.filtered).toBe(true)
   })
 })

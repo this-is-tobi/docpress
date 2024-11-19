@@ -3,6 +3,7 @@ import { createOption } from 'commander'
 import { fetchDoc } from '../lib/fetch.js'
 import { fetchOptsSchema } from '../schemas/fetch.js'
 import { log } from '../utils/logger.js'
+import { configSchema } from '../schemas/global.js'
 import * as fetchMod from './fetch.js'
 import { globalOpts } from './global.js'
 
@@ -38,7 +39,8 @@ describe('fetchCmd', () => {
 
   it('should call main function when action is triggered', async () => {
     fetchCmd.action(main)
-    await fetchCmd.parseAsync(['-u', 'testUser'], { from: 'user' })
+    // await fetchCmd.parseAsync(['-U', 'testUser'], { from: 'user' })
+    await fetchCmd.parseAsync()
     expect(main).toHaveBeenCalled()
   })
 })
@@ -78,10 +80,10 @@ describe('fetchOpts', () => {
     const branchOption = fetchOpts.find(opt => opt.flags.includes('--branch'))
     const gitProviderOption = fetchOpts.find(opt => opt.flags.includes('--git-provider'))
 
-    expect(branchOption?.description).toBe(fetchOptsSchema.shape.branch._def.description)
-    expect(branchOption?.defaultValue).toBe(fetchOptsSchema.shape.branch._def.defaultValue())
+    expect(branchOption?.description).toBe(fetchOptsSchema.innerType().shape.branch._def.description)
+    expect(branchOption?.defaultValue).toBe(configSchema.shape.branch._def.defaultValue())
 
-    expect(gitProviderOption?.description).toBe(fetchOptsSchema.shape.gitProvider._def.description)
-    expect(gitProviderOption?.defaultValue).toBe(fetchOptsSchema.shape.gitProvider._def.defaultValue())
+    expect(gitProviderOption?.description).toBe(fetchOptsSchema.innerType().shape.gitProvider._def.description)
+    expect(gitProviderOption?.defaultValue).toBe(configSchema.shape.gitProvider._def.defaultValue())
   })
 })

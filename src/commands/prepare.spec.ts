@@ -164,7 +164,7 @@ describe('prepareOpts', () => {
     const extraThemeOption = prepareOpts.find(opt => opt.flags.includes('--extra-theme'))
     const extraHeaderPagesOption = prepareOpts.find(opt => opt.flags.includes('--extra-header-pages'))
 
-    expect(extraThemeOption?.description).toBe(prepareOptsSchema.shape.extraTheme._def.description)
-    expect(extraHeaderPagesOption?.description).toBe(prepareOptsSchema.shape.extraHeaderPages._def.description)
+    expect(extraThemeOption?.description).toBe(prepareOptsSchema.innerType().shape.extraTheme._def.description)
+    expect(extraHeaderPagesOption?.description).toBe(prepareOptsSchema.innerType().shape.extraHeaderPages._def.description)
   })
 })

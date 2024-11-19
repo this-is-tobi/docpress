@@ -2,12 +2,15 @@ import { basename, dirname, parse, resolve } from 'node:path'
 import { appendFileSync, cpSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import YAML from 'yaml'
 import type { defineConfig } from 'vitepress'
+import type { GlobalOpts } from '../schemas/global.js'
 import type { getUserInfos } from '../utils/functions.js'
 import { createDir, extractFiles, getMdFiles, prettify } from '../utils/functions.js'
-import { DOCS_DIR, INDEX_FILE, VITEPRESS_CONFIG } from '../utils/const.js'
+import { DOCS_DIR, FORKS_FILE, INDEX_FILE, VITEPRESS_CONFIG } from '../utils/const.js'
 import { replaceReadmePath, replaceRelativePath } from '../utils/regex.js'
 import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
+import type { getInfos } from './git.js'
+import { getContributors } from './git.js'
 
 export interface Page {
   text: string
@@ -190,6 +193,38 @@ export function addContent(paths: string | string[], dir: string, fn?: () => voi
       cpSync(src, dest)
     }
   }
+}
+
+export function addForkPage(forks: { repository: Awaited<ReturnType<typeof getInfos>>['repos'][number], contributions: number }[]) {
+  const separator = '---\n'
+  const header = 'layout: fork-page\nrepoList:\n'
+  const text = '\n# External contributions\n\nThis gallery is a visual representation of the collaborative work done across a variety of open-source projects, each driven by a shared passion for innovation and community growth.\n\nEvery tile below represents a unique project where contributions have been made-ranging from code enhancements to documentation improvements. Each project includes a summary of its goals, features, and links to GitHub for direct access.\n\nThis page serves as both a portfolio of past work and a resource for revisiting projects that have made a meaningful impact.\n'
+  const frontmatter = forks.map(({ repository, contributions }) => {
+    const { name, owner, html_url, description, stargazers_count } = repository
+    return { name, owner: owner.login, html_url, description, stargazers_count, contributions }
+  })
+  log(`   Generate forks page.`, 'info')
+  writeFileSync(FORKS_FILE, separator.concat(header, YAML.stringify(frontmatter), separator, text))
+}
+
+type Source = Required<Awaited<ReturnType<typeof getContributors>>['source']>
+
+type AdaptedLicense = Omit<NonNullable<Source>['license'], 'spdx_id'> & { spdx_id?: string }
+
+type AdaptedRepository = Omit<NonNullable<Source>, 'license'> & { license: AdaptedLicense }
+
+export async function processForks(repositories: EnhancedRepository[], username: GlobalOpts['username'], token?: GlobalOpts['token']) {
+  const forks = await Promise.all(
+    repositories.map(async (repository) => {
+      const { source, contributors } = await getContributors({ repository, token })
+      return {
+        contributions: contributors?.find(contributor => contributor.login === username)?.contributions ?? 0,
+        repository: source as AdaptedRepository,
+      }
+    }),
+  ).then(f => f.filter(({ repository, contributions }) => !!repository && contributions))
+
+  addForkPage(forks)
 }
 
 export function parseVitepressConfig(path: string) {

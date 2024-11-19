@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import axios from 'axios'
 import { rimrafSync } from 'rimraf'
-import { checkHttpStatus, createDir, deepMerge, extractFiles, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, prettify, prettifyEnum } from './functions.js'
+import { checkHttpStatus, createDir, deepMerge, extractFiles, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, isObject, loadConfigFile, prettify, prettifyEnum, splitByComma } from './functions.js'
 
 vi.mock('axios')
 vi.mock('fs')
@@ -412,5 +413,73 @@ describe('deepMerge', () => {
       { a: { y: 2 }, c: 3 },
     )
     expect(result).toEqual({ a: { x: 1, y: 2 }, b: 2, c: 3 })
+  })
+})
+
+describe('isObject', () => {
+  it('should return true for an object', () => {
+    expect(isObject({ key: 'value' })).toBe(true)
+  })
+
+  it('should return false for null', () => {
+    expect(isObject(null)).oneOf([false, null])
+  })
+
+  it('should return false for an array', () => {
+    expect(isObject([1, 2, 3])).toBe(false)
+  })
+
+  it('should return false for a string', () => {
+    expect(isObject('string')).toBe(false)
+  })
+
+  it('should return false for a number', () => {
+    expect(isObject(42)).toBe(false)
+  })
+})
+
+describe('loadConfigFile', () => {
+  const mockConfigContent = JSON.stringify({ key: 'value' })
+  const mockPath = 'config.json'
+
+  it('should return an empty object if configPath is undefined', () => {
+    expect(loadConfigFile()).toEqual({})
+  })
+
+  it('should return parsed config object if file exists', () => {
+    vi.spyOn(process, 'cwd').mockReturnValue('/mock')
+    ;(readFileSync as any).mockReturnValue(mockConfigContent)
+
+    const result = loadConfigFile(mockPath)
+
+    expect(result).toEqual({ key: 'value' })
+    expect(readFileSync).toHaveBeenCalledWith(resolve('/mock', mockPath), 'utf8')
+  })
+
+  it('should return an empty object if file does not exist or JSON parsing fails', () => {
+    vi.spyOn(process, 'cwd').mockReturnValue('/mock')
+    ;(readFileSync as any).mockImplementation(() => { throw new Error('File not found') })
+
+    const result = loadConfigFile(mockPath)
+
+    expect(result).toEqual({})
+  })
+})
+
+describe('splitByComma', () => {
+  it('should split a comma-separated string into an array', () => {
+    expect(splitByComma('a,b,c')).toEqual(['a', 'b', 'c'])
+  })
+
+  it('should handle empty strings by returning an array with an empty string', () => {
+    expect(splitByComma('')).toEqual([''])
+  })
+
+  it('should handle strings without commas by returning a single-element array', () => {
+    expect(splitByComma('single')).toEqual(['single'])
+  })
+
+  it('should handle multiple consecutive commas by returning empty elements', () => {
+    expect(splitByComma('a,,b,,c')).toEqual(['a', '', 'b', '', 'c'])
   })
 })

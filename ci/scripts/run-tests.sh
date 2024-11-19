@@ -148,7 +148,7 @@ if [ "$RUN_CLI_TESTS" == "true" ]; then
     && cd /tmp/docpress/cli/pnpm \
     && [ -f "./package.json" ] || pnpm init \
     && pnpm add $TGZ_PKG_NAME \
-    && pnpm exec docpress -u this-is-tobi -r homelab \
+    && pnpm exec docpress -U this-is-tobi -r homelab \
     && cd - > /dev/null
   checkDocsResult /tmp/docpress/cli/pnpm/docpress
 
@@ -156,7 +156,7 @@ if [ "$RUN_CLI_TESTS" == "true" ]; then
     && cd /tmp/docpress/cli/npm \
     && [ -f "./package.json" ] || npm init -y \
     && npm install $TGZ_PKG_NAME \
-    && npm exec docpress -- -u this-is-tobi -r homelab \
+    && npm exec docpress -- -U this-is-tobi -r homelab \
     && cd - > /dev/null
   checkDocsResult /tmp/docpress/cli/npm/docpress
 
@@ -164,7 +164,7 @@ if [ "$RUN_CLI_TESTS" == "true" ]; then
     && cd /tmp/docpress/cli/bun \
     && [ -f "./package.json" ] || bun init \
     && bun add $TGZ_PKG_NAME \
-    && bunx docpress -u this-is-tobi -r homelab \
+    && bunx docpress -U this-is-tobi -r homelab \
     && cd - > /dev/null
   checkDocsResult /tmp/docpress/cli/bun/docpress
 fi
@@ -179,9 +179,9 @@ if [ "$RUN_DOCKER_TESTS" == "true" ]; then
 
   if [ -n "$DOCKER_IMAGE" ]; then
     mkdir -p /tmp/docpress/docker/docpress \
-      && docker run --name docpress --rm -v /tmp/docpress/docker/docpress:/app/docpress:rw --user root $DOCKER_IMAGE  -u this-is-tobi -r homelab
+      && docker run --name docpress --rm -v /tmp/docpress/docker/docpress:/app/docpress:rw --user root $DOCKER_IMAGE  -U this-is-tobi -r homelab
   else
-    pnpm run build:docker && pnpm run start:docker -u this-is-tobi -r homelab
+    pnpm run build:docker && pnpm run start:docker -U this-is-tobi -r homelab
   fi
 
   checkDocsResult /tmp/docpress/docker/docpress
