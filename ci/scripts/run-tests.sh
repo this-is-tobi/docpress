@@ -22,14 +22,15 @@ RUN_LINT="false"
 RUN_UNIT_TESTS="false"
 RUN_CLI_TESTS="false"
 RUN_DOCKER_TESTS="false"
+PACKAGE_MANAGER="npm"
 
 # Declare script helper
 TEXT_HELPER="\nThis script aims to run application tests.
 Following flags are available:
 
-  -c    Run cli tests.
+  -c    Run cli tests (optionally, specify the package manager to be tested as a comma-separated list. Available options are 'npm', 'pnpm' and 'bun', default is '${PACKAGE_MANAGER}')
 
-  -d    Run docker tests (optionally pass the docker image to test as argument).
+  -d    Run docker tests (optionally, specify the docker image to test as argument).
 
   -l    Run lint.
 
@@ -42,11 +43,12 @@ print_help() {
 }
 
 # Parse options
-while getopts hcd:lu flag
+while getopts hc:d:lu flag
 do
   case "${flag}" in
     c)
-      RUN_CLI_TESTS=true;;
+      RUN_CLI_TESTS=true
+      PACKAGE_MANAGER=${OPTARG};;
     d)
       RUN_DOCKER_TESTS=true
       DOCKER_IMAGE=${OPTARG};;
@@ -111,7 +113,7 @@ printf "\nScript settings:
   -> docker buildx version: ${DOCKER_BUILDX_VERSION}
   -> run lint: ${RUN_LINT}
   -> run unit tests: ${RUN_UNIT_TESTS}
-  -> run cli tests: ${RUN_CLI_TESTS}
+  -> run cli tests: ${RUN_CLI_TESTS} (${PACKAGE_MANAGER})
   -> run docker tests: ${RUN_DOCKER_TESTS}\n"
 
 
@@ -144,29 +146,33 @@ if [ "$RUN_CLI_TESTS" == "true" ]; then
     && pnpm pack \
     && TGZ_PKG_NAME=$(ls -d $PWD/* | grep '.tgz')
 
-  mkdir -p /tmp/docpress/cli/pnpm \
-    && cd /tmp/docpress/cli/pnpm \
-    && [ -f "./package.json" ] || pnpm init \
-    && pnpm add $TGZ_PKG_NAME \
-    && pnpm exec docpress -U this-is-tobi -r homelab \
-    && cd - > /dev/null
-  checkDocsResult /tmp/docpress/cli/pnpm/docpress
-
-  mkdir -p /tmp/docpress/cli/npm \
-    && cd /tmp/docpress/cli/npm \
-    && [ -f "./package.json" ] || npm init -y \
-    && npm install $TGZ_PKG_NAME \
-    && npm exec docpress -- -U this-is-tobi -r homelab \
-    && cd - > /dev/null
-  checkDocsResult /tmp/docpress/cli/npm/docpress
-
-  mkdir -p /tmp/docpress/cli/bun \
-    && cd /tmp/docpress/cli/bun \
-    && [ -f "./package.json" ] || bun init \
-    && bun add $TGZ_PKG_NAME \
-    && bunx docpress -U this-is-tobi -r homelab \
-    && cd - > /dev/null
-  checkDocsResult /tmp/docpress/cli/bun/docpress
+  if [[ ",${PACKAGE_MANAGER}," == *",npm,"* ]]; then
+    mkdir -p /tmp/docpress/cli/npm \
+      && cd /tmp/docpress/cli/npm \
+      && [ -f "./package.json" ] || npm init -y \
+      && npm install $TGZ_PKG_NAME \
+      && npm exec docpress -- -U this-is-tobi -r homelab \
+      && cd - > /dev/null
+    checkDocsResult /tmp/docpress/cli/npm/docpress
+  fi
+  if [[ ",${PACKAGE_MANAGER}," == *",pnpm,"* ]]; then
+    mkdir -p /tmp/docpress/cli/pnpm \
+      && cd /tmp/docpress/cli/pnpm \
+      && [ -f "./package.json" ] || pnpm init \
+      && pnpm add $TGZ_PKG_NAME \
+      && pnpm exec docpress -U this-is-tobi -r homelab \
+      && cd - > /dev/null
+    checkDocsResult /tmp/docpress/cli/pnpm/docpress
+  fi
+  if [[ ",${PACKAGE_MANAGER}," == *",bun,"* ]]; then
+    mkdir -p /tmp/docpress/cli/bun \
+      && cd /tmp/docpress/cli/bun \
+      && [ -f "./package.json" ] || bun init -y \
+      && bun add $TGZ_PKG_NAME \
+      && bunx docpress -U this-is-tobi -r homelab \
+      && cd - > /dev/null
+    checkDocsResult /tmp/docpress/cli/bun/docpress
+  fi
 fi
 
 
