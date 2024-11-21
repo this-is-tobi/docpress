@@ -1,10 +1,12 @@
 import type { Dirent } from 'node:fs'
-import { cpSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getMdFiles, type getUserInfos, type getUserRepos } from '../utils/functions.js'
 import {
   addContent,
   addExtraPages,
+  addForkPage,
   // addSources,
   generateFeatures,
   generateIndex,
@@ -12,8 +14,11 @@ import {
   generateSidebarProject,
   generateVitepressFiles,
   parseVitepressConfig,
+  processForks,
   transformDoc,
 } from './prepare.js'
+import type { EnhancedRepository } from './fetch.js'
+import type { getInfos } from './git.js'
 
 vi.mock('node:fs')
 vi.mock('../utils/regex.js')
@@ -24,10 +29,26 @@ vi.mock('../utils/functions.js', async importOriginal => ({
   getMdFiles: vi.fn(),
 }))
 vi.mock('../utils/const.js', () => ({
-  DOCS_DIR: '/mock/docs',
-  INDEX_FILE: '/mock/docs/index.md',
-  VITEPRESS_CONFIG: '/mock/config.js',
+  DOCS_DIR: '/tmp/docpress/mock/docs',
+  INDEX_FILE: '/tmp/docpress/mock/docs/index.md',
+  FORKS_FILE: '/tmp/docpress/mock/docs/forks.md',
+  VITEPRESS_CONFIG: '/tmp/docpress/mock/config.js',
 }))
+vi.mock('./git.js', async importOriginal => ({
+  ...await importOriginal<typeof import('../utils/functions.js')>(),
+  getContributors: () => ({
+    source: {
+      name: 'test-repo',
+      owner: { login: 'test-user' },
+      html_url: 'https://github.com/test/repo',
+      description: 'Test repo description',
+      stargazers_count: 10,
+    },
+    contributors: [{ login: 'test-user', contributions: 10 }],
+  }),
+}))
+
+const tempDir = resolve(__dirname, 'temp-test-dir')
 
 // describe('addSources', () => {
 //   it('should append source content to a file', () => {
@@ -201,7 +222,7 @@ describe('addContent', () => {
 
 describe('parseVitepressConfig', () => {
   it('should parse Vitepress configuration from JSON file', () => {
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ title: 'My Project' }))
+    vi.mocked(readFileSync).mockReturnValueOnce(JSON.stringify({ title: 'My Project' }))
     const config = parseVitepressConfig('/mock/config.json')
     expect(config).toEqual({ title: 'My Project' })
   })
@@ -218,12 +239,99 @@ describe('generateVitepressFiles', () => {
 
     generateVitepressFiles(vitepressConfig, index)
     expect(writeFileSync).toHaveBeenCalledWith(
-      '/mock/config.js',
+      '/tmp/docpress/mock/config.js',
       expect.stringContaining('export default {'),
     )
     expect(writeFileSync).toHaveBeenCalledWith(
-      '/mock/docs/index.md',
+      '/tmp/docpress/mock/docs/index.md',
       expect.stringContaining('layout: home'),
+    )
+  })
+})
+
+describe('addForkPage', () => {
+  beforeAll(() => {
+    if (!existsSync(tempDir)) mkdirSync(tempDir)
+  })
+  afterAll(() => {
+    rmSync(tempDir, { recursive: true, force: true })
+  })
+
+  const mockForks = [
+    {
+      repository: {
+        name: 'example-repo',
+        owner: { login: 'example-user' },
+        html_url: 'https://github.com/example/repo',
+        description: 'An example repository',
+        stargazers_count: 42,
+      },
+      contributions: 5,
+    },
+  ] as { repository: Awaited<ReturnType<typeof getInfos>>['repos'][number], contributions: number }[]
+
+  it('should generate a forks page file', () => {
+    addForkPage(mockForks)
+
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/tmp/docpress/mock/docs/forks.md',
+      expect.stringContaining('layout: fork-page'),
+    )
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/tmp/docpress/mock/docs/forks.md',
+      expect.stringContaining('example-repo'),
+    )
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/tmp/docpress/mock/docs/forks.md',
+      expect.stringContaining('example-user'),
+    )
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/tmp/docpress/mock/docs/forks.md',
+      expect.stringContaining('example-user'),
+    )
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/tmp/docpress/mock/docs/forks.md',
+      expect.stringContaining('An example repository'),
+    )
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/tmp/docpress/mock/docs/forks.md',
+      expect.stringContaining('5'),
+    )
+  })
+})
+
+describe('processForks', () => {
+  beforeAll(() => {
+    if (!existsSync(tempDir)) mkdirSync(tempDir)
+  })
+  afterAll(() => {
+    rmSync(tempDir, { recursive: true, force: true })
+  })
+
+  const mockRepositories = [
+    {
+      name: 'test-repo',
+      owner: { login: 'test-user' },
+      docpress: { projectPath: '/test/path', branch: 'main' },
+      html_url: 'https://github.com/test/repo',
+    },
+  ] as EnhancedRepository[]
+  const mockUsername = 'test-user'
+
+  it('should process forks and generate the forks page', async () => {
+    await processForks(mockRepositories, mockUsername)
+
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/tmp/docpress/mock/docs/forks.md',
+      expect.stringContaining('test-repo'),
+    )
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/tmp/docpress/mock/docs/forks.md',
+      expect.stringContaining('test-user'),
+    )
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/tmp/docpress/mock/docs/forks.md',
+      expect.stringContaining('Test repo description'),
     )
   })
 })
