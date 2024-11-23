@@ -215,9 +215,9 @@ Example JSON configuration:
   "username": "my-github-username",
   "reposFilter": ["!repo1", "!repo2"],
   "branch": "main",
-  "extraHeaderPages": ["header1.md", "header2.md"],
-  "extraPublicContent": ["favicon.ico", "logo.png"],
-  "extraTheme": ["theme/index.md", "theme/custom-theme.css"],
+  "extraHeaderPages": ["./extras-headers", "header2.md"],
+  "extraPublicContent": ["./extras-public", "favicon.ico", "logo.png"],
+  "extraTheme": ["./extras-theme/styles", "./extras-theme/components", "./more.css"],
   "forks": false,
   "vitepress": {
     "title": "My Project Documentation",
