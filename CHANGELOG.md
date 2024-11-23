@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/this-is-tobi/docpress/compare/v0.2.3...v0.3.0) (2024-11-23)
+
+
+### Features
+
+* add debug logs ([295f761](https://github.com/this-is-tobi/docpress/commit/295f7619f72ab7acd1d04a9fac379a10b31b4b0d))
+* introduce forks list feature ([b8c065c](https://github.com/this-is-tobi/docpress/commit/b8c065c2e3e795ba8062d338e0df47538ba4ee5a))
+
 ## [0.2.3](https://github.com/this-is-tobi/docpress/compare/v0.2.2...v0.2.3) (2024-11-11)
 
 
