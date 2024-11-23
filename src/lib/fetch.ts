@@ -1,5 +1,6 @@
 import { resolve } from 'node:path'
 import { writeFileSync } from 'node:fs'
+import type { GlobalOpts } from '../schemas/global.js'
 import type { FetchOpts } from '../schemas/fetch.js'
 import { checkHttpStatus, createDir } from '../utils/functions.js'
 import { DOCPRESS_DIR, DOCS_DIR, USER_INFOS, USER_REPOS_INFOS } from '../utils/const.js'
@@ -17,7 +18,7 @@ export type EnhancedRepository = Awaited<ReturnType<typeof getInfos>>['repos'][n
   }
 }
 
-export async function checkDoc(repoOwner: FetchOpts['username'], repoName: string, branch: FetchOpts['branch']) {
+export async function checkDoc(repoOwner: GlobalOpts['username'], repoName: string, branch: FetchOpts['branch']) {
   const rootReadmeUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/README.md`
   const docsFolderUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/docs`
   const docsReadmeUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/docs/01-readme.md`
@@ -107,8 +108,7 @@ export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOp
     repos
       .filter(repo => !isRepoFiltered(repo, reposFilter))
       .map(async (repo) => {
-        log(`   Clone repository '${repo.name}'.`, 'info')
-        await cloneRepo(repo.clone_url as string, repo.docpress.projectPath, repo.docpress.branch, repo.docpress.includes)
+        await cloneRepo(repo.name, repo.clone_url as string, repo.docpress.projectPath, repo.docpress.branch, repo.docpress.includes)
       }),
   )
 }
@@ -119,6 +119,7 @@ export function isRepoFiltered(repo: EnhancedRepository | Awaited<ReturnType<typ
     .some(filter => repo.name === filter.substring(1))
   const isIncluded = !reposFilter
     || reposFilter?.filter(filter => !filter.startsWith('!')).includes(repo.name)
+    || (repo.fork && !isExcluded)
     || (hasOnlyExclusions && !isExcluded)
 
   const isFiltered = isExcluded || !isIncluded
@@ -127,7 +128,7 @@ export function isRepoFiltered(repo: EnhancedRepository | Awaited<ReturnType<typ
     return true
   }
 
-  if (!!repo.clone_url && !repo.fork && !repo.private && !isFiltered) {
+  if (!!repo.clone_url && !repo.private && !isFiltered) {
     return false
   }
   return true

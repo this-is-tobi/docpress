@@ -16,15 +16,6 @@ Docpress automates the process of downloading documentation files from specified
 
 For optimal use of Docpress, please check the [rules section](#rules) to understand the conventions and guidelines that will ensure that everything works correctly. By following these rules, you can maximize the effectiveness of the documentation process.
 
-## Documentation
-
-__Website:__ <https://this-is-tobi.com/docpress/introduction>.
-
-__Table of Contents__ *- md sources*:
-- [Rules](./docs/02-rules.md)
-- [Advanced usage](./docs/03-advanced-usage.md)
-- [Development](./docs/04-development.md)
-
 ## Quickstart
 
 1. Generate website using the Docpress docker image.

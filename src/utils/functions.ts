@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { basename, join } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 import axios from 'axios'
 import { rimrafSync } from 'rimraf'
 import type { EnhancedRepository } from '../lib/fetch.js'
@@ -128,6 +128,23 @@ export function deepMerge<T extends Record<string, any> | null>(...objects: T[])
   }, {} as T)
 }
 
-function isObject(val: any): val is object {
+export function isObject(val: any): val is object {
   return val && typeof val === 'object' && !Array.isArray(val)
+}
+
+export function loadConfigFile(configPath?: string) {
+  if (!configPath) {
+    return {}
+  }
+  try {
+    const fullPath = resolve(process.cwd(), configPath)
+    const fileContents = readFileSync(fullPath, 'utf8')
+    return JSON.parse(fileContents)
+  } catch (_error) {
+    return {}
+  }
+}
+
+export function splitByComma(s: string) {
+  return s.split(',')
 }

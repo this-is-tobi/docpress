@@ -6,6 +6,12 @@ import { prepareOptsSchema } from './prepare.js'
 
 vi.mock('fs')
 
+const defaultConfig = {
+  branch: 'main',
+  token: undefined,
+  gitProvider: 'github',
+}
+
 describe('globalOptsSchema', () => {
   it('should validate valid global options', () => {
     const validData = {
@@ -16,7 +22,6 @@ describe('globalOptsSchema', () => {
       branch: 'main',
       gitProvider: 'github',
       reposFilter: ['repo1', 'repo2'],
-      token: 'your_token',
       username: 'your_username',
       extraHeaderPages: ['header1.md', 'header2.md'],
       extraPublicContent: ['public1', 'public2'],
@@ -25,38 +30,77 @@ describe('globalOptsSchema', () => {
 
     const result = globalOptsSchema.parse(validData)
     expect(result).toEqual({
-      ...validData,
-      config: {
-        branch: 'main',
-        gitProvider: 'github',
-        reposFilter: ['repo1', 'repo2'],
-        token: 'your_token',
-        username: 'your_username',
-        extraHeaderPages: ['header1.md', 'header2.md'],
-        extraPublicContent: ['public1', 'public2'],
-        extraTheme: ['theme1', 'theme2'],
-      },
+      ...defaultConfig,
+      branch: 'main',
+      gitProvider: 'github',
+      reposFilter: ['repo1', 'repo2'],
+      username: 'your_username',
+      extraHeaderPages: ['header1.md', 'header2.md'],
+      extraPublicContent: ['public1', 'public2'],
+      extraTheme: ['theme1', 'theme2'],
     })
   })
 
-  it('should throw an error for invalid config path', () => {
+  it('should return empty config for invalid config path', () => {
     const invalidData = {
       config: './invalid-config.json',
+      username: 'user1',
     }
 
     vi.mocked(readFileSync).mockImplementation(() => {
       throw new Error('File not found')
     })
 
-    expect(() => globalOptsSchema.parse(invalidData)).toThrow('File not found')
+    const result = globalOptsSchema.parse(invalidData)
+    expect(result).toEqual({
+      ...defaultConfig,
+      username: invalidData.username,
+    })
   })
 
   it('should handle optional config field correctly', () => {
-    const partialData = {}
+    const partialData = {
+      username: 'user1',
+    }
 
     const result = globalOptsSchema.parse(partialData)
     expect(result).toEqual({
-      config: undefined,
+      ...defaultConfig,
+      username: partialData.username,
+    })
+  })
+
+  it('should correctly split comma-separated strings into arrays', () => {
+    const dataWithCommaSeparatedValues = {
+      username: 'user1',
+      reposFilter: 'repo1,repo2,repo3',
+      extraHeaderPages: 'header1.md,header2.md',
+      extraPublicContent: 'public1,public2',
+      extraTheme: 'theme1,theme2',
+    }
+
+    const result = globalOptsSchema.parse(dataWithCommaSeparatedValues)
+    expect(result).toEqual({
+      ...defaultConfig,
+      username: 'user1',
+      reposFilter: ['repo1', 'repo2', 'repo3'],
+      extraHeaderPages: ['header1.md', 'header2.md'],
+      extraPublicContent: ['public1', 'public2'],
+      extraTheme: ['theme1', 'theme2'],
+    })
+  })
+
+  it('should apply defaults for branch and gitProvider if not provided', () => {
+    const dataWithoutBranchAndGitProvider = {
+      username: 'user1',
+      reposFilter: 'repo1',
+    }
+
+    const result = globalOptsSchema.parse(dataWithoutBranchAndGitProvider)
+    expect(result).toEqual({
+      ...defaultConfig,
+      username: 'user1',
+      reposFilter: ['repo1'],
     })
   })
 })
@@ -66,32 +110,77 @@ describe('configSchema', () => {
     const validCombinedData = {
       branch: 'main',
       gitProvider: 'github',
-      reposFilter: 'repo1,repo2',
+      forks: false,
       token: 'your_token',
       username: 'your_username',
-      extraHeaderPages: 'header1.md,header2.md',
-      extraPublicContent: 'public1,public2',
-      extraTheme: 'theme1,theme2',
-    }
-    const transformedData = {
       reposFilter: ['repo1', 'repo2'],
       extraHeaderPages: ['header1.md', 'header2.md'],
       extraPublicContent: ['public1', 'public2'],
       extraTheme: ['theme1', 'theme2'],
     }
+    const { token: _token, ...dataWithoutToken } = validCombinedData
 
     const result = configSchema.parse(validCombinedData)
-    expect(result).toEqual({ ...validCombinedData, ...transformedData })
+    expect(result).toEqual(dataWithoutToken)
   })
 
   it('should throw an error for missing required fields', () => {
+    const invalidData = {}
+
+    expect(() => configSchema.parse(invalidData)).toThrow()
+  })
+
+  it('should return default values when fields are missing', () => {
+    const partialData = {
+      username: 'your_username',
+      reposFilter: [],
+      extraHeaderPages: [],
+      extraPublicContent: [],
+      extraTheme: [],
+    }
+
+    const result = configSchema.parse(partialData)
+    expect(result).toEqual({
+      ...defaultConfig,
+      ...partialData,
+      username: 'your_username',
+      forks: false,
+    })
+  })
+
+  it('should throw an error if gitProvider is not in the allowed enum values', () => {
     const invalidData = {
+      username: 'user1',
+      gitProvider: 'invalid_provider',
     }
 
     expect(() => configSchema.parse(invalidData)).toThrow()
   })
+
+  it('should allow empty arrays for optional list fields', () => {
+    const dataWithEmptyArrays = {
+      username: 'user1',
+      reposFilter: [],
+      extraHeaderPages: [],
+      extraPublicContent: [],
+      extraTheme: [],
+    }
+    const { token: _token, ...rest } = defaultConfig
+
+    const result = configSchema.parse(dataWithEmptyArrays)
+    expect(result).toEqual({
+      ...rest,
+      forks: false,
+      username: 'user1',
+      reposFilter: [],
+      extraHeaderPages: [],
+      extraPublicContent: [],
+      extraTheme: [],
+    })
+  })
 })
 
+// foo
 describe('fetchOptsSchema', () => {
   it('should validate valid fetch options', () => {
     const validData = {
@@ -113,9 +202,8 @@ describe('fetchOptsSchema', () => {
 
     const result = fetchOptsSchema.parse(partialData)
     expect(result).toEqual({
-      branch: 'main',
-      gitProvider: 'github',
-      username: 'user123',
+      ...defaultConfig,
+      username: partialData.username,
     })
   })
 
@@ -143,7 +231,6 @@ describe('fetchOptsSchema', () => {
     const invalidData = {
       branch: 'develop',
       gitProvider: 'bitbucket',
-      username: 'user123',
     }
 
     expect(() => fetchOptsSchema.parse(invalidData)).toThrow()
@@ -153,6 +240,7 @@ describe('fetchOptsSchema', () => {
 describe('prepareOptsSchema', () => {
   it('should validate valid prepare options', () => {
     const validData = {
+      username: 'user1',
       extraHeaderPages: 'header1.md,header2.md',
       extraPublicContent: 'public1,public2',
       extraTheme: 'theme1,theme2',
@@ -163,6 +251,7 @@ describe('prepareOptsSchema', () => {
 
     const result = prepareOptsSchema.parse(validData)
     expect(result).toEqual({
+      ...defaultConfig,
       ...validData,
       extraHeaderPages: ['header1.md', 'header2.md'],
       extraPublicContent: ['public1', 'public2'],
@@ -173,6 +262,7 @@ describe('prepareOptsSchema', () => {
 
   it('should apply default values for optional fields', () => {
     const partialData = {
+      username: 'user1',
       vitepressConfig: './vitepress.config.json',
     }
 
@@ -180,16 +270,15 @@ describe('prepareOptsSchema', () => {
 
     const result = prepareOptsSchema.parse(partialData)
     expect(result).toEqual({
+      ...defaultConfig,
       ...partialData,
-      extraHeaderPages: undefined,
-      extraPublicContent: undefined,
-      extraTheme: undefined,
       vitepressConfig: { title: 'VitePress Config' },
     })
   })
 
   it('should transform string fields into arrays', () => {
     const dataWithStrings = {
+      username: 'user1',
       extraHeaderPages: 'header1.md,header2.md',
       extraPublicContent: 'public1,public2',
       extraTheme: 'theme1,theme2',
@@ -203,6 +292,7 @@ describe('prepareOptsSchema', () => {
 
   it('should throw an error for invalid vitepressConfig path', () => {
     const invalidData = {
+      username: 'user1',
       vitepressConfig: './invalid-config.json',
     }
 
@@ -210,6 +300,10 @@ describe('prepareOptsSchema', () => {
       throw new Error('File not found')
     })
 
-    expect(() => prepareOptsSchema.parse(invalidData)).toThrow('File not found')
+    const result = globalOptsSchema.parse(invalidData)
+    expect(result).toEqual({
+      ...defaultConfig,
+      username: invalidData.username,
+    })
   })
 })

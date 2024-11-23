@@ -1,15 +1,18 @@
 import { appendFileSync, cpSync, rmSync } from 'node:fs'
-import { Octokit } from 'octokit'
+import { Octokit } from '@octokit/rest'
 import { simpleGit } from 'simple-git'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createDir } from '../utils/functions.js'
-import { cloneRepo, getInfos } from './git.js'
+import { log } from '../utils/logger.js'
+import { cloneRepo, getContributors, getInfos } from './git.js'
+import type { EnhancedRepository } from './fetch.js'
 
-vi.mock('octokit')
+vi.mock('@octokit/rest')
 vi.mock('simple-git')
 vi.mock('node:fs')
 vi.mock('node:path', () => ({ resolve: vi.fn((...args) => args.join('/')) }))
 vi.mock('../utils/functions.js')
+vi.mock('../utils/logger.js')
 
 describe('getInfos', () => {
   const mockUser = { login: 'testUser' }
@@ -40,6 +43,75 @@ describe('getInfos', () => {
   })
 })
 
+describe('getContributors', () => {
+  const mockRepository = {
+    name: 'repo1',
+    owner: { login: 'testOwner' },
+  } as EnhancedRepository
+  const mockToken = 'testToken'
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should return repository source and contributors on success', async () => {
+    const mockRepoData = { source: { owner: { login: 'test-source-owner' } }, name: 'repo1' }
+    const mockContributorsData = [{ login: 'contributor1' }, { login: 'contributor2' }]
+
+    const mockOctokit = {
+      request: vi.fn()
+        .mockResolvedValueOnce({ data: mockRepoData })
+        .mockResolvedValueOnce({ data: mockContributorsData }),
+    }
+
+    ;(Octokit as any).mockImplementation(() => mockOctokit)
+
+    const result = await getContributors({ repository: mockRepository, token: mockToken })
+
+    expect(result).toEqual({
+      source: mockRepoData.source,
+      contributors: mockContributorsData,
+    })
+  })
+
+  it('should log a warning and return empty contributors if contributors request fails with non-404', async () => {
+    const mockRepoData = { source: { owner: { login: 'test-source-owner' } }, name: 'repo1' }
+
+    const mockOctokit = {
+      request: vi.fn()
+        .mockResolvedValueOnce({ data: mockRepoData })
+        .mockRejectedValueOnce(new Error('500 Server Error')),
+    }
+
+    ;(Octokit as any).mockImplementation(() => mockOctokit)
+
+    const result = await getContributors({ repository: mockRepository, token: mockToken })
+
+    expect(log).toHaveBeenCalledWith(`   Failed to get contributors infos for repository '${mockRepository.name}'.`, 'warn')
+    expect(result).toEqual({
+      source: mockRepoData.source,
+      contributors: [],
+    })
+  })
+
+  it('should return empty contributors if source owner login is undefined', async () => {
+    const mockRepoData = { source: { owner: {} }, name: 'repo1' }
+
+    const mockOctokit = {
+      request: vi.fn().mockResolvedValueOnce({ data: mockRepoData }),
+    }
+
+    ;(Octokit as any).mockImplementation(() => mockOctokit)
+
+    const result = await getContributors({ repository: mockRepository, token: mockToken })
+
+    expect(result).toEqual({
+      source: mockRepoData.source,
+      contributors: [],
+    })
+  })
+})
+
 describe('cloneRepo', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -55,11 +127,12 @@ describe('cloneRepo', () => {
 
     ;(simpleGit as any).mockImplementation(() => mockGit)
 
+    const repoName = 'repo1'
     const projectDir = 'testDir'
     const includes = ['docs/file1.md', 'docs/file2.md']
     const branch = 'main'
 
-    await cloneRepo('https://github.com/testUser/repo.git', projectDir, branch, includes)
+    await cloneRepo(repoName, 'https://github.com/testUser/repo.git', projectDir, branch, includes)
 
     expect(createDir).toHaveBeenCalledWith(projectDir, { clean: true })
     expect(mockGit.init).toHaveBeenCalled()
@@ -80,11 +153,12 @@ describe('cloneRepo', () => {
 
     ;(simpleGit as any).mockImplementation(() => mockGit)
 
+    const repoName = 'repo1'
     const projectDir = 'testDir'
     const includes = ['docs/file1.md']
     const branch = 'main'
 
-    await cloneRepo('https://github.com/testUser/repo.git', projectDir, branch, includes)
+    await cloneRepo(repoName, 'https://github.com/testUser/repo.git', projectDir, branch, includes)
 
     expect(cpSync).toHaveBeenCalledWith(`${projectDir}/docs`, projectDir, { recursive: true })
     expect(rmSync).toHaveBeenCalledWith(`${projectDir}/docs`, { recursive: true })
@@ -100,11 +174,12 @@ describe('cloneRepo', () => {
 
     ;(simpleGit as any).mockImplementation(() => mockGit)
 
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    // const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    await cloneRepo('https://github.com/testUser/repo.git', 'testDir', 'main', ['docs'])
+    await cloneRepo('repo1', 'https://github.com/testUser/repo.git', 'testDir', 'main', ['docs'])
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(`Error when cloning repository: ${gitError}`))
-    consoleSpy.mockRestore()
+    // expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(`Error when cloning repository: ${gitError}`))
+    // consoleSpy.mockRestore()
+    expect(log).toHaveBeenCalledWith(expect.stringContaining(`Error when cloning repository: ${gitError}`), 'error')
   })
 })

@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { DOCPRESS_DIR } from '../utils/const.js'
+import { DOCPRESS_DIR, TEMPLATE_THEME, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import { prepareOptsSchema } from '../schemas/prepare.js'
 import { getUserInfos, getUserRepos } from '../utils/functions.js'
@@ -142,10 +142,15 @@ describe('main', () => {
     expect(addContent).toHaveBeenCalledWith(mockOpts.extraPublicContent, resolve(DOCPRESS_DIR, 'public'))
   })
 
-  it('should log and add extra theme if provided', async () => {
+  it('should log and add both template and extra themes if provided', async () => {
     await main(mockOpts)
-    expect(log).toHaveBeenCalledWith(`   Add extras Vitepress theme files.`, 'info')
-    expect(addContent).toHaveBeenCalledWith(mockOpts.extraTheme, resolve(DOCPRESS_DIR, '.vitepress/theme'))
+    expect(log).toHaveBeenCalledWith(`   Add Docpress theme files.`, 'info')
+    expect(addContent).toHaveBeenCalledWith(TEMPLATE_THEME, resolve(VITEPRESS_THEME))
+
+    if (mockOpts.extraTheme) {
+      expect(log).toHaveBeenCalledWith(`   Add extras Vitepress theme files.`, 'info')
+      expect(addContent).toHaveBeenCalledWith(mockOpts.extraTheme, resolve(VITEPRESS_USER_THEME))
+    }
   })
 
   it('should call getVitepressConfig with sidebar, nav, and vitepressConfig options', async () => {
@@ -164,7 +169,7 @@ describe('prepareOpts', () => {
     const extraThemeOption = prepareOpts.find(opt => opt.flags.includes('--extra-theme'))
     const extraHeaderPagesOption = prepareOpts.find(opt => opt.flags.includes('--extra-header-pages'))
 
-    expect(extraThemeOption?.description).toBe(prepareOptsSchema.shape.extraTheme._def.description)
-    expect(extraHeaderPagesOption?.description).toBe(prepareOptsSchema.shape.extraHeaderPages._def.description)
+    expect(extraThemeOption?.description).toBe(prepareOptsSchema.innerType().shape.extraTheme._def.description)
+    expect(extraHeaderPagesOption?.description).toBe(prepareOptsSchema.innerType().shape.extraHeaderPages._def.description)
   })
 })

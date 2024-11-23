@@ -6,16 +6,23 @@ import { prepareCmd, main as prepareFn, prepareOpts } from './commands/prepare.j
 import { addOptions, parseOptions } from './utils/commands.js'
 import { globalOpts } from './commands/global.js'
 
+// const options = {
+//   fetchOpts: [
+//     createOption('-b, --branch <string>', configSchema.shape.branch._def.description)
+//       .default(configSchema.shape.branch._def.defaultValue()),
+//     createOption('-g, --git-provider <string>', configSchema.shape.gitProvider._def.description)
+//       .default(configSchema.shape.gitProvider._def.defaultValue()),
+//     createOption('-r, --repos-filter <string>', configSchema.shape.reposFilter._def.description),
+//   ],
+// }
+
 export function getProgram() {
   const pm = new Command()
     .name('docpress')
     .description('Build your doc website faster than light ⚡️⚡️⚡️')
     .version(`${pkg.version}`)
-    .addCommand((fetchCmd))
-    .addCommand(prepareCmd)
-    .addCommand(buildCmd)
     .action(async (opts, _cmd) => {
-      const parsedOpts = parseOptions(['fetch', 'prepare'], opts)
+      const parsedOpts = parseOptions('global', opts)
       await fetchFn(parsedOpts)
       await prepareFn(parsedOpts)
       await buildFn()
@@ -27,6 +34,9 @@ export function getProgram() {
     })
     .enablePositionalOptions()
     .passThroughOptions()
+    .addCommand(fetchCmd)
+    .addCommand(prepareCmd)
+    .addCommand(buildCmd)
 
   addOptions(pm, [...fetchOpts, ...prepareOpts, ...globalOpts])
 
@@ -35,5 +45,5 @@ export function getProgram() {
 
 export function main() {
   const pm = getProgram()
-  pm.parseAsync()
+  pm.parseAsync(process.argv)
 }
