@@ -13,3 +13,9 @@ export const INDEX_FILE = resolve(process.cwd(), 'docpress/docs/index.md')
 export const FORKS_FILE = resolve(process.cwd(), 'docpress/docs/forks.md')
 
 export const VITEPRESS_CONFIG = resolve(process.cwd(), 'docpress/.vitepress/config.ts')
+
+export const VITEPRESS_THEME = resolve(process.cwd(), 'docpress/.vitepress/theme')
+
+export const VITEPRESS_USER_THEME = resolve(process.cwd(), 'docpress/.vitepress/theme/extras')
+
+export const TEMPLATE_THEME = resolve(import.meta.dirname, '../templates/theme')

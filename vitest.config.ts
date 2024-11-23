@@ -16,7 +16,9 @@ export default defineConfig({
       exclude: [
         ...configDefaults.exclude,
         '**/*.spec.ts',
+        '**/*.d.ts',
         '**/types.ts',
+        'src/templates',
       ],
     },
     onConsoleLog: () => false,
