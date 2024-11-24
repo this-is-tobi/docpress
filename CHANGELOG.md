@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/this-is-tobi/docpress/compare/v0.3.1...v0.3.2) (2024-11-24)
+
+
+### Bug Fixes
+
+* fix theme templates copy ([2d91a22](https://github.com/this-is-tobi/docpress/commit/2d91a224c6e9024bd3f5cc0a3ea7e1ad28d8d852))
+
 ## [0.3.1](https://github.com/this-is-tobi/docpress/compare/v0.3.0...v0.3.1) (2024-11-24)
 
 
