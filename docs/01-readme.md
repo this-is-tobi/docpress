@@ -14,7 +14,7 @@ Docpress automates the process of downloading documentation files from specified
 2. __Static Website Generation__:
     - After retrieving the documentation files, Docpress generates a static website using [VitePress](https://vitepress.dev/). This framework allows for the creation of fast and customizable documentation sites.
 
-For optimal use of Docpress, please check the [rules section](#rules) to understand the conventions and guidelines that will ensure that everything works correctly. By following these rules, you can maximize the effectiveness of the documentation process.
+For optimal use of Docpress, please check the [rules section](rules) to understand the conventions and guidelines that will ensure that everything works correctly. By following these rules, you can maximize the effectiveness of the documentation process.
 
 ## Quickstart
 

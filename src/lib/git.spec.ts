@@ -24,9 +24,16 @@ describe('getInfos', () => {
 
   it('should return user info and repos', async () => {
     const mockOctokit = {
-      request: vi.fn()
-        .mockResolvedValueOnce({ data: mockUser })
-        .mockResolvedValueOnce({ data: mockRepos }),
+      rest: {
+        users: {
+          getByUsername: vi.fn()
+            .mockResolvedValueOnce({ data: mockUser }),
+        },
+        repos: {
+          listForUser: vi.fn()
+            .mockResolvedValueOnce({ data: mockRepos }),
+        },
+      },
     }
 
     ;(Octokit as any).mockImplementation(() => mockOctokit)
@@ -38,8 +45,8 @@ describe('getInfos', () => {
       repos: mockRepos,
       branch: 'main',
     })
-    expect(mockOctokit.request).toHaveBeenCalledWith('GET /users/{username}', { username: 'testUser' })
-    expect(mockOctokit.request).toHaveBeenCalledWith('GET /users/{username}/repos', { username: 'testUser', sort: 'full_name' })
+    expect(mockOctokit.rest.users.getByUsername).toHaveBeenCalledWith({ username: 'testUser' })
+    expect(mockOctokit.rest.repos.listForUser).toHaveBeenCalledWith({ username: 'testUser', sort: 'full_name' })
   })
 })
 
@@ -56,12 +63,24 @@ describe('getContributors', () => {
 
   it('should return repository source and contributors on success', async () => {
     const mockRepoData = { source: { owner: { login: 'test-source-owner' } }, name: 'repo1' }
-    const mockContributorsData = [{ login: 'contributor1' }, { login: 'contributor2' }]
+    const mockContributorsDataPage1 = [{ login: 'contributor1' }, { login: 'contributor2' }]
+    const mockContributorsDataPage2 = [{ login: 'contributor3' }]
 
     const mockOctokit = {
-      request: vi.fn()
-        .mockResolvedValueOnce({ data: mockRepoData })
-        .mockResolvedValueOnce({ data: mockContributorsData }),
+      rest: {
+        repos: {
+          get: vi.fn()
+            .mockResolvedValueOnce({ data: mockRepoData }),
+          listContributors: vi.fn(),
+        },
+      },
+      paginate: {
+        iterator: vi.fn()
+          .mockReturnValueOnce([
+            { data: mockContributorsDataPage1 },
+            { data: mockContributorsDataPage2 },
+          ]),
+      },
     }
 
     ;(Octokit as any).mockImplementation(() => mockOctokit)
@@ -70,7 +89,7 @@ describe('getContributors', () => {
 
     expect(result).toEqual({
       source: mockRepoData.source,
-      contributors: mockContributorsData,
+      contributors: [...mockContributorsDataPage1, ...mockContributorsDataPage2],
     })
   })
 
@@ -78,9 +97,17 @@ describe('getContributors', () => {
     const mockRepoData = { source: { owner: { login: 'test-source-owner' } }, name: 'repo1' }
 
     const mockOctokit = {
-      request: vi.fn()
-        .mockResolvedValueOnce({ data: mockRepoData })
-        .mockRejectedValueOnce(new Error('500 Server Error')),
+      rest: {
+        repos: {
+          get: vi.fn()
+            .mockResolvedValueOnce({ data: mockRepoData }),
+          listContributors: vi.fn()
+            .mockResolvedValueOnce(new Error('500 Server Error')),
+        },
+        paginate: {
+          iterator: vi.fn(),
+        },
+      },
     }
 
     ;(Octokit as any).mockImplementation(() => mockOctokit)
@@ -98,7 +125,16 @@ describe('getContributors', () => {
     const mockRepoData = { source: { owner: {} }, name: 'repo1' }
 
     const mockOctokit = {
-      request: vi.fn().mockResolvedValueOnce({ data: mockRepoData }),
+      rest: {
+        repos: {
+          get: vi.fn()
+            .mockResolvedValueOnce({ data: mockRepoData }),
+          listContributors: vi.fn(),
+        },
+        paginate: {
+          iterator: vi.fn(),
+        },
+      },
     }
 
     ;(Octokit as any).mockImplementation(() => mockOctokit)
@@ -174,12 +210,8 @@ describe('cloneRepo', () => {
 
     ;(simpleGit as any).mockImplementation(() => mockGit)
 
-    // const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
     await cloneRepo('repo1', 'https://github.com/testUser/repo.git', 'testDir', 'main', ['docs'])
 
-    // expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(`Error when cloning repository: ${gitError}`))
-    // consoleSpy.mockRestore()
     expect(log).toHaveBeenCalledWith(expect.stringContaining(`Error when cloning repository: ${gitError}`), 'error')
   })
 })

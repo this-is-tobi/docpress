@@ -3,6 +3,10 @@ import { fileURLToPath } from 'node:url'
 import { configDefaults, defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  optimizeDeps: {
+    force: true,
+    include: ['vitepress'],
+  },
   test: {
     environment: 'node',
     testTimeout: 2000,
@@ -18,7 +22,7 @@ export default defineConfig({
         '**/*.spec.ts',
         '**/*.d.ts',
         '**/types.ts',
-        'src/templates',
+        'src/templates/**/*',
       ],
     },
     onConsoleLog: () => false,

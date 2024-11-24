@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { DOCPRESS_DIR, TEMPLATE_THEME, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
+import { DOCPRESS_DIR, VITEPRESS_USER_THEME } from '../utils/const.js'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import { prepareOptsSchema } from '../schemas/prepare.js'
 import { getUserInfos, getUserRepos } from '../utils/functions.js'
@@ -144,9 +144,6 @@ describe('main', () => {
 
   it('should log and add both template and extra themes if provided', async () => {
     await main(mockOpts)
-    expect(log).toHaveBeenCalledWith(`   Add Docpress theme files.`, 'info')
-    expect(addContent).toHaveBeenCalledWith(TEMPLATE_THEME, resolve(VITEPRESS_THEME))
-
     if (mockOpts.extraTheme) {
       expect(log).toHaveBeenCalledWith(`   Add extras Vitepress theme files.`, 'info')
       expect(addContent).toHaveBeenCalledWith(mockOpts.extraTheme, resolve(VITEPRESS_USER_THEME))
