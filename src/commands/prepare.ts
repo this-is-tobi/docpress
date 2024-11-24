@@ -2,7 +2,7 @@ import { resolve } from 'node:path'
 import { createCommand, createOption } from 'commander'
 import type { EnhancedRepository } from '../lib/fetch.js'
 import { configSchema } from '../schemas/global.js'
-import { DOCPRESS_DIR, TEMPLATE_THEME, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
+import { DOCPRESS_DIR, VITEPRESS_USER_THEME } from '../utils/const.js'
 import { getUserInfos, getUserRepos } from '../utils/functions.js'
 import { addOptions, parseOptions } from '../utils/commands.js'
 import { getVitepressConfig } from '../lib/vitepress.js'
@@ -62,8 +62,6 @@ export async function main(opts: PrepareOpts) {
     log(`   Add extras Vitepress public folder content.`, 'info')
     addContent(extraPublicContent, resolve(DOCPRESS_DIR, 'public'))
   }
-  log(`   Add Docpress theme files.`, 'info')
-  addContent(TEMPLATE_THEME, resolve(VITEPRESS_THEME))
   if (extraTheme) {
     log(`   Add extras Vitepress theme files.`, 'info')
     addContent(extraTheme, resolve(VITEPRESS_USER_THEME))

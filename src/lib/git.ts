@@ -2,7 +2,6 @@ import { appendFileSync, cpSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { Octokit } from '@octokit/rest'
 import { simpleGit } from 'simple-git'
-import type { GetResponseTypeFromEndpointMethod } from '@octokit/types'
 import type { GlobalOpts } from '../schemas/global.js'
 import type { FetchOpts } from '../schemas/fetch.js'
 import { createDir } from '../utils/functions.js'
@@ -13,14 +12,20 @@ export async function getInfos({ username, token, branch }: Pick<FetchOpts, 'bra
   log(`   Get infos for username '${username}'.`, 'info')
   const octokit = new Octokit({ auth: token })
   log(`   Get user infos.`, 'debug')
-  const { data: user } = await octokit.request('GET /users/{username}', { username })
+  const { data: user } = await octokit.rest.users.getByUsername({ username })
   log(`   Get repositories infos.`, 'debug')
-  const { data: repos } = await octokit.request('GET /users/{username}/repos', { username, sort: 'full_name' })
+  const { data: repos } = await octokit.rest.repos.listForUser({ username, sort: 'full_name' })
 
   return { user, repos, branch }
 }
 
-export async function getContributors({ repository, token }: { repository: EnhancedRepository, token: GlobalOpts['token'] }) {
+export async function getContributors({
+  repository,
+  token,
+}: {
+  repository: EnhancedRepository
+  token: GlobalOpts['token']
+}) {
   log(`   Get contributors infos for repository '${repository.name}'.`, 'info')
   const octokit = new Octokit({
     auth: token,
@@ -35,14 +40,32 @@ export async function getContributors({ repository, token }: { repository: Enhan
       },
     },
   })
-  const { data: repo } = await octokit.request('GET /repos/{owner}/{repo}', { owner: repository.owner.login, repo: repository.name })
-  if (!repo.source?.owner.login) {
+  const { data: repo } = await octokit.rest.repos.get({
+    owner: repository.owner.login,
+    repo: repository.name,
+  })
+  if (!repo.source?.owner?.login) {
     return { source: repo.source, contributors: [] }
   }
-  const { data: contributors } = await octokit.request('GET /repos/{owner}/{repo}/contributors', { owner: repo.source.owner.login, repo: repo.name }).catch((_error) => {
-    log(`   Failed to get contributors infos for repository '${repository.name}'.`, 'warn')
-    return { data: [] } as unknown as GetResponseTypeFromEndpointMethod<typeof octokit.repos.listContributors>
-  })
+  const contributors: Array<any> = []
+  try {
+    for await (const { data } of octokit.paginate.iterator(
+      octokit.rest.repos.listContributors,
+      {
+        owner: repo.source.owner.login,
+        repo: repo.name,
+        per_page: 500,
+      },
+    )) {
+      contributors.push(...data)
+    }
+  } catch (_error) {
+    log(
+      `   Failed to get contributors infos for repository '${repository.name}'.`,
+      'warn',
+    )
+    return { source: repo.source, contributors: [] }
+  }
 
   return { source: repo.source, contributors }
 }

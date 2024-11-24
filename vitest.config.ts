@@ -18,7 +18,7 @@ export default defineConfig({
         '**/*.spec.ts',
         '**/*.d.ts',
         '**/types.ts',
-        'src/templates',
+        'src/templates/**/*',
       ],
     },
     onConsoleLog: () => false,

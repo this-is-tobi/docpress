@@ -2,10 +2,11 @@ import { basename, dirname, parse, resolve } from 'node:path'
 import { appendFileSync, cpSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import YAML from 'yaml'
 import type { defineConfig } from 'vitepress'
+import { generateFile } from '../templates/index.js'
 import type { GlobalOpts } from '../schemas/global.js'
 import type { getUserInfos } from '../utils/functions.js'
 import { createDir, extractFiles, getMdFiles, prettify } from '../utils/functions.js'
-import { DOCS_DIR, FORKS_FILE, INDEX_FILE, VITEPRESS_CONFIG } from '../utils/const.js'
+import { DOCS_DIR, FORKS_FILE, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME } from '../utils/const.js'
 import { replaceReadmePath, replaceRelativePath } from '../utils/regex.js'
 import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
@@ -239,4 +240,11 @@ export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeo
   writeFileSync(VITEPRESS_CONFIG, `export default ${JSON.stringify(vitepressConfig, null, 2)}\n`)
   log(`   Generate index file.`, 'info')
   writeFileSync(INDEX_FILE, separator.concat(YAML.stringify(index), separator))
+  log(`   Add Docpress theme files.`, 'info')
+  const templates = extractFiles(TEMPLATE_THEME)
+  for (const filePath of templates) {
+    const relativePath = filePath.replace(`${TEMPLATE_THEME}/`, '')
+    log(`   Processing file '${resolve(VITEPRESS_THEME, relativePath)}'.`, 'debug')
+    generateFile(resolve(TEMPLATE_THEME, filePath), resolve(VITEPRESS_THEME, relativePath))
+  }
 }

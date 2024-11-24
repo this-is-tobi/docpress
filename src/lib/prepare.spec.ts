@@ -2,7 +2,8 @@ import type { Dirent } from 'node:fs'
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getMdFiles, type getUserInfos, type getUserRepos } from '../utils/functions.js'
+import { extractFiles, getMdFiles, type getUserInfos, type getUserRepos } from '../utils/functions.js'
+import { TEMPLATE_THEME } from '../utils/const.js'
 import {
   addContent,
   addExtraPages,
@@ -25,14 +26,16 @@ vi.mock('../utils/regex.js')
 vi.mock('../utils/functions.js', async importOriginal => ({
   ...await importOriginal<typeof import('../utils/functions.js')>(),
   createDir: vi.fn(),
-  extractFiles: vi.fn(paths => paths),
+  extractFiles: vi.fn(paths => Array.isArray(paths) ? paths : [paths]),
   getMdFiles: vi.fn(),
 }))
 vi.mock('../utils/const.js', () => ({
   DOCS_DIR: '/tmp/docpress/mock/docs',
   INDEX_FILE: '/tmp/docpress/mock/docs/index.md',
   FORKS_FILE: '/tmp/docpress/mock/docs/forks.md',
-  VITEPRESS_CONFIG: '/tmp/docpress/mock/config.js',
+  VITEPRESS_CONFIG: '/tmp/docpress/mock/.vitepress/config.js',
+  VITEPRESS_THEME: '/tmp/docpress/mock/.vitepress/theme',
+  TEMPLATE_THEME: resolve(import.meta.dirname, '../templates/theme'),
 }))
 vi.mock('./git.js', async importOriginal => ({
   ...await importOriginal<typeof import('../utils/functions.js')>(),
@@ -137,8 +140,6 @@ describe('transformDoc', () => {
   const user = { name: 'John Doe', login: 'johndoe', bio: 'Developer' } as ReturnType<typeof getUserInfos>
 
   beforeEach(() => {
-    // vi.mocked(getMdFiles).mockReturnValue(['/path/to/01-file3.md', '/path/to/file1.md', '/path/to/FILE2.md', '/path/to/readme.md'])
-    // vi.mocked(readdirSync).mockReturnValue(['readme.md', 'file1.md', 'FILE2.md', '01-file3.md'] as unknown as Dirent[])
     vi.mocked(statSync).mockReturnValue({ isFile: () => true } as any)
   })
 
@@ -229,7 +230,7 @@ describe('parseVitepressConfig', () => {
 })
 
 describe('generateVitepressFiles', () => {
-  it('should create Vitepress config and index files', () => {
+  it('should create Vitepress config and index files', async () => {
     const vitepressConfig = { title: 'My Project' }
     const index = {
       layout: 'home',
@@ -238,14 +239,22 @@ describe('generateVitepressFiles', () => {
     }
 
     generateVitepressFiles(vitepressConfig, index)
+
     expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/config.js',
+      '/tmp/docpress/mock/.vitepress/config.js',
       expect.stringContaining('export default {'),
     )
     expect(writeFileSync).toHaveBeenCalledWith(
       '/tmp/docpress/mock/docs/index.md',
       expect.stringContaining('layout: home'),
     )
+
+    const templates = extractFiles(TEMPLATE_THEME)
+    templates.forEach(async (filePath) => {
+      const content = await import(resolve(TEMPLATE_THEME, filePath), { with: { type: 'raw' } })
+      const destPath = resolve('/tmp/docpress/mock/.vitepress/theme', filePath.replace('../templates/theme/', ''))
+      expect(writeFileSync).toHaveBeenCalledWith(destPath, content)
+    })
   })
 })
 
