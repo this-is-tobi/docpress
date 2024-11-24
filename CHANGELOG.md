@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/this-is-tobi/docpress/compare/v0.3.0...v0.3.1) (2024-11-24)
+
+
+### Bug Fixes
+
+* fix forks page build ([e22bd83](https://github.com/this-is-tobi/docpress/commit/e22bd83039a46b3ad317bae1c49a969b5ef8fec5))
+
 ## [0.3.0](https://github.com/this-is-tobi/docpress/compare/v0.2.3...v0.3.0) (2024-11-23)
 
 
