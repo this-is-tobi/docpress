@@ -18,4 +18,7 @@ export const VITEPRESS_THEME = resolve(process.cwd(), 'docpress/.vitepress/theme
 
 export const VITEPRESS_USER_THEME = resolve(process.cwd(), 'docpress/.vitepress/theme/extras')
 
-export const TEMPLATE_THEME = resolve(import.meta.dirname, '../templates/theme')
+// eslint-disable-next-line dot-notation
+export const TEMPLATE_THEME = process.env['NODE_ENV'] === 'development'
+  ? resolve(import.meta.dirname, '../../public/templates/theme')
+  : resolve(import.meta.dirname, './templates/theme')
