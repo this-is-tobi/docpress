@@ -35,7 +35,7 @@ vi.mock('../utils/const.js', () => ({
   FORKS_FILE: '/tmp/docpress/mock/docs/forks.md',
   VITEPRESS_CONFIG: '/tmp/docpress/mock/.vitepress/config.js',
   VITEPRESS_THEME: '/tmp/docpress/mock/.vitepress/theme',
-  TEMPLATE_THEME: resolve(import.meta.dirname, '../templates/theme'),
+  TEMPLATE_THEME: resolve(import.meta.dirname, '../../public/templates/theme'),
 }))
 vi.mock('./git.js', async importOriginal => ({
   ...await importOriginal<typeof import('../utils/functions.js')>(),

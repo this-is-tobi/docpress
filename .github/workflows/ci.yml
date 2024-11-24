@@ -68,7 +68,7 @@ jobs:
       packages: write
     with:
       REGISTRY_NAMESPACE: ${{ needs.expose-vars.outputs.REGISTRY_NAMESPACE }}
-      PR_NUMBER: ${{ github.event.pull_request.number || github.event.number || null }}
+      PR_NUMBER: ${{ github.event.pull_request.number || github.event.number || '' }}
       MULTI_ARCH: ${{ needs.expose-vars.outputs.MULTI_ARCH == 'true' }}
       USE_QEMU: ${{ needs.expose-vars.outputs.USE_QEMU == 'true' }}
 
