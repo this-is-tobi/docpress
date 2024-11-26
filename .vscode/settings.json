@@ -112,7 +112,7 @@
   "vscode-kubernetes.log-viewer.wrap": true,
   // sonarqube
   "sonarlint.connectedMode.project": {
-    "connectionId": "https://sonarqube.fabrique-numerique.fr",
-    "projectKey": "cloud-pi-native_console_AYsa46O31ebDtzs-pYyZ"
+    "connectionId": "https://sonarqube.domain.com",
+    "projectKey": "project-key"
   }
 }
