@@ -202,7 +202,7 @@ Docpress can be configured with an external configuration file specified by the 
 
 - `username`: Git provider username (usually GitHub) to fetch repositories (equivalent to the `-U` CLI option).
 - `reposFilter`: List of repositories to include or exclude (equivalent to the `-r` CLI option).
-- `branch`: Default branch from which documentation will be fetched.
+- `branch`: Default branch from which documentation will be fetched (equivalent to `-b`).
 - `extraHeaderPages`: Additional pages to include in the website header (equivalent to `-p`).
 - `extraPublicContent`: Additional content for the Vitepress public folder (equivalent to `-c`).
 - `extraTheme`: Files or folders to customize the Vitepress theme (equivalent to `-t`).
