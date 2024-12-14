@@ -145,7 +145,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
           addSources(repository.html_url, sourceFile)
         }
 
-        return generateSidebarPages(repository.name, parse(filename).name, acc)
+        return generateSidebarPages(prettify(repository.name, { removeDot: true }), parse(filename).name, acc)
       }, [])
 
     sidebar.push(generateSidebarProject(prettify(repository.name, { removeDot: true }), sidebarItems))
