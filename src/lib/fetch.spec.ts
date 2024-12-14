@@ -17,7 +17,8 @@ import { cloneRepo, getInfos } from './git'
 
 vi.mock('node:fs', () => ({ writeFileSync: vi.fn() }))
 vi.mock('node:path', () => ({ resolve: vi.fn((...args) => args.join('/')) }))
-vi.mock('../utils/functions.js', () => ({
+vi.mock('../utils/functions.js', async importOriginal => ({
+  ...(await importOriginal()),
   checkHttpStatus: vi.fn(),
   createDir: vi.fn(),
 }))
@@ -146,6 +147,28 @@ describe('getDoc', () => {
     await getDoc()
 
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('No repository respect docpress rules.'))
+  })
+
+  it('should clone repositories starting with a dot', async () => {
+    const repos = [
+      {
+        name: '.repo3',
+        clone_url: 'https://github.com/testUser/.repo3',
+        fork: false,
+        private: false,
+        docpress: { projectPath: '/path/to/repo3', branch: 'main', includes: ['README.md'] },
+      },
+    ] as unknown as EnhancedRepository[]
+
+    await getDoc(repos, ['.repo3'])
+
+    expect(cloneRepo).toHaveBeenCalledWith(
+      repos[0].name,
+      repos[0].clone_url,
+      repos[0].docpress.projectPath,
+      repos[0].docpress.branch,
+      repos[0].docpress.includes,
+    )
   })
 })
 

@@ -180,7 +180,6 @@ describe('configSchema', () => {
   })
 })
 
-// foo
 describe('fetchOptsSchema', () => {
   it('should validate valid fetch options', () => {
     const validData = {

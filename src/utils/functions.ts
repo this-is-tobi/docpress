@@ -19,10 +19,15 @@ interface PrettifyOpts {
   mode?: 'capitalize' | 'uppercase' | 'lowercase'
   replaceDash?: boolean
   removeIdx?: boolean
+  removeDot?: boolean
 }
 
 export function prettify(s: string, opts: PrettifyOpts) {
   let u: string = ''
+
+  if (s.startsWith('.') && opts?.removeDot) {
+    u = s.slice(1)
+  }
 
   if (opts?.removeIdx) {
     u = s.replace(/^\d{2}-/, '')
