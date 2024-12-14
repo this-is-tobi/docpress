@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/this-is-tobi/docpress/compare/v0.4.0...v0.5.0) (2024-12-14)
+
+
+### Features
+
+* handle repositories starting with a dot ([9929e54](https://github.com/this-is-tobi/docpress/commit/9929e547e64b105ee20bd92c64768082fcc6a2e8))
+
 ## [0.4.0](https://github.com/this-is-tobi/docpress/compare/v0.3.2...v0.4.0) (2024-12-12)
 
 
