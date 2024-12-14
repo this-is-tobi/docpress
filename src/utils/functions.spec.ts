@@ -83,6 +83,11 @@ describe('prettify', () => {
     const result = prettify('', { mode: 'capitalize' })
     expect(result).toBe('')
   })
+
+  it('should remove the dot at the start of the string', () => {
+    const result = prettify('.hello-world', { removeDot: true })
+    expect(result).toBe('hello-world')
+  })
 })
 
 describe('createDir', () => {

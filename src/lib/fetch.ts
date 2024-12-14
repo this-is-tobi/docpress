@@ -2,7 +2,7 @@ import { resolve } from 'node:path'
 import { writeFileSync } from 'node:fs'
 import type { GlobalOpts } from '../schemas/global.js'
 import type { FetchOpts } from '../schemas/fetch.js'
-import { checkHttpStatus, createDir } from '../utils/functions.js'
+import { checkHttpStatus, createDir, prettify } from '../utils/functions.js'
 import { DOCPRESS_DIR, DOCS_DIR, USER_INFOS, USER_REPOS_INFOS } from '../utils/const.js'
 import { log } from '../utils/logger.js'
 import { cloneRepo, getInfos } from './git.js'
@@ -48,7 +48,7 @@ export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getIn
   await Promise.all(
     repos.map(async (repo) => {
       const computedBranch = branch ?? repo.default_branch ?? 'main'
-      const projectPath = resolve(DOCS_DIR, repo.name)
+      const projectPath = resolve(DOCS_DIR, prettify(repo.name, { removeDot: true }))
       const filtered = isRepoFiltered(repo, reposFilter)
       let includes: string[] = []
 

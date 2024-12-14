@@ -148,8 +148,8 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
         return generateSidebarPages(repository.name, parse(filename).name, acc)
       }, [])
 
-    sidebar.push(generateSidebarProject(repository.name, sidebarItems))
-    features.push(...generateFeatures(repository.name, repository.description || ''))
+    sidebar.push(generateSidebarProject(prettify(repository.name, { removeDot: true }), sidebarItems))
+    features.push(...generateFeatures(prettify(repository.name, { removeDot: true }), repository.description || ''))
   }
 
   log(`   Generate index content.`, 'info')
