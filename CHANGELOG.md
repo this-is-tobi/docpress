@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/this-is-tobi/docpress/compare/v0.5.0...v0.5.1) (2024-12-14)
+
+
+### Bug Fixes
+
+* correctly remove dot in sidebar path ([1430c63](https://github.com/this-is-tobi/docpress/commit/1430c639350887ee8b313b220fe5a7aeffca1fed))
+
 ## [0.5.0](https://github.com/this-is-tobi/docpress/compare/v0.4.0...v0.5.0) (2024-12-14)
 
 
