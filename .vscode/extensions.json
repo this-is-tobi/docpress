@@ -9,7 +9,6 @@
     "dbaeumer.vscode-eslint",
     // Vue.js
     "vue.volar",
-    "vue.vscode-typescript-vue-plugin",
     // CSS
     "csstools.postcss",
     "stylelint.vscode-stylelint",
