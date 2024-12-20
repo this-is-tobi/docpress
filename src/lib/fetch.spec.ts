@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { checkHttpStatus, createDir } from '../utils/functions'
-import { USER_INFOS, USER_REPOS_INFOS } from '../utils/const.js'
+import { DOCPRESS_DIR, USER_INFOS, USER_REPOS_INFOS } from '../utils/const.js'
 import type { FetchOpts } from '../schemas/fetch.js'
 import type { EnhancedRepository } from './fetch.js'
 import {
@@ -250,66 +250,123 @@ describe('generateInfos', () => {
   })
 })
 
-describe.skip('fetchDoc', () => {
-  const mockUsername = 'testUser'
-  const mockBranch = 'main'
-  const mockToken = 'testToken'
-  const mockReposFilter = ['repo1', '!repo2']
-
-  const fetchOpts: FetchOpts = {
-    username: mockUsername,
-    gitProvider: 'github',
-    branch: mockBranch,
-    token: mockToken,
-    reposFilter: mockReposFilter,
+describe('fetchDoc', () => {
+  const mockFetchOpts: FetchOpts = {
+    username: 'testUser',
+    branch: 'main',
+    reposFilter: ['repo1', 'repo2'],
+    token: 'fake-token',
   }
 
-  it('should create the DOCPRESS_DIR and fetch and process repositories', async () => {
-    const mockUser = { login: mockUsername }
-    const mockRepos = [
-      {
-        name: 'repo1',
-        owner: mockUser,
-        clone_url: 'https://github.com/testUser/repo1',
-        fork: false,
-        private: false,
-        docpress: { projectPath: '/path/to/repo1', branch: 'main', includes: ['README.md'] },
-      },
-      {
-        name: 'repo2',
-        owner: mockUser,
-        clone_url: 'https://github.com/testUser/repo2',
-        fork: true,
-        private: false,
-        docpress: { projectPath: '/path/to/repo2', branch: 'main', includes: [] },
-      },
-    ] as unknown as EnhancedRepository[]
-    const mockEnhancedRepos = [
-      { ...mockRepos[0], docpress: { branch: mockBranch, filtered: false, includes: [], projectPath: '', raw_url: '', replace_url: '' } },
-    ]
+  const mockUser = { login: 'testUser' }
+  const mockRepos = [
+    {
+      name: 'repo1',
+      clone_url: 'https://github.com/testUser/repo1',
+      owner: mockUser,
+      fork: false,
+      private: false,
+      size: 100,
+      docpress: { projectPath: '/path/to/repo1', branch: 'main', includes: ['README.md'] },
+    },
+    {
+      name: 'repo2',
+      clone_url: 'https://github.com/testUser/repo2',
+      owner: mockUser,
+      fork: false,
+      private: false,
+      size: 100,
+      docpress: { projectPath: '/path/to/repo2', branch: 'main', includes: ['README.md'] },
+    },
+  ]
 
-    ;(getInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos, branch: mockBranch })
-
-    await fetchDoc(fetchOpts)
-
-    expect(createDir).toHaveBeenCalledWith(expect.any(String), { clean: true })
-    expect(getInfos).toHaveBeenCalledWith({ username: mockUsername, token: mockToken, branch: mockBranch })
-    expect(generateInfos).toHaveBeenCalledWith(mockUser, mockRepos, mockBranch, mockReposFilter)
-    expect(getDoc).toHaveBeenCalledWith(mockEnhancedRepos, mockReposFilter)
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
-  it('should handle errors if getInfos fails', async () => {
-    ;(getInfos as any).mockRejectedValue(new Error('getInfos failed'))
-    console.error = vi.fn()
+  it('should create the docpress directory', async () => {
+    ;(getInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos, branch: 'main' })
+    ;(generateInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos })
+    ;(getDoc as any).mockResolvedValue(undefined)
 
-    await expect(fetchDoc(fetchOpts)).rejects.toThrow('getInfos failed')
-    expect(console.error).toHaveBeenCalledWith(expect.any(Error))
-    expect(createDir).toHaveBeenCalledWith(expect.any(String), { clean: true })
+    await fetchDoc(mockFetchOpts)
 
-    const generateInfos = (await import('./fetch.js')).generateInfos as any
-    const getDoc = (await import('./fetch.js')).getDoc as any
+    expect(createDir).toHaveBeenCalledWith(DOCPRESS_DIR, { clean: true })
+  })
 
+  it('should call getInfos with correct parameters', async () => {
+    ;(getInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos, branch: 'main' })
+    ;(generateInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos })
+    ;(getDoc as any).mockResolvedValue(undefined)
+
+    await fetchDoc(mockFetchOpts)
+
+    expect(getInfos).toHaveBeenCalledWith({
+      username: mockFetchOpts.username,
+      token: mockFetchOpts.token,
+      branch: mockFetchOpts.branch,
+    })
+  })
+
+  it.skip('should call generateInfos and getDoc with the correct data', async () => {
+    const enhancedRepos = mockRepos.map(repo => ({
+      ...repo,
+      docpress: {
+        filtered: false,
+        branch: 'main',
+        includes: ['docs/*'],
+        projectPath: `/path/to/${repo.name}`,
+        raw_url: `https://raw.githubusercontent.com/${repo.owner.login}/${repo.name}/main`,
+        replace_url: `https://github.com/${repo.owner.login}/${repo.name}/tree/main`,
+      },
+    }))
+
+    ;(getInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos, branch: 'main' })
+    ;(generateInfos as any).mockResolvedValue({ user: mockUser, repos: enhancedRepos })
+    ;(getDoc as any).mockResolvedValue(undefined)
+
+    await fetchDoc(mockFetchOpts)
+
+    expect(generateInfos).toHaveBeenCalledWith(mockUser, mockRepos, 'main', mockFetchOpts.reposFilter)
+    expect(getDoc).toHaveBeenCalledWith(enhancedRepos, mockFetchOpts.reposFilter)
+  })
+
+  it.skip('should handle cases with no matching repositories', async () => {
+    ;(getInfos as any).mockResolvedValue({ user: mockUser, repos: [], branch: 'main' })
+    ;(generateInfos as any).mockResolvedValue({ user: mockUser, repos: [] })
+
+    await fetchDoc(mockFetchOpts)
+
+    expect(generateInfos).toHaveBeenCalledWith(mockUser, [], 'main', mockFetchOpts.reposFilter)
+    expect(getDoc).toHaveBeenCalledWith([], mockFetchOpts.reposFilter)
+  })
+
+  it('should throw an error if getInfos fails', async () => {
+    ;(getInfos as any).mockRejectedValue(new Error('Failed to fetch infos'))
+
+    await expect(fetchDoc(mockFetchOpts)).rejects.toThrow('Failed to fetch infos')
+
+    expect(getInfos).toHaveBeenCalledWith({
+      username: mockFetchOpts.username,
+      token: mockFetchOpts.token,
+      branch: mockFetchOpts.branch,
+    })
     expect(generateInfos).not.toHaveBeenCalled()
+    expect(getDoc).not.toHaveBeenCalled()
+  })
+
+  it.skip('should throw an error if generateInfos fails', async () => {
+    ;(getInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos, branch: 'main' })
+    ;(generateInfos as any).mockRejectedValue(new Error('Failed to generate infos'))
+
+    await expect(fetchDoc(mockFetchOpts)).rejects.toThrow('Failed to generate infos')
+
+    expect(getInfos).toHaveBeenCalledWith({
+      username: mockFetchOpts.username,
+      token: mockFetchOpts.token,
+      branch: mockFetchOpts.branch,
+    })
+    expect(generateInfos).toHaveBeenCalledWith(mockUser, mockRepos, 'main', mockFetchOpts.reposFilter)
     expect(getDoc).not.toHaveBeenCalled()
   })
 })
