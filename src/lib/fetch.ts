@@ -1,9 +1,9 @@
 import { resolve } from 'node:path'
 import { writeFileSync } from 'node:fs'
 import type { GlobalOpts } from '../schemas/global.js'
-import type { FetchOpts } from '../schemas/fetch.js'
-import { checkHttpStatus, createDir, prettify } from '../utils/functions.js'
-import { DOCPRESS_DIR, DOCS_DIR, USER_INFOS, USER_REPOS_INFOS } from '../utils/const.js'
+import type { FetchOpts, FetchOptsUser } from '../schemas/fetch.js'
+import { checkHttpStatus, prettify } from '../utils/functions.js'
+import { DOCPRESS_DIR, DOCS_DIR } from '../utils/const.js'
 import { log } from '../utils/logger.js'
 import { cloneRepo, getInfos } from './git.js'
 
@@ -18,7 +18,7 @@ export type EnhancedRepository = Awaited<ReturnType<typeof getInfos>>['repos'][n
   }
 }
 
-export async function checkDoc(repoOwner: GlobalOpts['username'], repoName: string, branch: FetchOpts['branch']) {
+export async function checkDoc(repoOwner: GlobalOpts['usernames'][number], repoName: string, branch: FetchOpts['branch']) {
   const rootReadmeUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/README.md`
   const docsFolderUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/docs`
   const docsReadmeUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/docs/01-readme.md`
@@ -34,9 +34,7 @@ export async function checkDoc(repoOwner: GlobalOpts['username'], repoName: stri
   }
 }
 
-export async function fetchDoc({ username, branch, reposFilter, token }: FetchOpts) {
-  createDir(DOCPRESS_DIR, { clean: true })
-
+export async function fetchDoc({ username, branch, reposFilter, token }: FetchOptsUser) {
   await getInfos({ username, token, branch })
     .then(async ({ user, repos, branch }) => generateInfos(user, repos, branch, reposFilter))
     .then(async ({ repos }) => getDoc(repos, reposFilter))
@@ -90,10 +88,10 @@ export async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos
 }
 
 export async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'], repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter']) {
-  writeFileSync(USER_INFOS, JSON.stringify(user, null, 2))
+  writeFileSync(`${DOCPRESS_DIR}/user-${user.login}.json`, JSON.stringify(user, null, 2))
 
   const enhancedRepos = await enhanceRepositories(repos, branch, reposFilter)
-  writeFileSync(USER_REPOS_INFOS, JSON.stringify(enhancedRepos, null, 2))
+  writeFileSync(`${DOCPRESS_DIR}/repos-${user.login}.json`, JSON.stringify(enhancedRepos, null, 2))
 
   return { user, repos: enhancedRepos }
 }

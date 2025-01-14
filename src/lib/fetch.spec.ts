@@ -1,8 +1,7 @@
 import { writeFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { checkHttpStatus, createDir } from '../utils/functions'
-import { DOCPRESS_DIR, USER_INFOS, USER_REPOS_INFOS } from '../utils/const.js'
-import type { FetchOpts } from '../schemas/fetch.js'
+import { checkHttpStatus } from '../utils/functions'
+import type { FetchOptsUser } from '../schemas/fetch.js'
 import type { EnhancedRepository } from './fetch.js'
 import {
   checkDoc,
@@ -243,15 +242,15 @@ describe('generateInfos', () => {
 
     const result = await generateInfos(user, repos, 'main', ['repo1'])
 
-    expect(writeFileSync).toHaveBeenCalledWith(expect.stringContaining(USER_INFOS), JSON.stringify(user, null, 2))
-    expect(writeFileSync).toHaveBeenCalledWith(expect.stringContaining(USER_REPOS_INFOS), JSON.stringify(result.repos, null, 2))
+    expect(writeFileSync).toHaveBeenCalledWith(expect.stringContaining(`user-${user.login}`), JSON.stringify(user, null, 2))
+    expect(writeFileSync).toHaveBeenCalledWith(expect.stringContaining(`repos-${user.login}`), JSON.stringify(result.repos, null, 2))
     expect(result.user).toEqual(user)
     expect(result.repos).toBeInstanceOf(Array)
   })
 })
 
 describe('fetchDoc', () => {
-  const mockFetchOpts: FetchOpts = {
+  const mockFetchOpts: FetchOptsUser = {
     username: 'testUser',
     branch: 'main',
     reposFilter: ['repo1', 'repo2'],
@@ -284,15 +283,15 @@ describe('fetchDoc', () => {
     vi.clearAllMocks()
   })
 
-  it('should create the docpress directory', async () => {
-    ;(getInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos, branch: 'main' })
-    ;(generateInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos })
-    ;(getDoc as any).mockResolvedValue(undefined)
+  // it('should create the docpress directory', async () => {
+  //   ;(getInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos, branch: 'main' })
+  //   ;(generateInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos })
+  //   ;(getDoc as any).mockResolvedValue(undefined)
 
-    await fetchDoc(mockFetchOpts)
+  //   await fetchDoc(mockFetchOpts)
 
-    expect(createDir).toHaveBeenCalledWith(DOCPRESS_DIR, { clean: true })
-  })
+  //   expect(createDir).toHaveBeenCalledWith(DOCPRESS_DIR, { clean: true })
+  // })
 
   it('should call getInfos with correct parameters', async () => {
     ;(getInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos, branch: 'main' })

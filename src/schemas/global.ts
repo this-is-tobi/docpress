@@ -8,8 +8,9 @@ const providers = ['github'] as const
 
 export const configSchema = z.object({
   // Global
-  username: z.string()
-    .describe('Git provider username used to collect data.'),
+  usernames: z.string()
+    .array()
+    .describe('List of comma separated Git provider usernames used to collect data.'),
   // Fetch
   branch: z.string()
     .describe('Branch used to collect Git provider data.')
@@ -17,20 +18,28 @@ export const configSchema = z.object({
   gitProvider: z.enum(providers)
     .describe(`Git provider used to retrieve data. Values should be ${prettifyEnum(providers)}.`)
     .default('github'),
-  reposFilter: z.array(z.string())
+  reposFilter: z.string()
+    .array()
     .describe('List of comma separated repositories to retrieve from Git provider. Default to all user\'s public repositories.'),
   // Prepare
-  extraHeaderPages: z.array(z.string())
+  extraHeaderPages: z.string()
+    .array()
     .describe('List of comma separated additional files or directories to process Vitepress header pages.'),
-  extraPublicContent: z.array(z.string())
+  extraPublicContent: z.string()
+    .array()
     .describe('List of comma separated additional files or directories to process Vitepress public folder.'),
-  extraTheme: z.array(z.string())
+  extraTheme: z.string()
+    .array()
     .describe('List of comma separated additional files or directories to use as Vitepress theme.'),
   forks: z.boolean()
     .describe('Whether or not to create the dedicated fork page that aggregate external contributions.')
     .default(false),
   vitepressConfig: z.any()
     .describe('Path to the vitepress configuration file.'),
+  websiteTitle: z.string()
+    .describe('Website title.'),
+  websiteTagline: z.string()
+    .describe('Website tagline.'),
 })
 
 export type Config = Zod.infer<typeof configSchema>
@@ -52,7 +61,7 @@ export function applyGlobalOptsTransform(data: Cli) {
       ...rest,
       ...(Object.keys(vpConfig).length && { vitepressConfig: vpConfig }),
     }
-    const parsedConfig = configSchema.partial().required({ username: true }).parse(mergedConfig)
+    const parsedConfig = configSchema.partial().required({ usernames: true }).parse(mergedConfig)
 
     return { ...parsedConfig, token }
   } catch (error) {
@@ -60,6 +69,35 @@ export function applyGlobalOptsTransform(data: Cli) {
     process.exit(1)
   }
 }
+
+export const baseCliSchema = configSchema.partial().extend({
+  config: z.string()
+    .describe('Path to the docpress configuration file.')
+    .optional(),
+  token: z.string()
+    .describe('Git provider token used to collect data.')
+    .optional(),
+  usernames: z.string()
+    .describe(configSchema.shape.usernames.description || '')
+    .optional(),
+  reposFilter: z.string()
+    .describe(configSchema.shape.reposFilter.description || '')
+    .optional(),
+  extraHeaderPages: z.string()
+    .describe(configSchema.shape.extraHeaderPages.description || '')
+    .optional(),
+  extraPublicContent: z.string()
+    .describe(configSchema.shape.extraPublicContent.description || '')
+    .optional(),
+  extraTheme: z.string()
+    .describe(configSchema.shape.extraTheme.description || '')
+    .optional(),
+  vitepressConfig: z.string()
+    .describe(configSchema.shape.vitepressConfig.description || '')
+    .optional(),
+})
+
+export type RawCli = z.infer<typeof baseCliSchema>
 
 export const cliSchema = configSchema
   .partial()
@@ -69,6 +107,10 @@ export const cliSchema = configSchema
       .optional(),
     token: z.string()
       .describe('Git provider token used to collect data.')
+      .optional(),
+    usernames: z.string()
+      .describe(configSchema.shape.usernames.description || '')
+      .transform(splitByComma)
       .optional(),
     reposFilter: z.string()
       .describe(configSchema.shape.reposFilter.description || '')

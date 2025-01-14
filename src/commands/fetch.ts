@@ -1,4 +1,6 @@
 import { createCommand, createOption } from 'commander'
+import { createDir } from '../utils/functions.js'
+import { DOCPRESS_DIR } from '../utils/const.js'
 import { log } from '../utils/logger.js'
 import { addOptions, parseOptions } from '../utils/commands.js'
 import type { FetchOpts } from '../schemas/fetch.js'
@@ -17,15 +19,21 @@ export const fetchOpts = [
 ]
 
 export const fetchCmd = addOptions(createCommand(cmdName), [...fetchOpts, ...globalOpts])
-  .description('Fetch docs with the given username and git provider.')
+  .description('Fetch docs with the given username(s) and git provider.')
   .action(async (opts) => {
     const parsedOpts = parseOptions(cmdName, opts)
     await main(parsedOpts)
   })
 
 export async function main(opts: FetchOpts) {
-  const { username, reposFilter, token, branch, gitProvider } = opts
+  const { usernames, reposFilter, token, branch, gitProvider } = opts
   log(`\n-> Start fetching documentation files. This may take a moment, especially for larger repositories.`, 'info')
 
-  await fetchDoc({ username, branch, reposFilter, gitProvider, token })
+  createDir(DOCPRESS_DIR, { clean: true })
+  for (const username of usernames) {
+    const finalRF = usernames.length > 1
+      ? reposFilter?.filter(rf => rf.startsWith(username)).map(rf => rf.replace(`${username}/`, ''))
+      : reposFilter
+    await fetchDoc({ username, branch, reposFilter: finalRF, gitProvider, token })
+  }
 }

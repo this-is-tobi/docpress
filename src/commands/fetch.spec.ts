@@ -7,15 +7,13 @@ import { configSchema } from '../schemas/global.js'
 import * as fetchMod from './fetch.js'
 import { globalOpts } from './global.js'
 
-vi.mock('../lib/fetch.js', () => ({
-  fetchDoc: vi.fn(),
-}))
-vi.mock('../utils/logger.js', () => ({
-  log: vi.fn(),
-}))
+vi.mock('../lib/fetch.js', () => ({ fetchDoc: vi.fn() }))
+vi.mock('../utils/logger.js', () => ({ log: vi.fn() }))
 vi.mock('./global.js', () => ({
   globalOpts: [
-    createOption('-C, --config <string>', 'Path to the configuration file'),
+    createOption('-C, --config <string>', 'Path to the docpress configuration file'),
+    createOption('-T, --token <string>', 'Git provider token used to collect data.'),
+    createOption('-U, --usernames <string>', 'Git provider username(s) used to collect data.'),
   ],
 }))
 vi.spyOn(fetchMod, 'main')
@@ -34,13 +32,12 @@ describe('fetchCmd', () => {
   })
 
   it('should have the correct description', () => {
-    expect(fetchCmd.description()).toBe('Fetch docs with the given username and git provider.')
+    expect(fetchCmd.description()).toBe('Fetch docs with the given username(s) and git provider.')
   })
 
   it('should call main function when action is triggered', async () => {
     fetchCmd.action(main)
-    // await fetchCmd.parseAsync(['-U', 'testUser'], { from: 'user' })
-    await fetchCmd.parseAsync()
+    await fetchCmd.parseAsync(['-U', 'testUser'], { from: 'user' })
     expect(main).toHaveBeenCalled()
   })
 })
@@ -52,7 +49,7 @@ describe('main', () => {
 
   it('should log the start message and call fetchDoc with expected arguments', async () => {
     const mockOpts = {
-      username: 'testUser',
+      usernames: ['testUser'],
       reposFilter: ['testRepo'],
       token: 'testToken',
       branch: 'main',
@@ -66,7 +63,7 @@ describe('main', () => {
       'info',
     )
     expect(fetchDoc).toHaveBeenCalledWith({
-      username: mockOpts.username,
+      username: mockOpts.usernames[0],
       reposFilter: mockOpts.reposFilter,
       token: mockOpts.token,
       branch: mockOpts.branch,
