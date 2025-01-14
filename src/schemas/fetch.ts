@@ -8,8 +8,10 @@ export const fetchOptsSchema = cliSchema
     gitProvider: true,
     reposFilter: true,
     token: true,
-    username: true,
+    usernames: true,
   })
   .transform(applyGlobalOptsTransform)
 
 export type FetchOpts = Zod.infer<typeof fetchOptsSchema>
+
+export type FetchOptsUser = Omit<FetchOpts, 'usernames'> & { username: FetchOpts['usernames'][number] }

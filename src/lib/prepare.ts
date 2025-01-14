@@ -1,17 +1,19 @@
 import { basename, dirname, parse, resolve } from 'node:path'
-import { appendFileSync, cpSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, cpSync, existsSync, readdirSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import YAML from 'yaml'
 import type { defineConfig } from 'vitepress'
+import type { PrepareOpts } from '../schemas/prepare.js'
 import { generateFile } from '../utils/templates.js'
 import type { GlobalOpts } from '../schemas/global.js'
-import type { getUserInfos } from '../utils/functions.js'
-import { createDir, extractFiles, getMdFiles, prettify } from '../utils/functions.js'
-import { DOCS_DIR, FORKS_FILE, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME } from '../utils/const.js'
+import { createDir, extractFiles, getMdFiles, getUserInfos, getUserRepos, prettify } from '../utils/functions.js'
+import { DOCPRESS_DIR, DOCS_DIR, FORKS_FILE, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
 import { replaceReadmePath, replaceRelativePath } from '../utils/regex.js'
 import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
 import type { getInfos } from './git.js'
 import { getContributors } from './git.js'
+import { getVitepressConfig } from './vitepress.js'
 
 export interface Page {
   text: string
@@ -34,9 +36,76 @@ export interface Index {
   layout: string
   hero: {
     name: string
-    tagline: string
+    tagline?: string
   }
   features: Feature[]
+}
+
+export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'gitProvider' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
+  const user = getUserInfos(username)
+  const repositories = getUserRepos(username)
+    .reduce(({ internals, forks }: { internals: EnhancedRepository[], forks: EnhancedRepository[] }, cur) => {
+      const { clone_url, private: privateRepo, fork, docpress } = cur
+      if (clone_url && !privateRepo && !docpress.filtered) {
+        if (!fork && docpress.includes.length) {
+          return { internals: [...internals, cur], forks }
+        } else if (fork) {
+          return { internals, forks: [...forks, cur] }
+        }
+      }
+      return { internals, forks }
+    }, { internals: [], forks: [] })
+
+  const websiteInfos = { title: websiteTitle, tagline: websiteTagline }
+  const { index, sidebar } = transformDoc(repositories.internals, user, websiteInfos)
+
+  let finalSB
+  let finalIndex
+  if (existsSync(INDEX_FILE) && existsSync(VITEPRESS_CONFIG)) {
+    const actualConfig = await parseVitepressConfig(VITEPRESS_CONFIG)
+    const actualIndex = await parseVitepressIndex(INDEX_FILE)
+    finalSB = [
+      ...(actualConfig.themeConfig?.sidebar as SidebarProject[] ?? []),
+      ...sidebar,
+    ].sort((a, b) => a.text.localeCompare(b.text))
+    finalIndex = {
+      ...index,
+      features: [
+        ...actualIndex.features,
+        ...index.features,
+      ].sort((a, b) => a.title.localeCompare(b.title)),
+    }
+  } else {
+    finalSB = sidebar
+    finalIndex = index
+  }
+  const nav: Page[] = []
+
+  if (extraHeaderPages) {
+    const pages = addExtraPages(extraHeaderPages)
+    if (forks) {
+      nav.push(...pages.filter(p => p.link !== '/forks'))
+    } else {
+      nav.push(...pages)
+    }
+  }
+  if (extraPublicContent) {
+    log(`   Add extras Vitepress public folder content.`, 'info')
+    addContent(extraPublicContent, resolve(DOCPRESS_DIR, 'public'))
+  }
+  if (extraTheme) {
+    log(`   Add extras Vitepress theme files.`, 'info')
+    addContent(extraTheme, resolve(VITEPRESS_USER_THEME))
+  }
+  if (forks && username.length) {
+    log(`   Add fork page to display external contributions.`, 'info')
+    await processForks(repositories.forks, username, token)
+    nav.push({ text: 'Forks', link: '/forks' })
+  }
+
+  const config = getVitepressConfig(finalSB, nav, vitepressConfig)
+
+  generateVitepressFiles(config, finalIndex)
 }
 
 export function addSources(repoUrl: string, outputPath: string) {
@@ -48,14 +117,22 @@ export function addSources(repoUrl: string, outputPath: string) {
   appendFileSync(outputPath, sourcesContent, 'utf8')
 }
 
-export function generateIndex(features: Feature[], user: ReturnType<typeof getUserInfos>) {
+export interface WebsiteInfos {
+  title?: string
+  tagline?: string
+}
+
+export function generateIndex(features: Feature[], user: ReturnType<typeof getUserInfos>, websiteInfos: WebsiteInfos) {
   const { name, login, bio } = user
+  const { title, tagline } = websiteInfos
+
+  const hero = title
+    ? { name: title, tagline }
+    : { name: name ? `${name}'s projects` : `${login}'s projects`, tagline: bio ?? 'Robots are everywhere 🤖' }
+
   return {
     layout: 'home',
-    hero: {
-      name: name ? `${name}'s projects` : `${login}'s projects`,
-      tagline: bio ?? 'Robots are everywhere 🤖', // \U0001F916
-    },
+    hero,
     features,
   }
 }
@@ -87,7 +164,7 @@ export function generateSidebarPages(repoName: string, fileName: string, sidebar
   return sidebarPages ? [...sidebarPages, content] : [content]
 }
 
-export function transformDoc(repositories: EnhancedRepository[], user: ReturnType<typeof getUserInfos>) {
+export function transformDoc(repositories: EnhancedRepository[], user: ReturnType<typeof getUserInfos>, websiteInfos: WebsiteInfos) {
   const features: Feature[] = []
   const sidebar: SidebarProject[] = []
 
@@ -145,7 +222,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
   }
 
   log(`   Generate index content.`, 'info')
-  const index = generateIndex(features.toSorted((a, b) => a.title.localeCompare(b.title)), user)
+  const index = generateIndex(features.toSorted((a, b) => a.title.localeCompare(b.title)), user, websiteInfos)
   return {
     sidebar: sidebar.toSorted((a, b) => a.text.localeCompare(b.text)),
     index,
@@ -206,7 +283,7 @@ type AdaptedLicense = Omit<NonNullable<Source>['license'], 'spdx_id'> & { spdx_i
 
 type AdaptedRepository = Omit<NonNullable<Source>, 'license'> & { license: AdaptedLicense }
 
-export async function processForks(repositories: EnhancedRepository[], username: GlobalOpts['username'], token?: GlobalOpts['token']) {
+export async function processForks(repositories: EnhancedRepository[], username: GlobalOpts['usernames'][number], token?: GlobalOpts['token']) {
   const forks = await Promise.all(
     repositories.map(async (repository) => {
       const { source, contributors } = await getContributors({ repository, token })
@@ -220,8 +297,14 @@ export async function processForks(repositories: EnhancedRepository[], username:
   addForkPage(forks)
 }
 
-export function parseVitepressConfig(path: string) {
-  return JSON.parse(readFileSync(resolve(process.cwd(), path)).toString())
+export async function parseVitepressConfig(path: string): Promise<Partial<ReturnType<typeof defineConfig>>> {
+  const { config } = await import(resolve(process.cwd(), path)).catch(e => e)
+  return config
+}
+
+export async function parseVitepressIndex(path: string): Promise<Index> {
+  const index = (await readFile(resolve(process.cwd(), path))).toString()
+  return YAML.parse(index)
 }
 
 export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeof defineConfig>>, index: Index) {
@@ -229,9 +312,9 @@ export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeo
   createDir(dirname(VITEPRESS_CONFIG))
 
   log(`   Generate Vitepress config.`, 'info')
-  writeFileSync(VITEPRESS_CONFIG, `export default ${JSON.stringify(vitepressConfig, null, 2)}\n`)
+  writeFileSync(VITEPRESS_CONFIG, `export const config = ${JSON.stringify(vitepressConfig, null, 2)}\n\nexport default config\n`)
   log(`   Generate index file.`, 'info')
-  writeFileSync(INDEX_FILE, separator.concat(YAML.stringify(index), separator))
+  writeFileSync(INDEX_FILE, separator.concat(YAML.stringify(index)))
   log(`   Add Docpress theme files.`, 'info')
   return extractFiles(TEMPLATE_THEME).forEach((path) => {
     const relativePath = path.replace(`${TEMPLATE_THEME}/`, '')

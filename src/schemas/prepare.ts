@@ -10,7 +10,7 @@ export const prepareOptsSchema = cliSchema
     gitProvider: true,
     reposFilter: true,
     token: true,
-    username: true,
+    usernames: true,
     vitepressConfig: true,
   })
   .transform(applyGlobalOptsTransform)
