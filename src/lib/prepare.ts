@@ -145,9 +145,9 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
   }
 
   log(`   Generate index content.`, 'info')
-  const index = generateIndex(features.sort((a, b) => a.title.localeCompare(b.title)), user)
+  const index = generateIndex(features.toSorted((a, b) => a.title.localeCompare(b.title)), user)
   return {
-    sidebar: sidebar.sort((a, b) => a.text.localeCompare(b.text)),
+    sidebar: sidebar.toSorted((a, b) => a.text.localeCompare(b.text)),
     index,
   }
 }
