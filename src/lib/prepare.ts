@@ -39,7 +39,7 @@ export interface Index {
   features: Feature[]
 }
 
-function addSources(repoUrl: string, outputPath: string) {
+export function addSources(repoUrl: string, outputPath: string) {
   const fileName = basename(outputPath)
   const title = fileName === 'introduction.md' ? '\n## Sources' : '# Sources'
 
@@ -47,14 +47,6 @@ function addSources(repoUrl: string, outputPath: string) {
 
   appendFileSync(outputPath, sourcesContent, 'utf8')
 }
-
-// export function addContribution(outputPath: string) {
-//   const sourcesContent = `
-// If you'd like to improve or fix the code, check out the [contribution guidelines](/contribute).
-// `
-
-//   appendFileSync(outputPath, sourcesContent, 'utf8')
-// }
 
 export function generateIndex(features: Feature[], user: ReturnType<typeof getUserInfos>) {
   const { name, login, bio } = user

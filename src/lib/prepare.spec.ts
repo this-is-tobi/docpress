@@ -1,5 +1,5 @@
 import type { Dirent } from 'node:fs'
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { extractFiles, getMdFiles, type getUserInfos, type getUserRepos } from '../utils/functions.js'
@@ -8,7 +8,7 @@ import {
   addContent,
   addExtraPages,
   addForkPage,
-  // addSources,
+  addSources,
   generateFeatures,
   generateIndex,
   generateSidebarPages,
@@ -53,16 +53,16 @@ vi.mock('./git.js', async importOriginal => ({
 
 const tempDir = resolve(__dirname, 'temp-test-dir')
 
-// describe('addSources', () => {
-//   it('should append source content to a file', () => {
-//     addSources('https://example.com/repo', '/mock/output/readme.md')
-//     expect(appendFileSync).toHaveBeenCalledWith(
-//       '/mock/output/readme.md',
-//       expect.stringContaining('[project sources](https://example.com/repo)'),
-//       'utf8',
-//     )
-//   })
-// })
+describe('addSources', () => {
+  it('should append source content to a file', () => {
+    addSources('https://example.com/repo', '/mock/output/readme.md')
+    expect(appendFileSync).toHaveBeenCalledWith(
+      '/mock/output/readme.md',
+      expect.stringContaining('[project sources](https://example.com/repo)'),
+      'utf8',
+    )
+  })
+})
 
 describe('generateIndex', () => {
   it('should return a formatted index object', () => {
