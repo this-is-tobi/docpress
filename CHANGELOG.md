@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/this-is-tobi/docpress/compare/v0.5.1...v0.6.0) (2025-02-11)
+
+
+### Features
+
+* introduce multiple username ([1b7e57e](https://github.com/this-is-tobi/docpress/commit/1b7e57e021d3b69b979b7582868507f55045488f))
+
 ## [0.5.1](https://github.com/this-is-tobi/docpress/compare/v0.5.0...v0.5.1) (2024-12-14)
 
 
