@@ -2,9 +2,10 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node
 import { basename, join, resolve } from 'node:path'
 import axios from 'axios'
 import { rimrafSync } from 'rimraf'
+import type { GlobalOpts } from '../schemas/global.js'
 import type { EnhancedRepository } from '../lib/fetch.js'
 import type { getInfos } from '../lib/git.js'
-import { USER_INFOS, USER_REPOS_INFOS } from './const.js'
+import { DOCPRESS_DIR } from './const.js'
 
 export async function checkHttpStatus(url: string): Promise<number> {
   try {
@@ -105,12 +106,12 @@ export function prettifyEnum(arr: readonly string[]) {
   }, '')
 }
 
-export function getUserInfos() {
-  return JSON.parse(readFileSync(USER_INFOS).toString()) as Awaited<ReturnType<typeof getInfos>>['user']
+export function getUserInfos(username: GlobalOpts['usernames'][number]) {
+  return JSON.parse(readFileSync(`${DOCPRESS_DIR}/user-${username}.json`).toString()) as Awaited<ReturnType<typeof getInfos>>['user']
 }
 
-export function getUserRepos() {
-  return JSON.parse(readFileSync(USER_REPOS_INFOS).toString()) as EnhancedRepository[]
+export function getUserRepos(username: GlobalOpts['usernames'][number]) {
+  return JSON.parse(readFileSync(`${DOCPRESS_DIR}/repos-${username}.json`).toString()) as EnhancedRepository[]
 }
 
 export function deepMerge<T extends Record<string, any> | null>(...objects: T[]): T {

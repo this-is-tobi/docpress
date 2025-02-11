@@ -6,16 +6,6 @@ import { prepareCmd, main as prepareFn, prepareOpts } from './commands/prepare.j
 import { addOptions, parseOptions } from './utils/commands.js'
 import { globalOpts } from './commands/global.js'
 
-// const options = {
-//   fetchOpts: [
-//     createOption('-b, --branch <string>', configSchema.shape.branch._def.description)
-//       .default(configSchema.shape.branch._def.defaultValue()),
-//     createOption('-g, --git-provider <string>', configSchema.shape.gitProvider._def.description)
-//       .default(configSchema.shape.gitProvider._def.defaultValue()),
-//     createOption('-r, --repos-filter <string>', configSchema.shape.reposFilter._def.description),
-//   ],
-// }
-
 export function getProgram() {
   const pm = new Command()
     .name('docpress')

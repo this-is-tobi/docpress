@@ -1,9 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import { Command, Option } from 'commander'
-import type { Config, GlobalOpts } from '../schemas/global.js'
-import type { FetchOpts } from '../schemas/fetch.js'
-import type { PrepareOpts } from '../schemas/prepare.js'
+import type { Config, RawCli } from '../schemas/global.js'
 import { addOptions, parseOptions } from './commands.js'
 import * as fnMod from './functions.js'
 
@@ -19,18 +17,19 @@ const loadConfigFileMock = vi.spyOn(fnMod, 'loadConfigFile')
 
 describe('parseOptions', () => {
   it('should parse valid fetch options', () => {
-    const validFetchOptions = {
+    const validFetchOptions: RawCli = {
       branch: 'main',
       gitProvider: 'github',
       reposFilter: 'repo1,repo2',
       token: 'token123',
-      username: 'username',
-    } as unknown as FetchOpts
+      usernames: 'user1',
+    }
 
     const result = parseOptions('fetch', validFetchOptions)
     expect(result).toEqual({
       ...validFetchOptions,
       reposFilter: ['repo1', 'repo2'],
+      usernames: ['user1'],
     })
   })
 
@@ -45,20 +44,23 @@ describe('parseOptions', () => {
   })
 
   it('should parse valid global options', () => {
-    const validGlobalOptions = {
+    const validGlobalOptions: Partial<RawCli> = {
       config: './valid-config.json',
       token: 'private-token',
-    } as unknown as GlobalOpts
+    }
+
     const config: Config = {
       branch: 'main',
       gitProvider: 'github',
-      username: 'username',
+      usernames: ['user1'],
       extraHeaderPages: [],
       extraPublicContent: [],
       extraTheme: [],
       reposFilter: [],
       vitepressConfig: {},
       forks: false,
+      websiteTitle: '',
+      websiteTagline: '',
     }
 
     ;(readFileSync as any).mockReturnValue(JSON.stringify(config))
@@ -75,13 +77,13 @@ describe('parseOptions', () => {
   })
 
   it('should parse valid prepare options', () => {
-    const validPrepareOptions = {
-      username: 'user1',
+    const validPrepareOptions: RawCli = {
+      usernames: 'user1',
       extraHeaderPages: 'header1.md,header2.md',
       extraPublicContent: 'public1,public2',
       extraTheme: 'theme1,theme2',
       vitepressConfig: './vitepress.config.js',
-    } as unknown as PrepareOpts
+    }
     const vitepressConfig = {
       lang: 'en-US',
       title: 'Home',
@@ -93,7 +95,7 @@ describe('parseOptions', () => {
     const result = parseOptions('prepare', validPrepareOptions)
 
     expect(result).toEqual({
-      username: validPrepareOptions.username,
+      usernames: [validPrepareOptions.usernames],
       token: undefined,
       gitProvider: 'github',
       branch: 'main',

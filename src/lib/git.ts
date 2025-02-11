@@ -8,7 +8,7 @@ import { createDir } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
 
-export async function getInfos({ username, token, branch }: Pick<FetchOpts, 'branch'> & Pick<GlobalOpts, 'token'> & Required<Pick<GlobalOpts, 'username'>>) {
+export async function getInfos({ username, token, branch }: Pick<FetchOpts, 'branch'> & Pick<GlobalOpts, 'token'> & { username: GlobalOpts['usernames'][number] }) {
   log(`   Get infos for username '${username}'.`, 'info')
   const octokit = new Octokit({ auth: token })
   log(`   Get user infos.`, 'debug')

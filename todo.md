@@ -6,9 +6,9 @@
 - [x] Handle vitepress config customization
 - [x] Handle vitepress css customization
 - [x] Add repository exclusion with `!` prefix
-- [ ] Create a Github Action that build the docs and optionally deploy it to github.io
+- [x] Create a Github Action that build the docs and optionally deploy it to github.io
 - [ ] Add support for private repositories (without link ?)
-- [ ] Build a dedicated page for fork (list every public fork where user contribute with a small description)
+- [x] Build a dedicated page for fork (list every public fork where user contribute with a small description)
 - [ ] Handle vitepress about page customization (docpress config option with defaukt theme)
 - [ ] Add advanced app config by parsing file (yaml / json)
   - [x] json parsing
@@ -23,3 +23,10 @@
   - [x] Extra theme
   - [x] Usage (npx / pnpx / bunx / docker) + exemple with nginx
   - [x] Github token (ratelimit / private)
+- [ ] Support multi users
+  - [x] If multiple users include and exclude should contain user `<username>/<repository>,!<username>/<repository>` or filter are dropped
+  - [x] Website index hero should comes from config or flag (`name` and `tagline`) and features should be merged
+  - [x] Update current tests
+  - [ ] Add tests
+- [ ] Refactor code base
+- [ ] Refactor tests

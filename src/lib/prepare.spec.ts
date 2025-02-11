@@ -1,5 +1,5 @@
 import type { Dirent } from 'node:fs'
-import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { extractFiles, getMdFiles, type getUserInfos, type getUserRepos } from '../utils/functions.js'
@@ -65,10 +65,28 @@ describe('addSources', () => {
 })
 
 describe('generateIndex', () => {
-  it('should return a formatted index object', () => {
+  it('should return a formatted index object (with website infos)', () => {
     const user = { name: 'John Doe', login: 'johndoe', bio: 'Coder' } as ReturnType<typeof getUserInfos>
     const features = [{ title: 'Feature 1', details: 'Details 1', link: '/feature1' }]
-    const result = generateIndex(features, user)
+    const websiteInfos = { title: 'Awesome website', tagline: 'Awesome tagline' }
+
+    const result = generateIndex(features, user, websiteInfos)
+    expect(result).toEqual({
+      layout: 'home',
+      hero: {
+        name: websiteInfos.title,
+        tagline: websiteInfos.tagline,
+      },
+      features,
+    })
+  })
+
+  it('should return a formatted index object (without website infos)', () => {
+    const user = { name: 'John Doe', login: 'johndoe', bio: 'Coder' } as ReturnType<typeof getUserInfos>
+    const features = [{ title: 'Feature 1', details: 'Details 1', link: '/feature1' }]
+    const websiteInfos = { title: undefined, tagline: undefined }
+
+    const result = generateIndex(features, user, websiteInfos)
     expect(result).toEqual({
       layout: 'home',
       hero: {
@@ -147,7 +165,9 @@ describe('transformDoc', () => {
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/01-file3.md', '/path/to/file1.md', '/path/to/FILE2.md', '/path/to/readme.md'])
     vi.mocked(readdirSync).mockReturnValue(['readme.md', 'file1.md', 'FILE2.md', '01-file3.md'] as unknown as Dirent[])
 
-    const result = transformDoc(repositories, user)
+    const websiteInfos = { title: undefined, tagline: undefined }
+
+    const result = transformDoc(repositories, user, websiteInfos)
     expect(result.sidebar).toEqual([
       {
         text: 'My repo',
@@ -183,7 +203,9 @@ describe('transformDoc', () => {
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/README.md'])
     vi.mocked(readdirSync).mockReturnValue(['readme.md'] as unknown as Dirent[])
 
-    const result = transformDoc(repositories, user)
+    const websiteInfos = { title: undefined, tagline: undefined }
+
+    const result = transformDoc(repositories, user, websiteInfos)
     expect(result.sidebar).toEqual([
       {
         text: 'My repo',
@@ -204,6 +226,7 @@ describe('addExtraPages', () => {
   it('should copy files and return nav pages', () => {
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/File1.md', '/path/to/file2.md'])
     const result = addExtraPages(['/path/to/File1.md', '/path/to/file2.md'])
+
     expect(result).toEqual([
       { text: 'File1', link: '/file1' },
       { text: 'file2', link: '/file2' },
@@ -216,15 +239,17 @@ describe('addContent', () => {
   it('should copy files and call callback if provided', () => {
     const callback = vi.fn()
     addContent(['/path/to/file1.md'], '/mock/dir', callback)
+
     expect(cpSync).toHaveBeenCalled()
     expect(callback).toHaveBeenCalled()
   })
 })
 
 describe('parseVitepressConfig', () => {
-  it('should parse Vitepress configuration from JSON file', () => {
-    vi.mocked(readFileSync).mockReturnValueOnce(JSON.stringify({ title: 'My Project' }))
-    const config = parseVitepressConfig('/mock/config.json')
+  it('should parse Vitepress configuration from JSON file', async () => {
+    vi.mock('/mock/config.json', () => ({ config: { title: 'My Project' } }))
+
+    const config = await parseVitepressConfig('/mock/config.json')
     expect(config).toEqual({ title: 'My Project' })
   })
 })
@@ -242,7 +267,7 @@ describe('generateVitepressFiles', () => {
 
     expect(writeFileSync).toHaveBeenCalledWith(
       '/tmp/docpress/mock/.vitepress/config.js',
-      expect.stringContaining('export default {'),
+      expect.stringContaining('export default config'),
     )
     expect(writeFileSync).toHaveBeenCalledWith(
       '/tmp/docpress/mock/docs/index.md',
