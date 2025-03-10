@@ -12,7 +12,7 @@ export default defineConfig({
     testTimeout: 2000,
     watch: false,
     globals: true,
-    setupFiles: [],
+    setupFiles: ['./vitest-init.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
