@@ -60,10 +60,7 @@ export async function getContributors({
       contributors.push(...data)
     }
   } catch (_error) {
-    log(
-      `   Failed to get contributors infos for repository '${repository.name}'.`,
-      'warn',
-    )
+    log(`   Failed to get contributors infos for repository '${repository.name}'.`, 'warn')
     return { source: repo.source, contributors: [] }
   }
 
@@ -81,17 +78,33 @@ export async function cloneRepo(name: string, url: string, projectDir: string, b
 
     for (const item of includes) {
       log(`   Add '${item}' to '${name}' sparse-checkout file.`, 'debug')
-      appendFileSync(resolve(projectDir, '.git/info/sparse-checkout'), `${item}\n`, 'utf8')
+      try {
+        appendFileSync(resolve(projectDir, '.git/info/sparse-checkout'), `${item}\n`, 'utf8')
+      } catch (_error) {
+        log(`   Failed to add item '${item}' to sparse-checkout.`, 'warn')
+      }
     }
 
     log(`   Clone repository '${name}'.`, 'info')
     await git.pull('origin', branch)
 
     if (includes.some(item => item.includes('docs'))) {
-      cpSync(resolve(projectDir, 'docs'), projectDir, { recursive: true })
-      rmSync(resolve(projectDir, 'docs'), { recursive: true })
+      try {
+        cpSync(resolve(projectDir, 'docs'), projectDir, { recursive: true })
+      } catch (_error) {
+        log(`   Failed to copy 'docs' directory.`, 'warn')
+      }
+      try {
+        rmSync(resolve(projectDir, 'docs'), { recursive: true })
+      } catch (_error) {
+        log(`   Failed to remove 'docs' directory.`, 'warn')
+      }
     }
-    rmSync(resolve(projectDir, '.git'), { recursive: true })
+    try {
+      rmSync(resolve(projectDir, '.git'), { recursive: true })
+    } catch (_error) {
+      log(`   Failed to remove '.git' directory.`, 'warn')
+    }
   } catch (error) {
     log(`   Error when cloning repository: ${error}.`, 'error')
   }

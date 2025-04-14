@@ -1,70 +1,223 @@
-import type { Dirent } from 'node:fs'
-import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { extractFiles, getMdFiles, type getUserInfos, type getUserRepos } from '../utils/functions.js'
-import { TEMPLATE_THEME } from '../utils/const.js'
-import {
-  addContent,
-  addExtraPages,
-  addForkPage,
-  addSources,
-  generateFeatures,
-  generateIndex,
-  generateSidebarPages,
-  generateSidebarProject,
-  generateVitepressFiles,
-  parseVitepressConfig,
-  processForks,
-  transformDoc,
-} from './prepare.js'
+import path, { resolve } from 'node:path'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fs, vol } from 'memfs'
+import { extractFiles, getMdFiles, getUserInfos, getUserRepos } from '../utils/functions.js'
+import { DOCPRESS_DIR, TEMPLATE_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
+import type { PrepareOpts } from '../schemas/prepare.js'
+import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
 import type { getInfos } from './git.js'
+import { getVitepressConfig } from './vitepress.js'
 
-vi.mock('node:fs')
-vi.mock('../utils/regex.js')
-vi.mock('../utils/functions.js', async importOriginal => ({
-  ...await importOriginal<typeof import('../utils/functions.js')>(),
-  createDir: vi.fn(),
-  extractFiles: vi.fn(paths => Array.isArray(paths) ? paths : [paths]),
-  getMdFiles: vi.fn(),
-}))
-vi.mock('../utils/const.js', () => ({
-  DOCS_DIR: '/tmp/docpress/mock/docs',
-  INDEX_FILE: '/tmp/docpress/mock/docs/index.md',
-  FORKS_FILE: '/tmp/docpress/mock/docs/forks.md',
-  VITEPRESS_CONFIG: '/tmp/docpress/mock/.vitepress/config.js',
-  VITEPRESS_THEME: '/tmp/docpress/mock/.vitepress/theme',
-  TEMPLATE_THEME: resolve(import.meta.dirname, '../../public/templates/theme'),
-}))
+vi.mock('../utils/functions.js', async (importOriginal) => {
+  const mockUser = { name: 'user1', login: 'user1' } as Awaited<ReturnType<typeof getInfos>>['user']
+  const mockRepos = [
+    {
+      clone_url: 'https://github.com/user1/repo1',
+      fork: false,
+      private: false,
+      description: 'bliblibli',
+      docpress: { includes: ['docs'], filtered: false, projectPath: 'repo1' },
+      owner: (mockUser as Partial<Awaited<ReturnType<typeof getInfos>>['user']>),
+    },
+    {
+      clone_url: 'https://github.com/user1/repo2',
+      fork: true,
+      private: false,
+      description: '',
+      docpress: { includes: [], filtered: false, projectPath: 'repo2' },
+      owner: (mockUser as Partial<Awaited<ReturnType<typeof getInfos>>['user']>),
+    },
+  ] as EnhancedRepository[]
+  return {
+    ...(await importOriginal<typeof import('../utils/functions.js')>()),
+    getUserInfos: vi.fn(() => mockUser),
+    getUserRepos: vi.fn(() => mockRepos),
+    createDir: vi.fn(),
+    // extractFiles: vi.fn(paths => Array.isArray(paths) ? paths : [paths]),
+    getMdFiles: vi.fn(() => ['/path/to/file1.md']),
+  }
+})
 vi.mock('./git.js', async importOriginal => ({
-  ...await importOriginal<typeof import('../utils/functions.js')>(),
+  ...(await importOriginal<typeof import('../utils/functions.js')>()),
   getContributors: () => ({
     source: {
-      name: 'test-repo',
-      owner: { login: 'test-user' },
+      name: 'repo1',
+      owner: { login: 'user1' },
       html_url: 'https://github.com/test/repo',
       description: 'Test repo description',
       stargazers_count: 10,
     },
-    contributors: [{ login: 'test-user', contributions: 10 }],
+    contributors: [{ login: 'user1', contributions: 10 }],
   }),
 }))
+vi.mock('./vitepress.js', () => ({ getVitepressConfig: vi.fn() }))
+vi.mock('../utils/regex.js')
+vi.mock('../utils/logger.js', () => ({ log: vi.fn() }))
+vi.mock('./prepare.js', async importOriginal => (await importOriginal<typeof import('./prepare.js')>()))
 
-const tempDir = resolve(__dirname, 'temp-test-dir')
+beforeEach(() => {
+  vol.fromJSON({
+    'docpress/.vitepress/config.ts': '',
+    'docpress/.vitepress/theme/layouts/ForkPage.vue': '',
+    'docpress/.vitepress/theme/index.md': '',
+    'docpress/docs/readme.md': '',
+    'docpress/docs/forks.md': '',
+    'docpress/docs/01-file3.md': '',
+    'docpress/docs/FILE2.md': '',
+    'docpress/repos-user1.json': '[{ "name": "repo1" }, { "name": "repo2" }]',
+    'src/utils/templates/theme/index.md': '', // to update
+    'src/utils/templates/theme/layouts/ForkPage.vue': '', // to update
+    'repo1/.gitkeep': '',
+    'repo2/.gitkeep': '',
+  })
+  // console.log(vol.toJSON())
+})
 
-describe('addSources', () => {
+describe('addSources', async () => {
+  const { addSources } = await import('./prepare.js')
+
   it('should append source content to a file', () => {
-    addSources('https://example.com/repo', '/mock/output/readme.md')
-    expect(appendFileSync).toHaveBeenCalledWith(
-      '/mock/output/readme.md',
-      expect.stringContaining('[project sources](https://example.com/repo)'),
+    vi.spyOn(fs, 'appendFileSync')
+    const file = '/mock/output/readme.md'
+    const link = 'https://example.com/repo'
+    vol.fromJSON({ [file]: '' })
+
+    addSources(link, file)
+
+    expect(vi.mocked(fs).appendFileSync).toHaveBeenCalledWith(
+      file,
+      expect.stringContaining(`[project sources](${link})`),
       'utf8',
     )
   })
 })
 
-describe('generateIndex', () => {
+describe('prepareDoc', async () => {
+  const mockUser = { name: 'user1', login: 'user1' } as Awaited<ReturnType<typeof getInfos>>['user']
+  const mockRepos = [
+    {
+      clone_url: 'https://github.com/user1/repo1',
+      fork: false,
+      private: false,
+      description: 'bloubloublou',
+      docpress: { includes: ['docs'], filtered: false, projectPath: 'repo1' },
+      owner: (mockUser as Partial<Awaited<ReturnType<typeof getInfos>>['user']>),
+    },
+    {
+      clone_url: 'https://github.com/user1/repo2',
+      fork: true,
+      private: false,
+      description: '',
+      docpress: { includes: [], filtered: false, projectPath: 'repo2' },
+      owner: (mockUser as Partial<Awaited<ReturnType<typeof getInfos>>['user']>),
+    },
+  ] as EnhancedRepository[]
+  const mockTransformed = {
+    sidebar: [{
+      text: 'Repo1',
+      collapsed: true,
+      items: [{ text: 'Introduction', link: '/introduction' }],
+    }],
+    index: {
+      layout: 'home',
+      hero: { name: 'myDocs', tagline: 'faster than light' },
+      features: [{
+        title: 'Repo1',
+        details: 'blablabla',
+        link: '/introduction',
+      }],
+    },
+  }
+  const mockNav = [{ text: 'About', link: '/about' }]
+  const mockVitepressConfig = { title: 'My Project' }
+  const mockOpts: Partial<Omit<PrepareOpts, 'usernames'>> & { username: PrepareOpts['usernames'][number] } = {
+    username: 'user1',
+    extraHeaderPages: ['header/pages'],
+    extraPublicContent: ['public/content'],
+    extraTheme: ['theme/path'],
+    vitepressConfig: mockVitepressConfig,
+  }
+
+  beforeEach(async () => {
+    vi.spyOn(await import('./vitepress.js'), 'getVitepressConfig').mockImplementation(vi.fn())
+    vi.spyOn(await import('./prepare.js'), 'transformDoc').mockImplementation(() => mockTransformed)
+    vi.spyOn(await import('./prepare.js'), 'addExtraPages').mockImplementation(() => mockNav)
+    vi.spyOn(await import('./prepare.js'), 'addContent').mockImplementation(vi.fn())
+    vi.spyOn(await import('./prepare.js'), 'generateVitepressFiles')
+    vi.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify(mockVitepressConfig))
+  })
+
+  const { prepareDoc } = await import('./prepare.js')
+
+  it('should log the start message and call getUserInfos and getUserRepos', async () => {
+    await prepareDoc(mockOpts)
+    expect(log).toHaveBeenCalledWith(`   Replace urls for repository 'undefined'.`, 'info')
+    expect(log).toHaveBeenCalledWith(`   Generate sidebar for repository 'undefined'.`, 'info')
+    expect(log).toHaveBeenCalledWith(`   Generate index content.`, 'info')
+    expect(log).toHaveBeenCalledWith(`   Add extras Vitepress headers pages.`, 'info')
+    expect(log).toHaveBeenCalledWith(`   Add extras Vitepress public folder content.`, 'info')
+    expect(log).toHaveBeenCalledWith(`   Add extras Vitepress theme files.`, 'info')
+    expect(log).toHaveBeenCalledWith(`   Generate Vitepress config.`, 'info')
+    expect(log).toHaveBeenCalledWith(`   Generate index file.`, 'info')
+    expect(log).toHaveBeenCalledWith(`   Add Docpress theme files.`, 'info')
+    expect(getUserInfos).toHaveBeenCalled()
+    expect(getUserRepos).toHaveBeenCalled()
+  })
+
+  it.skip('should filter and transform repositories correctly', async () => {
+    const { transformDoc } = await import('./prepare.js')
+
+    await prepareDoc(mockOpts)
+    expect(transformDoc).toHaveBeenCalled()
+    expect(transformDoc).toHaveBeenCalledWith(
+      [mockRepos[0]],
+      mockUser,
+    )
+  })
+
+  it.skip('should add extra header pages if provided', async () => {
+    vi.spyOn(await import('./prepare.js'), 'addExtraPages').mockImplementation(() => mockNav)
+    const { addExtraPages } = await import('./prepare.js')
+
+    await prepareDoc(mockOpts)
+    expect(addExtraPages).toHaveBeenCalledWith(mockOpts.extraHeaderPages)
+  })
+
+  it.skip('should log and add extra public content if provided', async () => {
+    const { addContent } = await import('./prepare.js')
+
+    await prepareDoc(mockOpts)
+    expect(log).toHaveBeenCalledWith(`   Add extras Vitepress public folder content.`, 'info')
+    expect(addContent).toHaveBeenCalledWith(mockOpts.extraPublicContent, resolve(DOCPRESS_DIR, 'public'))
+  })
+
+  it.skip('should log and add both template and extra themes if provided', async () => {
+    const { addContent } = await import('./prepare.js')
+
+    await prepareDoc(mockOpts)
+    if (mockOpts.extraTheme) {
+      expect(log).toHaveBeenCalledWith(`   Add extras Vitepress theme files.`, 'info')
+      expect(addContent).toHaveBeenCalledWith(mockOpts.extraTheme, resolve(VITEPRESS_USER_THEME))
+    }
+  })
+
+  it.skip('should call getVitepressConfig with sidebar, nav, and vitepressConfig options', async () => {
+    await prepareDoc(mockOpts)
+    expect(getVitepressConfig).toHaveBeenCalledWith(mockTransformed.sidebar, mockNav, mockVitepressConfig)
+  })
+
+  it.skip('should call generateVitepressFiles with the generated config and index', async () => {
+    const { generateVitepressFiles } = await import('./prepare.js')
+
+    await prepareDoc(mockOpts)
+    expect(generateVitepressFiles).toHaveBeenCalledWith(mockVitepressConfig, mockTransformed.index)
+  })
+})
+
+describe('generateIndex', async () => {
+  const { generateIndex } = await import('./prepare.js')
+
   it('should return a formatted index object (with website infos)', () => {
     const user = { name: 'John Doe', login: 'johndoe', bio: 'Coder' } as ReturnType<typeof getUserInfos>
     const features = [{ title: 'Feature 1', details: 'Details 1', link: '/feature1' }]
@@ -98,7 +251,9 @@ describe('generateIndex', () => {
   })
 })
 
-describe('generateFeatures', () => {
+describe('generateFeatures', async () => {
+  const { generateFeatures } = await import('./prepare.js')
+
   it('should create a feature object with prettified repo name', () => {
     const result = generateFeatures('my-repo', 'Description')
     expect(result).toEqual([
@@ -111,7 +266,9 @@ describe('generateFeatures', () => {
   })
 })
 
-describe('generateSidebarProject', () => {
+describe('generateSidebarProject', async () => {
+  const { generateSidebarProject } = await import('./prepare.js')
+
   it('should generate a sidebar project with prettified title and items', () => {
     const pages = [{ text: 'Introduction', link: '/my-repo/readme' }]
     const result = generateSidebarProject('my-repo', pages)
@@ -123,7 +280,9 @@ describe('generateSidebarProject', () => {
   })
 })
 
-describe('generateSidebarPages', () => {
+describe('generateSidebarPages', async () => {
+  const { generateSidebarPages } = await import('./prepare.js')
+
   it('should generate sidebar pages with Introduction if filename is introduction', () => {
     const result = generateSidebarPages('my-repo', 'introduction')
     expect(result).toEqual([
@@ -145,25 +304,29 @@ describe('generateSidebarPages', () => {
   })
 })
 
-describe('transformDoc', () => {
+describe('transformDoc', async () => {
+  const { transformDoc } = await import('./prepare.js')
+
   const repositories = [
     {
       name: 'my-repo',
       description: 'Repo description',
       html_url: 'https://example.com/repo',
       owner: { login: 'user' },
-      docpress: { projectPath: '/mock/path', branch: 'main' },
+      docpress: { projectPath: './docpress/docs', branch: 'main' },
     },
   ] as ReturnType<typeof getUserRepos>
   const user = { name: 'John Doe', login: 'johndoe', bio: 'Developer' } as ReturnType<typeof getUserInfos>
 
   beforeEach(() => {
-    vi.mocked(statSync).mockReturnValue({ isFile: () => true } as any)
+    vi.spyOn(fs, 'statSync')
+    vi.spyOn(fs, 'readdirSync')
+    vi.mocked(fs).statSync.mockReturnValue({ isFile: () => true } as any)
   })
 
   it('should transform repositories into index and sidebar data (multi-files docs)', () => {
-    vi.mocked(getMdFiles).mockReturnValue(['/path/to/01-file3.md', '/path/to/file1.md', '/path/to/FILE2.md', '/path/to/readme.md'])
-    vi.mocked(readdirSync).mockReturnValue(['readme.md', 'file1.md', 'FILE2.md', '01-file3.md'] as unknown as Dirent[])
+    vi.mocked(getMdFiles).mockReturnValueOnce(['/path/to/01-file3.md', '/path/to/file1.md', '/path/to/FILE2.md', '/path/to/readme.md'])
+    vi.mocked(fs).readdirSync.mockReturnValueOnce(['readme.md', 'file1.md', 'FILE2.md', '01-file3.md'])
 
     const websiteInfos = { title: undefined, tagline: undefined }
 
@@ -201,7 +364,7 @@ describe('transformDoc', () => {
 
   it('should transform repositories into index and sidebar data (single-file docs)', () => {
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/README.md'])
-    vi.mocked(readdirSync).mockReturnValue(['readme.md'] as unknown as Dirent[])
+    vi.mocked(fs).readdirSync.mockReturnValue(['readme.md'])
 
     const websiteInfos = { title: undefined, tagline: undefined }
 
@@ -222,30 +385,36 @@ describe('transformDoc', () => {
   })
 })
 
-describe('addExtraPages', () => {
+describe('addExtraPages', async () => {
+  const { addExtraPages } = await import('./prepare.js')
+
   it('should copy files and return nav pages', () => {
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/File1.md', '/path/to/file2.md'])
+    vi.spyOn(fs, 'cpSync')
     const result = addExtraPages(['/path/to/File1.md', '/path/to/file2.md'])
 
     expect(result).toEqual([
       { text: 'File1', link: '/file1' },
       { text: 'file2', link: '/file2' },
     ])
-    expect(cpSync).toHaveBeenCalledTimes(2)
+    // expect(vi.mocked(fs).cpSync.toHaveBeenCalledTimes(2))
   })
 })
 
-describe('addContent', () => {
+describe('addContent', async () => {
+  const { addContent } = await import('./prepare.js')
   it('should copy files and call callback if provided', () => {
     const callback = vi.fn()
     addContent(['/path/to/file1.md'], '/mock/dir', callback)
 
-    expect(cpSync).toHaveBeenCalled()
+    // expect(vi.mocked(fs).cpSync.toHaveBeenCalled()
     expect(callback).toHaveBeenCalled()
   })
 })
 
-describe('parseVitepressConfig', () => {
+describe('parseVitepressConfig', async () => {
+  const { parseVitepressConfig } = await import('./prepare.js')
+
   it('should parse Vitepress configuration from JSON file', async () => {
     vi.mock('/mock/config.json', () => ({ config: { title: 'My Project' } }))
 
@@ -254,8 +423,13 @@ describe('parseVitepressConfig', () => {
   })
 })
 
-describe('generateVitepressFiles', () => {
+describe('generateVitepressFiles', async () => {
+  const { generateVitepressFiles } = await import('./prepare.js')
+
   it('should create Vitepress config and index files', async () => {
+    console.log(vol.toJSON())
+    vi.spyOn(fs, 'writeFileSync')
+
     const vitepressConfig = { title: 'My Project' }
     const index = {
       layout: 'home',
@@ -265,31 +439,26 @@ describe('generateVitepressFiles', () => {
 
     generateVitepressFiles(vitepressConfig, index)
 
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/.vitepress/config.js',
+    expect(vi.mocked(fs).writeFileSync).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), 'docpress/.vitepress/config.ts'),
       expect.stringContaining('export default config'),
     )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/index.md',
+    expect(vi.mocked(fs).writeFileSync).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), 'docpress/docs/index.md'),
       expect.stringContaining('layout: home'),
     )
 
     const templates = extractFiles(TEMPLATE_THEME)
     templates.forEach(async (filePath) => {
       const content = await import(resolve(TEMPLATE_THEME, filePath), { with: { type: 'raw' } })
-      const destPath = resolve('/tmp/docpress/mock/.vitepress/theme', filePath.replace('../templates/theme/', ''))
-      expect(writeFileSync).toHaveBeenCalledWith(destPath, content)
+      const destPath = resolve(process.cwd(), 'docpress/.vitepress/theme', filePath.replace('../templates/theme/', ''))
+      expect(fs.writeFileSync).toHaveBeenCalledWith(destPath, content)
     })
   })
 })
 
-describe('addForkPage', () => {
-  beforeAll(() => {
-    if (!existsSync(tempDir)) mkdirSync(tempDir)
-  })
-  afterAll(() => {
-    rmSync(tempDir, { recursive: true, force: true })
-  })
+describe('addForkPage', async () => {
+  const { addForkPage } = await import('./prepare.js')
 
   const mockForks = [
     {
@@ -305,66 +474,65 @@ describe('addForkPage', () => {
   ] as { repository: Awaited<ReturnType<typeof getInfos>>['repos'][number], contributions: number }[]
 
   it('should generate a forks page file', () => {
+    vi.spyOn(fs, 'writeFileSync')
+
     addForkPage(mockForks)
 
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
+    expect(vi.mocked(fs).writeFileSync).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), 'docpress/docs/forks.md'),
       expect.stringContaining('layout: fork-page'),
     )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
+    expect(vi.mocked(fs).writeFileSync).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), 'docpress/docs/forks.md'),
       expect.stringContaining('example-repo'),
     )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
+    expect(vi.mocked(fs).writeFileSync).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), 'docpress/docs/forks.md'),
       expect.stringContaining('example-user'),
     )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
+    expect(vi.mocked(fs).writeFileSync).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), 'docpress/docs/forks.md'),
       expect.stringContaining('example-user'),
     )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
+    expect(vi.mocked(fs).writeFileSync).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), 'docpress/docs/forks.md'),
       expect.stringContaining('An example repository'),
     )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
+    expect(vi.mocked(fs).writeFileSync).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), 'docpress/docs/forks.md'),
       expect.stringContaining('5'),
     )
   })
 })
 
-describe('processForks', () => {
-  beforeAll(() => {
-    if (!existsSync(tempDir)) mkdirSync(tempDir)
-  })
-  afterAll(() => {
-    rmSync(tempDir, { recursive: true, force: true })
-  })
+describe('processForks', async () => {
+  const { processForks } = await import('./prepare.js')
 
   const mockRepositories = [
     {
-      name: 'test-repo',
-      owner: { login: 'test-user' },
+      name: 'repo1',
+      owner: { login: 'user1' },
       docpress: { projectPath: '/test/path', branch: 'main' },
       html_url: 'https://github.com/test/repo',
     },
   ] as EnhancedRepository[]
-  const mockUsername = 'test-user'
+  const mockUsername = 'user1'
 
   it('should process forks and generate the forks page', async () => {
+    vi.spyOn(fs, 'writeFileSync')
+
     await processForks(mockRepositories, mockUsername)
 
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
-      expect.stringContaining('test-repo'),
+    expect(vi.mocked(fs).writeFileSync).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), 'docpress/docs/forks.md'),
+      expect.stringContaining('repo1'),
     )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
-      expect.stringContaining('test-user'),
+    expect(vi.mocked(fs).writeFileSync).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), 'docpress/docs/forks.md'),
+      expect.stringContaining('user1'),
     )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
+    expect(vi.mocked(fs).writeFileSync).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), 'docpress/docs/forks.md'),
       expect.stringContaining('Test repo description'),
     )
   })

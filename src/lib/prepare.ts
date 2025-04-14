@@ -3,6 +3,7 @@ import { appendFileSync, cpSync, existsSync, readdirSync, renameSync, statSync, 
 import { readFile } from 'node:fs/promises'
 import YAML from 'yaml'
 import type { defineConfig } from 'vitepress'
+import { vol } from 'memfs'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import { generateFile } from '../utils/templates.js'
 import type { GlobalOpts } from '../schemas/global.js'
@@ -41,7 +42,7 @@ export interface Index {
   features: Feature[]
 }
 
-export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'gitProvider' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
+export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, token, username, websiteTitle, websiteTagline }: Partial<Omit<PrepareOpts, 'usernames'>> & { username: PrepareOpts['usernames'][number] }) {
   const user = getUserInfos(username)
   const repositories = getUserRepos(username)
     .reduce(({ internals, forks }: { internals: EnhancedRepository[], forks: EnhancedRepository[] }, cur) => {
@@ -57,7 +58,9 @@ export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTh
     }, { internals: [], forks: [] })
 
   const websiteInfos = { title: websiteTitle, tagline: websiteTagline }
+  console.log('transformDoc - pre !!')
   const { index, sidebar } = transformDoc(repositories.internals, user, websiteInfos)
+  console.log('transformDoc - post !!')
 
   let finalSB
   let finalIndex
@@ -167,6 +170,7 @@ export function generateSidebarPages(repoName: string, fileName: string, sidebar
 export function transformDoc(repositories: EnhancedRepository[], user: ReturnType<typeof getUserInfos>, websiteInfos: WebsiteInfos) {
   const features: Feature[] = []
   const sidebar: SidebarProject[] = []
+  console.log({ repositories, user, websiteInfos })
 
   for (const repository of repositories) {
     log(`   Replace urls for repository '${repository.name}'.`, 'info')
@@ -316,8 +320,12 @@ export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeo
   log(`   Generate index file.`, 'info')
   writeFileSync(INDEX_FILE, separator.concat(YAML.stringify(index)))
   log(`   Add Docpress theme files.`, 'info')
+  console.log(vol.toJSON())
+  console.log(TEMPLATE_THEME)
+  console.log(extractFiles(TEMPLATE_THEME))
   return extractFiles(TEMPLATE_THEME).forEach((path) => {
     const relativePath = path.replace(`${TEMPLATE_THEME}/`, '')
+    console.log({ src: path, dest: resolve(VITEPRESS_THEME, relativePath) })
     generateFile(path, resolve(VITEPRESS_THEME, relativePath))
   })
 }

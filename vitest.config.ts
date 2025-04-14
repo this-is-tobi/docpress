@@ -9,6 +9,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // reporters: ['default', 'hanging-process'],
+    // pool: 'forks',
     testTimeout: 2000,
     watch: false,
     globals: true,
@@ -25,7 +27,7 @@ export default defineConfig({
         'src/templates/**/*',
       ],
     },
-    onConsoleLog: () => false,
+    // onConsoleLog: () => false,
     include: ['src/**/*.spec.ts'],
     exclude: [...configDefaults.exclude],
     root: fileURLToPath(new URL('./', import.meta.url)),

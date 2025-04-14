@@ -1,12 +1,13 @@
 const { fs, vol } = require('memfs')
 
-fs.cpSync = (source, dest) => {
+fs.cp = async (source, dest) => {
   const volDB = vol.toJSON()
 
-  vol.fromJSON({
-    ...volDB,
-    [dest]: volDB[source],
-  })
+  vol.writeFile(dest, volDB[source], () => {})
+  // vol.fromJSON({
+  //   ...volDB,
+  //   [dest]: volDB[source],
+  // })
 }
 
 module.exports = fs.promises

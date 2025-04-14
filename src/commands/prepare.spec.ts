@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fs } from 'memfs'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import { prepareOptsSchema } from '../schemas/prepare.js'
 import { createDir, getUserInfos, getUserRepos } from '../utils/functions.js'
@@ -11,7 +11,6 @@ import type { getInfos } from '../lib/git.js'
 import * as prepareMod from './prepare.js'
 import { globalOpts } from './global.js'
 
-vi.mock('node:fs')
 vi.mock('../utils/functions.js', async originalMod => ({
   ...(await originalMod()),
   getUserInfos: vi.fn(() => ({ usernames: ['testUser'] })),
@@ -66,7 +65,6 @@ const mockTransformed = {
 }
 const mockNav = [{ text: 'About', link: '/about' }]
 const mockVitepressConfig = { title: 'My Project' }
-// const mockOpts: PrepareOpts = {
 const mockOpts: Partial<PrepareOpts> = {
   token: undefined,
   usernames: ['user1'],
@@ -104,12 +102,12 @@ describe('prepareCmd', () => {
 
 describe('main', () => {
   beforeEach(() => {
-    vi.mocked(getUserInfos).mockReturnValue(mockUser)
-    vi.mocked(getUserRepos).mockReturnValue(mockRepos)
-    vi.mocked(transformDoc).mockReturnValue(mockTransformed)
-    vi.mocked(addExtraPages).mockReturnValue(mockNav)
-    vi.mocked(getVitepressConfig).mockReturnValue(mockVitepressConfig)
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify(mockVitepressConfig))
+    vi.mocked(getUserInfos).mockReturnValueOnce(mockUser)
+    vi.mocked(getUserRepos).mockReturnValueOnce(mockRepos)
+    vi.mocked(transformDoc).mockReturnValueOnce(mockTransformed)
+    vi.mocked(addExtraPages).mockReturnValueOnce(mockNav)
+    vi.mocked(getVitepressConfig).mockReturnValueOnce(mockVitepressConfig)
+    vi.spyOn(fs, 'readFileSync').mockReturnValueOnce(JSON.stringify(mockVitepressConfig))
   })
 
   it('should log the start message and call getUserInfos and getUserRepos', async () => {
@@ -121,16 +119,6 @@ describe('main', () => {
     expect(createDir).toHaveBeenCalled()
     expect(prepareDoc).toHaveBeenCalled()
   })
-
-  // it('should log the start message and call getUserInfos and getUserRepos', async () => {
-  //   await main(mockOpts)
-  //   expect(log).toHaveBeenCalledWith(
-  //     `\n-> Start transform files to prepare Vitepress build.`,
-  //     'info',
-  //   )
-  //   expect(getUserInfos).toHaveBeenCalled()
-  //   expect(getUserRepos).toHaveBeenCalled()
-  // })
 
   // it('should filter and transform repositories correctly', async () => {
   //   await main(mockOpts)

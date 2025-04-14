@@ -7,6 +7,10 @@ import type { EnhancedRepository } from '../lib/fetch.js'
 import type { getInfos } from '../lib/git.js'
 import { DOCPRESS_DIR } from './const.js'
 
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+}
+
 export async function checkHttpStatus(url: string): Promise<number> {
   try {
     const response = await axios.head(url)
@@ -25,6 +29,10 @@ interface PrettifyOpts {
 
 export function prettify(s: string, opts: PrettifyOpts) {
   let u: string = ''
+
+  if (!s) {
+    s = ''
+  }
 
   if (s.startsWith('.') && opts?.removeDot) {
     u = s.slice(1)
@@ -81,6 +89,7 @@ export function isFile(path: string) {
 export function extractFiles(paths: string[] | string): string[] {
   return (Array.isArray(paths) ? paths : [paths]).flatMap((path) => {
     if (isFile(path)) {
+      console.log('file : ', path)
       return [path]
     }
     if (isDir(path)) {
@@ -143,8 +152,11 @@ export function loadConfigFile(configPath?: string) {
     return {}
   }
   try {
-    const fullPath = resolve(process.cwd(), configPath)
+    const fullPath = configPath.startsWith('/')
+      ? configPath
+      : resolve(process.cwd(), configPath)
     const fileContents = readFileSync(fullPath, 'utf8')
+    console.log(fileContents)
     return JSON.parse(fileContents)
   } catch (_error) {
     return {}
