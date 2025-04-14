@@ -14,7 +14,7 @@ import {
 } from './fetch.js'
 import { cloneRepo, getInfos } from './git'
 
-vi.mock('node:fs', () => ({ writeFileSync: vi.fn() }))
+// vi.mock('node:fs', () => ({ writeFileSync: vi.fn() }))
 vi.mock('node:path', () => ({ resolve: vi.fn((...args) => args.join('/')) }))
 vi.mock('../utils/functions.js', async importOriginal => ({
   ...(await importOriginal()),

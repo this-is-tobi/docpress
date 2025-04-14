@@ -1,6 +1,6 @@
 import type { Command, Option } from 'commander'
 import { fromZodError } from 'zod-validation-error'
-import type { GlobalOpts } from '../schemas/global.js'
+import type { GlobalOpts, RawCli } from '../schemas/global.js'
 import { globalOptsSchema } from '../schemas/global.js'
 import type { BuildOpts } from '../schemas/build.js'
 import { buildOptsSchema } from '../schemas/build.js'
@@ -26,7 +26,7 @@ export const options = {
   global: globalOptsSchema,
 }
 
-export function parseOptions<T extends Cmd>(cmd: T, opts: Options[T]) {
+export function parseOptions<T extends Cmd>(cmd: T, opts: RawCli) {
   log(`Initializing Docpress...`, 'info', 'blue')
   log(`\n\n-> Checking for required environment settings and configurations.`, 'info')
 

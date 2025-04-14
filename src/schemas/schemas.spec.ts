@@ -1,11 +1,10 @@
-import { readFileSync } from 'node:fs'
+// import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
+import { fs } from 'memfs'
 import type { Config, GlobalOpts } from './global.js'
 import { configSchema, globalOptsSchema } from './global.js'
 import { fetchOptsSchema } from './fetch.js'
 import { prepareOptsSchema } from './prepare.js'
-
-vi.mock('fs')
 
 const defaultConfig = {
   branch: 'main',
@@ -18,8 +17,7 @@ describe('globalOptsSchema', () => {
     const validData = {
       config: './valid-config.json',
     }
-
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+    vi.spyOn(fs, 'readFileSync').mockReturnValueOnce(JSON.stringify({
       branch: 'main',
       gitProvider: 'github',
       reposFilter: ['repo1', 'repo2'],
@@ -30,6 +28,7 @@ describe('globalOptsSchema', () => {
     }))
 
     const result = globalOptsSchema.parse(validData)
+
     expect(result).toEqual({
       ...defaultConfig,
       branch: 'main',
@@ -47,12 +46,12 @@ describe('globalOptsSchema', () => {
       config: './invalid-config.json',
       usernames: 'user1',
     }
-
-    vi.mocked(readFileSync).mockImplementation(() => {
+    vi.spyOn(fs, 'readFileSync').mockImplementationOnce(() => {
       throw new Error('File not found')
     })
 
     const result = globalOptsSchema.parse(invalidData)
+
     expect(result).toEqual({
       ...defaultConfig,
       usernames: [invalidData.usernames],
@@ -65,6 +64,7 @@ describe('globalOptsSchema', () => {
     }
 
     const result = globalOptsSchema.parse(partialData)
+
     expect(result).toEqual({
       ...defaultConfig,
       usernames: [partialData.usernames],
@@ -81,6 +81,7 @@ describe('globalOptsSchema', () => {
     }
 
     const result = globalOptsSchema.parse(dataWithCommaSeparatedValues)
+
     expect(result).toEqual({
       ...defaultConfig,
       usernames: ['user1'],
@@ -98,6 +99,7 @@ describe('globalOptsSchema', () => {
     }
 
     const result = globalOptsSchema.parse(dataWithoutBranchAndGitProvider)
+
     expect(result).toEqual({
       ...defaultConfig,
       usernames: ['user1'],
@@ -112,6 +114,7 @@ describe('globalOptsSchema', () => {
     }
 
     const result = globalOptsSchema.parse(dataWithoutBranchAndGitProvider)
+
     expect(result).toEqual({
       ...defaultConfig,
       usernames: ['user1', 'user2'],
@@ -138,6 +141,7 @@ describe('configSchema', () => {
     const { token: _token, ...dataWithoutToken } = validCombinedData
 
     const result = configSchema.parse(validCombinedData)
+
     expect(result).toEqual(dataWithoutToken)
   })
 
@@ -159,6 +163,7 @@ describe('configSchema', () => {
     }
 
     const result = configSchema.parse(partialData)
+
     expect(result).toEqual({
       ...defaultConfig,
       ...partialData,
@@ -189,6 +194,7 @@ describe('configSchema', () => {
     const { token: _token, ...rest } = defaultConfig
 
     const result = configSchema.parse(dataWithEmptyArrays)
+
     expect(result).toEqual({
       ...dataWithEmptyArrays,
       ...rest,
@@ -208,6 +214,7 @@ describe('fetchOptsSchema', () => {
     }
 
     const result = fetchOptsSchema.parse(validData)
+
     expect(result).toEqual({ ...validData, reposFilter: ['repo1', 'repo2'], usernames: ['user1'] })
   })
 
@@ -217,6 +224,7 @@ describe('fetchOptsSchema', () => {
     }
 
     const result = fetchOptsSchema.parse(partialData)
+
     expect(result).toEqual({
       ...defaultConfig,
       usernames: [partialData.usernames],
@@ -231,6 +239,7 @@ describe('fetchOptsSchema', () => {
     }
 
     const result = fetchOptsSchema.parse(dataWithString)
+
     expect(result.reposFilter).toEqual(['repo1', 'repo2', 'repo3'])
   })
 
@@ -262,10 +271,10 @@ describe('prepareOptsSchema', () => {
       extraTheme: 'theme1,theme2',
       vitepressConfig: './vitepress.config.json',
     }
-
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ title: 'VitePress Config' }))
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ title: 'VitePress Config' }))
 
     const result = prepareOptsSchema.parse(validData)
+
     expect(result).toEqual({
       ...defaultConfig,
       ...validData,
@@ -282,10 +291,10 @@ describe('prepareOptsSchema', () => {
       usernames: 'user1',
       vitepressConfig: './vitepress.config.json',
     }
-
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ title: 'VitePress Config' }))
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ title: 'VitePress Config' }))
 
     const result = prepareOptsSchema.parse(partialData)
+
     expect(result).toEqual({
       ...defaultConfig,
       ...partialData,
@@ -303,6 +312,7 @@ describe('prepareOptsSchema', () => {
     }
 
     const result = prepareOptsSchema.parse(dataWithStrings)
+
     expect(result.usernames).toEqual(['user1', 'user2'])
     expect(result.extraHeaderPages).toEqual(['header1.md', 'header2.md'])
     expect(result.extraPublicContent).toEqual(['public1', 'public2'])
@@ -314,12 +324,12 @@ describe('prepareOptsSchema', () => {
       usernames: 'user1',
       vitepressConfig: './invalid-config.json',
     }
-
-    vi.mocked(readFileSync).mockImplementation(() => {
+    vi.mocked(fs.readFileSync).mockImplementation(() => {
       throw new Error('File not found')
     })
 
     const result = globalOptsSchema.parse(invalidData)
+
     expect(result).toEqual({
       ...defaultConfig,
       usernames: [invalidData.usernames],

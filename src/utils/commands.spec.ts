@@ -1,19 +1,9 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import { Command, Option } from 'commander'
+import { vol } from 'memfs'
 import type { Config, RawCli } from '../schemas/global.js'
 import { addOptions, parseOptions } from './commands.js'
 import * as fnMod from './functions.js'
-
-vi.mock('fs')
-// vi.mock(import('./functions.js'), async (importOriginal) => {
-//   const mod = await importOriginal()
-//   return {
-//     ...mod,
-//     loadConfigFile: vi.fn(),
-//   }
-// })
-const loadConfigFileMock = vi.spyOn(fnMod, 'loadConfigFile')
 
 describe('parseOptions', () => {
   it('should parse valid fetch options', () => {
@@ -21,11 +11,11 @@ describe('parseOptions', () => {
       branch: 'main',
       gitProvider: 'github',
       reposFilter: 'repo1,repo2',
-      token: 'token123',
       usernames: 'user1',
     }
 
     const result = parseOptions('fetch', validFetchOptions)
+
     expect(result).toEqual({
       ...validFetchOptions,
       reposFilter: ['repo1', 'repo2'],
@@ -34,21 +24,20 @@ describe('parseOptions', () => {
   })
 
   it('should throw an error for invalid fetch options', () => {
-    const invalidFetchOptions = {
+    const invalidFetchOptions: any = {
       branch: 'main',
       gitProvider: 'unknown_provider',
       username: 'username',
     }
 
-    expect(() => parseOptions('fetch', invalidFetchOptions as any)).toThrow()
+    expect(() => parseOptions('fetch', invalidFetchOptions)).toThrow()
   })
 
   it('should parse valid global options', () => {
-    const validGlobalOptions: Partial<RawCli> = {
+    const validGlobalOptions = {
       config: './valid-config.json',
       token: 'private-token',
     }
-
     const config: Config = {
       branch: 'main',
       gitProvider: 'github',
@@ -62,8 +51,8 @@ describe('parseOptions', () => {
       websiteTitle: '',
       websiteTagline: '',
     }
+    vol.fromJSON({ [validGlobalOptions.config]: JSON.stringify(config) })
 
-    ;(readFileSync as any).mockReturnValue(JSON.stringify(config))
     const result = parseOptions('global', validGlobalOptions)
 
     expect(result).toEqual({ ...config, token: validGlobalOptions.token })
@@ -73,11 +62,12 @@ describe('parseOptions', () => {
     const validBuildOptions = {}
 
     const result = parseOptions('build', validBuildOptions)
+
     expect(result).toEqual(validBuildOptions)
   })
 
   it('should parse valid prepare options', () => {
-    const validPrepareOptions: RawCli = {
+    const validPrepareOptions = {
       usernames: 'user1',
       extraHeaderPages: 'header1.md,header2.md',
       extraPublicContent: 'public1,public2',
@@ -89,9 +79,9 @@ describe('parseOptions', () => {
       title: 'Home',
       description: 'Docpress',
     }
+    vi.spyOn(fnMod, 'loadConfigFile').mockReturnValueOnce(vitepressConfig)
+    vol.fromJSON({ [validPrepareOptions.vitepressConfig]: JSON.stringify(vitepressConfig) })
 
-    ;(loadConfigFileMock as any).mockReturnValue(vitepressConfig)
-    ;(readFileSync as any).mockReturnValue(vitepressConfig)
     const result = parseOptions('prepare', validPrepareOptions)
 
     expect(result).toEqual({
@@ -114,7 +104,6 @@ describe('addOptions', () => {
       new Option('-T, --token <token>', 'Git provider token'),
       new Option('-U, --username <username>', 'Git provider username'),
     ]
-
     addOptions(command, options)
 
     const addedOptions = command.options.map(opt => ({
