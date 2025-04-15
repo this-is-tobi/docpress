@@ -19,7 +19,7 @@ const repositories = frontmatter.value.repoList || []
           class="repo-card VPFeature link"
         >
           <div class="repo-content">
-            <span class="repo-name">{{ repo.name }}</span>
+            <span class="repo-name">{{ repo.owner }}/{{ repo.name }}</span>
             <p class="repo-description">{{ repo.description }}</p>
             <div class="repo-stats">
               <span class="repo-stars">
