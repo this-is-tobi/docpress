@@ -114,7 +114,7 @@ describe('getContributors', () => {
 
     const result = await getContributors({ repository: mockRepository, token: mockToken })
 
-    expect(log).toHaveBeenCalledWith(`   Failed to get contributors infos for repository '${mockRepository.name}'.`, 'warn')
+    expect(log).toHaveBeenCalledWith(`   Failed to get contributors infos for repository '${mockRepository.name}'. Error : Cannot read properties of undefined (reading 'iterator')`, 'warn')
     expect(result).toEqual({
       source: mockRepoData.source,
       contributors: [],

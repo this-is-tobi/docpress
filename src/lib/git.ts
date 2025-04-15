@@ -53,15 +53,15 @@ export async function getContributors({
       octokit.rest.repos.listContributors,
       {
         owner: repo.source.owner.login,
-        repo: repo.name,
+        repo: repo.parent?.name ?? repo.name,
         per_page: 500,
       },
     )) {
       contributors.push(...data)
     }
-  } catch (_error) {
+  } catch (error) {
     log(
-      `   Failed to get contributors infos for repository '${repository.name}'.`,
+      `   Failed to get contributors infos for repository '${repository.name}'. Error : ${error.message}`,
       'warn',
     )
     return { source: repo.source, contributors: [] }
