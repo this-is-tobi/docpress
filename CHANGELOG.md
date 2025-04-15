@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/this-is-tobi/docpress/compare/v0.6.0...v0.6.1) (2025-04-15)
+
+
+### Bug Fixes
+
+* use repo parent name during forks processing ([756d39a](https://github.com/this-is-tobi/docpress/commit/756d39add2e5471f2379b4539b54a517b9f45fd1))
+
 ## [0.6.0](https://github.com/this-is-tobi/docpress/compare/v0.5.1...v0.6.0) (2025-02-11)
 
 
