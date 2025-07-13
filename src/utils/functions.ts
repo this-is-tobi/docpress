@@ -21,6 +21,7 @@ interface PrettifyOpts {
   replaceDash?: boolean
   removeIdx?: boolean
   removeDot?: boolean
+  removeExt?: boolean
 }
 
 export function prettify(s: string, opts: PrettifyOpts) {
@@ -32,6 +33,10 @@ export function prettify(s: string, opts: PrettifyOpts) {
 
   if (opts?.removeIdx) {
     u = s.replace(/^\d{2}-/, '')
+  }
+
+  if (opts?.removeExt) {
+    u = s.split('.')[0]
   }
 
   if (opts?.replaceDash) {
