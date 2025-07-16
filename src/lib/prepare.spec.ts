@@ -174,8 +174,8 @@ describe('transformDoc', () => {
         collapsed: true,
         items: [
           {
-            text: 'File3',
-            link: '/my-repo/file3',
+            text: 'Introduction',
+            link: '/my-repo/introduction',
           },
           {
             text: 'File1',
@@ -186,8 +186,8 @@ describe('transformDoc', () => {
             link: '/my-repo/file2',
           },
           {
-            text: 'Introduction',
-            link: '/my-repo/introduction',
+            text: 'File3',
+            link: '/my-repo/file3',
           },
           {
             text: 'Sources',

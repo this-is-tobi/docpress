@@ -23,7 +23,7 @@ export interface Page {
 export interface SidebarProject {
   text: string
   collapsed: boolean
-  items: Page[]
+  items: (Page | SidebarProject)[]
 }
 
 export interface Feature {
@@ -110,7 +110,7 @@ export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTh
 
 export function addSources(repoUrl: string, outputPath: string) {
   const fileName = basename(outputPath)
-  const title = fileName === 'introduction.md' ? '\n## Sources' : '# Sources'
+  const title = prettify(fileName, { mode: 'lowercase', removeIdx: true }) === 'readme.md' ? '\n## Sources' : '# Sources'
 
   const sourcesContent = `${title}\n\nTake a look at the [project sources](${repoUrl}).\n`
 
@@ -147,7 +147,7 @@ export function generateFeatures(repoName: string, description: string, features
   return features ? [...features, content] : [content]
 }
 
-export function generateSidebarProject(repoName: string, sidebarPages: Page[]) {
+export function generateSidebarProject(repoName: string, sidebarPages: (SidebarProject | Page)[]) {
   return {
     text: prettify(repoName, { mode: 'capitalize', replaceDash: true }),
     collapsed: true,
@@ -162,6 +162,83 @@ export function generateSidebarPages(repoName: string, fileName: string, sidebar
   }
 
   return sidebarPages ? [...sidebarPages, content] : [content]
+}
+
+export function generateSidebarItems(repository: EnhancedRepository, obj: any): (SidebarProject | Page)[] {
+  return Object.entries(obj).flatMap(([key, value]): (SidebarProject | Page)[] => {
+    if (key === '$') {
+      if (Array.isArray(value)) {
+        return value.map((element) => {
+          const file = resolve(repository.docpress.projectPath, element)
+          let filename = prettify(basename(file), { mode: 'lowercase', removeIdx: true })
+          if (filename === 'readme.md') {
+            filename = 'introduction.md'
+          }
+          if (filename !== basename(file)) {
+            renameSync(file, resolve(dirname(file), filename))
+          }
+
+          return {
+            text: parse(filename).name === 'introduction'
+              ? 'Introduction'
+              : prettify(filename, { mode: 'capitalize', replaceDash: true, removeExt: true }),
+            link: prettify(`/${repository.name}/${parse(filename).name}`, { removeDot: true }),
+          } as Page
+        })
+      }
+      return []
+    } else if (typeof value === 'object') {
+      return [{
+        text: prettify(key, { mode: 'capitalize', replaceDash: true }),
+        collapsed: true,
+        items: generateSidebarItems({ ...repository, name: `${repository.name}/${key}` }, value),
+      } as SidebarProject]
+    }
+
+    return []
+  })
+}
+
+export function buildTree(files: string[]): any {
+  return files.reduce((tree, file) => {
+    const [first, ...rest] = file.split('/')
+    if (!rest.length) {
+      // eslint-disable-next-line dot-notation
+      tree['$'] = [...(tree['$'] || []), first]
+    } else {
+      tree[first] = buildTree([
+        ...(tree[first] ? flattenTree(tree[first], '') : []),
+        rest.join('/'),
+      ])
+    }
+    return tree
+  }, {} as Record<string, any>)
+}
+
+export function flattenTree(subtree: any, prefix = ''): string[] {
+  return Object.entries(subtree).flatMap(([key, value]) => {
+    if (key === '$') {
+      if (Array.isArray(value)) {
+        return value.map((v: string) => (prefix ? `${prefix}/${v}` : v))
+      } else {
+        return []
+      }
+    }
+    return flattenTree(value, prefix ? `${prefix}/${key}` : key)
+  })
+}
+
+function moveSourcesLast(arr: (SidebarProject | Page)[]) {
+  if (!Array.isArray(arr)) {
+    return arr
+  }
+  const sourcesIdx = arr.findIndex(item => item.text === 'Sources')
+  if (sourcesIdx === -1) {
+    return arr
+  }
+  const [sources] = arr.splice(sourcesIdx, 1)
+  arr.push(sources)
+  return arr
 }
 
 export function transformDoc(repositories: EnhancedRepository[], user: ReturnType<typeof getUserInfos>, websiteInfos: WebsiteInfos) {
@@ -180,42 +257,24 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
     })
 
     log(`   Generate sidebar for repository '${repository.name}'.`, 'info')
-    const sidebarItems = readdirSync(repository.docpress.projectPath)
+    const projectFiles = readdirSync(repository.docpress.projectPath, { recursive: true })
       .filter((file) => {
-        return statSync(resolve(repository.docpress.projectPath, file)).isFile()
-          && basename(resolve(repository.docpress.projectPath, file)).endsWith('.md')
-      })
-      .sort((a, b) => a.localeCompare(b))
-      .reduce((acc: Page[], cur, idx, arr) => {
-        const file = resolve(repository.docpress.projectPath, cur)
-        let filename = prettify(basename(file), { mode: 'lowercase', removeIdx: true })
+        return statSync(resolve(repository.docpress.projectPath, file.toString())).isFile()
+          && basename(resolve(repository.docpress.projectPath, file.toString())).endsWith('.md')
+      }) as string[]
 
-        if (filename === 'readme.md') {
-          filename = 'introduction.md'
-        }
-        if (filename !== basename(file)) {
-          renameSync(file, resolve(dirname(file), filename))
-        }
+    log(`   Add sources for repository '${repository.name}'.`, 'info')
+    let sourceFile
+    if (projectFiles.length > 1) {
+      sourceFile = resolve(repository.docpress.projectPath, 'sources.md')
+      projectFiles.push('sources.md')
+    } else {
+      sourceFile = resolve(repository.docpress.projectPath, projectFiles[0])
+    }
+    addSources(repository.html_url, sourceFile)
 
-        if (idx === arr.length - 1) {
-          let sourceFile
-          if (arr.length > 1) {
-            sourceFile = resolve(repository.docpress.projectPath, 'sources.md')
-            log(`   Add sources for repository '${repository.name}'.`, 'info')
-            addSources(repository.html_url, sourceFile)
-
-            return generateSidebarPages(
-              repository.name,
-              parse(sourceFile).name,
-              generateSidebarPages(repository.name, parse(filename).name, acc),
-            )
-          }
-          sourceFile = resolve(repository.docpress.projectPath, filename)
-          addSources(repository.html_url, sourceFile)
-        }
-
-        return generateSidebarPages(prettify(repository.name, { removeDot: true }), parse(filename).name, acc)
-      }, [])
+    const projectTree = buildTree(projectFiles)
+    const sidebarItems = moveSourcesLast(generateSidebarItems(repository, projectTree))
 
     sidebar.push(generateSidebarProject(prettify(repository.name, { removeDot: true }), sidebarItems))
     features.push(...generateFeatures(prettify(repository.name, { removeDot: true }), repository.description || ''))
