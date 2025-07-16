@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/this-is-tobi/docpress/compare/v0.6.1...v0.7.0) (2025-07-16)
+
+
+### Features
+
+* improve handling of complex docs generation ([3a9af0b](https://github.com/this-is-tobi/docpress/commit/3a9af0b1db81fb428498a2d165295ac6259ddfb0))
+* improve handling of complex docs generation ([0ed81f8](https://github.com/this-is-tobi/docpress/commit/0ed81f8281c6e55c90c5e07b53ddc8ad2ef09ab9))
+
 ## [0.6.1](https://github.com/this-is-tobi/docpress/compare/v0.6.0...v0.6.1) (2025-04-15)
 
 
