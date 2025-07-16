@@ -1,7 +1,7 @@
 {
   "name": "@tobi-or-not/docpress",
   "type": "module",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "packageManager": "pnpm@9.15.0",
   "homepage": "https://this-is-tobi.com/docpress/introduction",
   "repository": {
