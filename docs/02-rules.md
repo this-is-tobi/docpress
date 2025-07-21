@@ -10,6 +10,7 @@ To ensure that the program functions correctly, please follow these conventions:
 ## File naming and sorting
 
 - If a `docs/` folder is present, all files within it will be sorted and renamed by removing any prefix numbers. This ensures that files appear cleanly in the generated website. For example, `docs/01-get-started.md` will be renamed to `get-started.md`.
+- The `docs/` folder tree will be preserved and in the case where markdown files were find in subfolders, subfolders names will be used to generate a nested sidebar structure.
 
 ## Handling the root readme file
 
