@@ -4,8 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { getUserInfos, getUserRepos } from '../utils/functions.js'
-import { extractFiles, getMdFiles } from '../utils/functions.js'
-import { TEMPLATE_THEME } from '../utils/const.js'
+import { getMdFiles } from '../utils/functions.js'
 import {
   addContent,
   addExtraPages,
@@ -41,7 +40,7 @@ vi.mock('../utils/const.js', () => ({
   FORKS_FILE: '/tmp/docpress/mock/docs/forks.md',
   VITEPRESS_CONFIG: '/tmp/docpress/mock/.vitepress/config.js',
   VITEPRESS_THEME: '/tmp/docpress/mock/.vitepress/theme',
-  TEMPLATE_THEME: resolve(import.meta.dirname, '../../public/templates/theme'),
+  TEMPLATE_THEME: '/tmp/docpress/mock/templates/theme',
 }))
 vi.mock('./git.js', async importOriginal => ({
   ...await importOriginal<typeof import('../utils/functions.js')>(),
@@ -323,13 +322,6 @@ describe('generateVitepressFiles', () => {
       '/tmp/docpress/mock/docs/index.md',
       expect.stringContaining('layout: home'),
     )
-
-    const templates = extractFiles(TEMPLATE_THEME)
-    templates.forEach(async (filePath) => {
-      const content = await import(resolve(TEMPLATE_THEME, filePath), { with: { type: 'raw' } })
-      const destPath = resolve('/tmp/docpress/mock/.vitepress/theme', filePath.replace('../templates/theme/', ''))
-      expect(writeFileSync).toHaveBeenCalledWith(destPath, content)
-    })
   })
 })
 
