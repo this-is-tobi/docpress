@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/this-is-tobi/docpress/compare/v0.7.0...v0.7.1) (2025-07-24)
+
+
+### Bug Fixes
+
+* regression where cli called without config file failed ([87ef4c8](https://github.com/this-is-tobi/docpress/commit/87ef4c87a180ec11f2d92aba76398e04a4ee6cd9))
+
 ## [0.7.0](https://github.com/this-is-tobi/docpress/compare/v0.6.1...v0.7.0) (2025-07-16)
 
 
