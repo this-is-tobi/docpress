@@ -2,7 +2,7 @@
   "name": "@tobi-or-not/docpress",
   "type": "module",
   "version": "0.7.0",
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "pnpm@10.13.1",
   "homepage": "https://this-is-tobi.com/docpress/introduction",
   "repository": {
     "type": "git",
