@@ -11,7 +11,7 @@ import { globalOpts } from './global.js'
  * @param callback - Function to execute while warnings are suppressed
  * @returns The result of the callback function
  */
-async function suppressVueWarnings<T>(callback: () => Promise<T>): Promise<T> {
+export async function suppressVueWarnings<T>(callback: () => Promise<T>): Promise<T> {
   // Store the original console.warn
   const originalWarn = console.warn
 
