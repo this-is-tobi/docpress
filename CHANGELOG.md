@@ -41,7 +41,7 @@
 
 ### Features
 
-* upgrade nodejs to v22.12.0 ([99a5d44](https://github.com/this-is-tobi/docpress/commit/99a5d448a95412112a4bb3fdadf912ad8190bfb3))
+* upgrade nodejs to v22.17.1 ([99a5d44](https://github.com/this-is-tobi/docpress/commit/99a5d448a95412112a4bb3fdadf912ad8190bfb3))
 * upgrade pnpm to v9.15.0 ([e2e447c](https://github.com/this-is-tobi/docpress/commit/e2e447c5ae1bac644f154d9e53d4cdee6c996228))
 
 ## [0.3.2](https://github.com/this-is-tobi/docpress/compare/v0.3.1...v0.3.2) (2024-11-24)

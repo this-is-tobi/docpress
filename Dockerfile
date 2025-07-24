@@ -1,4 +1,4 @@
-ARG NODE_IMAGE=docker.io/node:22.12.0-slim
+ARG NODE_IMAGE=docker.io/node:22.17.1-slim
 
 # Base stage
 FROM ${NODE_IMAGE} AS base
