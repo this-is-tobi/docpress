@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PrepareOpts } from '../schemas/prepare.js'
-import { prepareOptsSchema } from '../schemas/prepare.js'
+import { configSchema } from '../schemas/global.js'
 import { createDir, getUserInfos, getUserRepos } from '../utils/functions.js'
 import { addExtraPages, prepareDoc, transformDoc } from '../lib/prepare.js'
 import { getVitepressConfig } from '../lib/vitepress.js'
@@ -66,14 +66,15 @@ const mockTransformed = {
 }
 const mockNav = [{ text: 'About', link: '/about' }]
 const mockVitepressConfig = { title: 'My Project' }
-// const mockOpts: PrepareOpts = {
-const mockOpts: Partial<PrepareOpts> = {
+const mockOpts: PrepareOpts = {
   token: undefined,
   usernames: ['user1'],
   extraHeaderPages: ['header/pages'],
   extraPublicContent: ['public/content'],
   extraTheme: ['theme/path'],
   vitepressConfig: mockVitepressConfig,
+  branch: 'main',
+  gitProvider: 'github',
 }
 
 describe('prepareCmd', () => {
@@ -175,7 +176,7 @@ describe('prepareOpts', () => {
     const extraThemeOption = prepareOpts.find(opt => opt.flags.includes('--extra-theme'))
     const extraHeaderPagesOption = prepareOpts.find(opt => opt.flags.includes('--extra-header-pages'))
 
-    expect(extraThemeOption?.description).toBe(prepareOptsSchema.innerType().shape.extraTheme._def.description)
-    expect(extraHeaderPagesOption?.description).toBe(prepareOptsSchema.innerType().shape.extraHeaderPages._def.description)
+    expect(extraThemeOption?.description).toBe(configSchema.shape.extraTheme.description)
+    expect(extraHeaderPagesOption?.description).toBe(configSchema.shape.extraHeaderPages.description)
   })
 })

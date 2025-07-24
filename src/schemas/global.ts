@@ -1,6 +1,4 @@
 import { z } from 'zod'
-import { fromZodError } from 'zod-validation-error'
-import type { UserConfig } from 'vitepress'
 import { loadConfigFile, prettifyEnum, splitByComma } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 
@@ -42,33 +40,7 @@ export const configSchema = z.object({
     .describe('Website tagline.'),
 })
 
-export type Config = Zod.infer<typeof configSchema>
-
-export function applyGlobalOptsTransform(data: Cli) {
-  const { config, vitepressConfig, token, ...rest } = data
-
-  try {
-    const loadedDPConfig = configSchema.partial().parse(loadConfigFile(config)) as Config
-    const loadedVPConfig = loadConfigFile(vitepressConfig) as UserConfig
-    const defaultConfig = configSchema.partial().required({ branch: true, gitProvider: true }).parse({})
-    const vpConfig = {
-      ...loadedVPConfig,
-      ...loadedDPConfig.vitepressConfig,
-    }
-    const mergedConfig = {
-      ...loadedDPConfig,
-      ...defaultConfig,
-      ...rest,
-      ...(Object.keys(vpConfig).length && { vitepressConfig: vpConfig }),
-    }
-    const parsedConfig = configSchema.partial().required({ usernames: true }).parse(mergedConfig)
-
-    return { ...parsedConfig, token }
-  } catch (error) {
-    log(`   An error occurred while checking configuration.\n     ${fromZodError(error).toString()}`, 'error')
-    process.exit(1)
-  }
-}
+export type Config = z.infer<typeof configSchema>
 
 export const baseCliSchema = configSchema.partial().extend({
   config: z.string()
@@ -133,11 +105,86 @@ export const cliSchema = configSchema
       .optional(),
   })
 
-export type Cli = Zod.infer<typeof cliSchema>
+export type Cli = z.infer<typeof cliSchema>
+
+// Helper functions to reduce complexity
+function prepareConfigData(configData: any) {
+  if (!configData) return {}
+
+  // Convert arrays that might be strings
+  if (configData.usernames && typeof configData.usernames === 'string') {
+    configData.usernames = [configData.usernames]
+  }
+  if (configData.reposFilter && typeof configData.reposFilter === 'string') {
+    configData.reposFilter = [configData.reposFilter]
+  }
+  if (configData.extraHeaderPages && typeof configData.extraHeaderPages === 'string') {
+    configData.extraHeaderPages = [configData.extraHeaderPages]
+  }
+  if (configData.extraPublicContent && typeof configData.extraPublicContent === 'string') {
+    configData.extraPublicContent = [configData.extraPublicContent]
+  }
+  if (configData.extraTheme && typeof configData.extraTheme === 'string') {
+    configData.extraTheme = [configData.extraTheme]
+  }
+
+  return configData
+}
+
+function validateFinalConfig(mergedConfig: any) {
+  // Ensure usernames exists
+  if (!mergedConfig.usernames?.length) {
+    throw new Error('The usernames field is required')
+  }
+
+  return mergedConfig
+}
 
 export const globalOptsSchema = cliSchema
   .partial()
-  .transform(applyGlobalOptsTransform)
+  .transform((data) => {
+    try {
+      const { config, vitepressConfig, token, ...rest } = data
 
-export type GlobalOpts = Required<Pick<Zod.infer<typeof globalOptsSchema>, 'branch' | 'gitProvider'>>
-  & Omit<Zod.infer<typeof globalOptsSchema>, 'branch' | 'gitProvider'>
+      // Load configuration from file
+      const configData = loadConfigFile(config)
+      const preparedConfigData = prepareConfigData(configData)
+
+      // Create a manually initialized defaultConfig with explicit values
+      const defaultConfig = {
+        branch: 'main',
+        gitProvider: 'github',
+        forks: false,
+      }
+
+      // Load VitePress config if available
+      const loadedVPConfig = loadConfigFile(vitepressConfig) || {}
+
+      // Merge configurations with proper precedence
+      const vpConfig = {
+        ...loadedVPConfig,
+        ...(preparedConfigData.vitepressConfig || {}),
+      }
+
+      const mergedConfig = {
+        ...defaultConfig,
+        ...preparedConfigData,
+        ...rest,
+        ...(Object.keys(vpConfig).length ? { vitepressConfig: vpConfig } : {}),
+      }
+
+      return validateFinalConfig({ ...mergedConfig, token })
+    } catch (error) {
+      // Handle errors gracefully
+      log(`   An error occurred while checking configuration.`, 'error')
+      if (error instanceof Error) {
+        log(`     ${error.message}`, 'error')
+      } else {
+        log(`     ${JSON.stringify(error, null, 2)}`, 'error')
+      }
+      process.exit(1)
+    }
+  })
+
+export type GlobalOpts = Required<Pick<z.infer<typeof globalOptsSchema>, 'branch' | 'gitProvider'>>
+  & Omit<z.infer<typeof globalOptsSchema>, 'branch' | 'gitProvider'>

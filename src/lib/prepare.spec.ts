@@ -1,20 +1,25 @@
 import type { Dirent } from 'node:fs'
 import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { extractFiles, getMdFiles, type getUserInfos, type getUserRepos } from '../utils/functions.js'
+import type { getUserInfos, getUserRepos } from '../utils/functions.js'
+import { extractFiles, getMdFiles } from '../utils/functions.js'
 import { TEMPLATE_THEME } from '../utils/const.js'
 import {
   addContent,
   addExtraPages,
   addForkPage,
   addSources,
+  buildTree,
+  flattenTree,
   generateFeatures,
   generateIndex,
   generateSidebarPages,
   generateSidebarProject,
   generateVitepressFiles,
   parseVitepressConfig,
+  parseVitepressIndex,
   processForks,
   transformDoc,
 } from './prepare.js'
@@ -22,6 +27,7 @@ import type { EnhancedRepository } from './fetch.js'
 import type { getInfos } from './git.js'
 
 vi.mock('node:fs')
+vi.mock('node:fs/promises')
 vi.mock('../utils/regex.js')
 vi.mock('../utils/functions.js', async importOriginal => ({
   ...await importOriginal<typeof import('../utils/functions.js')>(),
@@ -163,7 +169,7 @@ describe('transformDoc', () => {
 
   it('should transform repositories into index and sidebar data (multi-files docs)', () => {
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/01-file3.md', '/path/to/file1.md', '/path/to/FILE2.md', '/path/to/readme.md'])
-    vi.mocked(readdirSync).mockReturnValue(['readme.md', 'file1.md', 'FILE2.md', '01-file3.md'] as unknown as Dirent[])
+    vi.mocked(readdirSync).mockReturnValue(['readme.md', 'file1.md', 'FILE2.md', '01-file3.md'] as unknown as Dirent<Buffer<ArrayBufferLike>>[])
 
     const websiteInfos = { title: undefined, tagline: undefined }
 
@@ -201,7 +207,7 @@ describe('transformDoc', () => {
 
   it('should transform repositories into index and sidebar data (single-file docs)', () => {
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/README.md'])
-    vi.mocked(readdirSync).mockReturnValue(['readme.md'] as unknown as Dirent[])
+    vi.mocked(readdirSync).mockReturnValue(['readme.md'] as unknown as Dirent<Buffer<ArrayBufferLike>>[])
 
     const websiteInfos = { title: undefined, tagline: undefined }
 
@@ -251,6 +257,50 @@ describe('parseVitepressConfig', () => {
 
     const config = await parseVitepressConfig('/mock/config.json')
     expect(config).toEqual({ title: 'My Project' })
+  })
+})
+
+describe('parseVitepressIndex', () => {
+  it('should parse Vitepress index from YAML file', async () => {
+    // Create a mock for readFile that returns our test YAML content
+    const mockYamlContent = `
+layout: home
+hero:
+  name: Test Project
+  tagline: This is a test project
+features:
+  - title: Feature 1
+    details: Feature 1 details
+    link: /feature1
+  - title: Feature 2
+    details: Feature 2 details
+    link: /feature2
+`
+    // Mock the readFile implementation by mocking fs
+    vi.mocked(readFile).mockResolvedValue(Buffer.from(mockYamlContent) as any)
+
+    const result = await parseVitepressIndex('/mock/index.md')
+
+    // Verify the result matches the expected structure
+    expect(result).toEqual({
+      layout: 'home',
+      hero: {
+        name: 'Test Project',
+        tagline: 'This is a test project',
+      },
+      features: [
+        {
+          title: 'Feature 1',
+          details: 'Feature 1 details',
+          link: '/feature1',
+        },
+        {
+          title: 'Feature 2',
+          details: 'Feature 2 details',
+          link: '/feature2',
+        },
+      ],
+    })
   })
 })
 
@@ -367,5 +417,125 @@ describe('processForks', () => {
       '/tmp/docpress/mock/docs/forks.md',
       expect.stringContaining('Test repo description'),
     )
+  })
+})
+
+describe('buildTree', () => {
+  it('should build a tree structure from flat file paths', () => {
+    const files = [
+      'readme.md',
+      'docs/file1.md',
+      'docs/nested/file2.md',
+      'other/file3.md',
+    ]
+
+    const result = buildTree(files)
+
+    expect(result).toEqual({
+      $: ['readme.md'],
+      docs: {
+        $: ['file1.md'],
+        nested: {
+          $: ['file2.md'],
+        },
+      },
+      other: {
+        $: ['file3.md'],
+      },
+    })
+  })
+
+  it('should handle empty input', () => {
+    const files: string[] = []
+    const result = buildTree(files)
+    expect(result).toEqual({})
+  })
+
+  it('should handle multiple files in the same directory', () => {
+    const files = ['file1.md', 'file2.md', 'file3.md']
+    const result = buildTree(files)
+    expect(result).toEqual({
+      $: ['file1.md', 'file2.md', 'file3.md'],
+    })
+  })
+
+  it('should handle deeply nested directories', () => {
+    const files = ['a/b/c/d/e/file.md']
+    const result = buildTree(files)
+    expect(result).toEqual({
+      a: {
+        b: {
+          c: {
+            d: {
+              e: {
+                $: ['file.md'],
+              },
+            },
+          },
+        },
+      },
+    })
+  })
+})
+
+describe('flattenTree', () => {
+  it('should flatten a tree structure back to file paths', () => {
+    const tree = {
+      $: ['readme.md'],
+      docs: {
+        $: ['file1.md'],
+        nested: {
+          $: ['file2.md'],
+        },
+      },
+      other: {
+        $: ['file3.md'],
+      },
+    }
+
+    const result = flattenTree(tree)
+
+    expect(result).toContain('readme.md')
+    expect(result).toContain('docs/file1.md')
+    expect(result).toContain('docs/nested/file2.md')
+    expect(result).toContain('other/file3.md')
+    expect(result.length).toBe(4)
+  })
+
+  it('should handle empty trees', () => {
+    const result = flattenTree({})
+    expect(result).toEqual([])
+  })
+
+  it('should handle trees with only $ entries', () => {
+    const tree = {
+      $: ['file1.md', 'file2.md'],
+    }
+    const result = flattenTree(tree)
+    expect(result).toEqual(['file1.md', 'file2.md'])
+  })
+
+  it('should use provided prefix correctly', () => {
+    const tree = {
+      $: ['file1.md'],
+      nested: {
+        $: ['file2.md'],
+      },
+    }
+    const result = flattenTree(tree, 'prefix')
+    expect(result).toContain('prefix/file1.md')
+    expect(result).toContain('prefix/nested/file2.md')
+  })
+
+  it('should handle non-array $ values by returning empty array', () => {
+    const tree = {
+      $: 'not-an-array' as any,
+      nested: {
+        $: ['file2.md'],
+      },
+    }
+    const result = flattenTree(tree)
+    // Should only return the valid nested file
+    expect(result).toEqual(['nested/file2.md'])
   })
 })

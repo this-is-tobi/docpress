@@ -1,5 +1,5 @@
-// import type { GlobalOpts } from './global.js'
-import { applyGlobalOptsTransform, cliSchema } from './global.js'
+import { cliSchema } from './global.js'
+import type { GlobalOpts } from './global.js'
 
 export const fetchOptsSchema = cliSchema
   .pick({
@@ -10,8 +10,7 @@ export const fetchOptsSchema = cliSchema
     token: true,
     usernames: true,
   })
-  .transform(applyGlobalOptsTransform)
 
-export type FetchOpts = Zod.infer<typeof fetchOptsSchema>
+export type FetchOpts = GlobalOpts
 
 export type FetchOptsUser = Omit<FetchOpts, 'usernames'> & { username: FetchOpts['usernames'][number] }

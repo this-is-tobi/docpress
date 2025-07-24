@@ -11,11 +11,11 @@ import { globalOpts } from './global.js'
 const cmdName = 'fetch'
 
 export const fetchOpts = [
-  createOption('-b, --branch <string>', configSchema.shape.branch._def.description)
-    .default(configSchema.shape.branch._def.defaultValue()),
-  createOption('-g, --git-provider <string>', configSchema.shape.gitProvider._def.description)
-    .default(configSchema.shape.gitProvider._def.defaultValue()),
-  createOption('-r, --repos-filter <string>', configSchema.shape.reposFilter._def.description),
+  createOption('-b, --branch <string>', configSchema.shape.branch.description)
+    .default(configSchema.shape.branch.default),
+  createOption('-g, --git-provider <string>', configSchema.shape.gitProvider.description)
+    .default(configSchema.shape.gitProvider.default),
+  createOption('-r, --repos-filter <string>', configSchema.shape.reposFilter.description),
 ]
 
 export const fetchCmd = addOptions(createCommand(cmdName), [...fetchOpts, ...globalOpts])
@@ -32,7 +32,7 @@ export async function main(opts: FetchOpts) {
   createDir(DOCPRESS_DIR, { clean: true })
   for (const username of usernames) {
     const finalRF = usernames.length > 1
-      ? reposFilter?.filter(rf => rf.startsWith(username)).map(rf => rf.replace(`${username}/`, ''))
+      ? reposFilter?.filter((rf: string) => rf.startsWith(username)).map((rf: string) => rf.replace(`${username}/`, ''))
       : reposFilter
     await fetchDoc({ username, branch, reposFilter: finalRF, gitProvider, token })
   }

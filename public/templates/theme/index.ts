@@ -2,6 +2,8 @@ import type { Theme } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
 import ForkPage from './layouts/ForkPage.vue'
 
+import.meta.glob('./**/*.css', { eager: true })
+
 const userFiles = import.meta.glob('./extras/**/*', { eager: true })
 const processedFiles = new Set<string>()
 

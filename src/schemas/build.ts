@@ -1,6 +1,7 @@
+import type { z } from 'zod'
 import { cliSchema } from './global.js'
 
 export const buildOptsSchema = cliSchema
   .pick({})
 
-export type BuildOpts = Zod.infer<typeof buildOptsSchema>
+export type BuildOpts = z.infer<typeof buildOptsSchema>

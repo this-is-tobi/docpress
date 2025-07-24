@@ -12,13 +12,13 @@ import { globalOpts } from './global.js'
 const cmdName = 'prepare'
 
 export const prepareOpts = [
-  createOption('-c, --extra-public-content <string>', configSchema.shape.extraPublicContent._def.description),
-  createOption('-f, --forks', configSchema.shape.forks._def.description),
-  createOption('-p, --extra-header-pages <string>', configSchema.shape.extraHeaderPages._def.description),
-  createOption('-t, --extra-theme <string>', configSchema.shape.extraTheme._def.description),
-  createOption('-v, --vitepress-config <string>', configSchema.shape.vitepressConfig._def.description),
-  createOption('--website-title <string>', configSchema.shape.websiteTitle._def.description),
-  createOption('--website-tagline <string>', configSchema.shape.websiteTagline._def.description),
+  createOption('-c, --extra-public-content <string>', configSchema.shape.extraPublicContent.description),
+  createOption('-f, --forks', configSchema.shape.forks.description),
+  createOption('-p, --extra-header-pages <string>', configSchema.shape.extraHeaderPages.description),
+  createOption('-t, --extra-theme <string>', configSchema.shape.extraTheme.description),
+  createOption('-v, --vitepress-config <string>', configSchema.shape.vitepressConfig.description),
+  createOption('--website-title <string>', configSchema.shape.websiteTitle.description),
+  createOption('--website-tagline <string>', configSchema.shape.websiteTagline.description),
 ]
 
 export const prepareCmd = addOptions(createCommand(cmdName), [...prepareOpts, ...globalOpts])

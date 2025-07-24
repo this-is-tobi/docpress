@@ -1,8 +1,8 @@
 import { createOption } from 'commander'
-import { globalOptsSchema } from '../schemas/global.js'
+import { baseCliSchema } from '../schemas/global.js'
 
 export const globalOpts = [
-  createOption('-C, --config <string>', globalOptsSchema.innerType().shape.config._def.description),
-  createOption('-T, --token <string>', globalOptsSchema.innerType().shape.token._def.description),
-  createOption('-U, --usernames <string>', globalOptsSchema.innerType().shape.usernames._def.description),
+  createOption('-C, --config <string>', baseCliSchema.shape.config.description),
+  createOption('-T, --token <string>', baseCliSchema.shape.token.description),
+  createOption('-U, --usernames <string>', baseCliSchema.shape.usernames.description),
 ]

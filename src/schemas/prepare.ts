@@ -1,5 +1,5 @@
-// import type { GlobalOpts } from './global.js'
-import { applyGlobalOptsTransform, cliSchema } from './global.js'
+import { cliSchema } from './global.js'
+import type { GlobalOpts } from './global.js'
 
 export const prepareOptsSchema = cliSchema
   .pick({
@@ -13,6 +13,5 @@ export const prepareOptsSchema = cliSchema
     usernames: true,
     vitepressConfig: true,
   })
-  .transform(applyGlobalOptsTransform)
 
-export type PrepareOpts = Zod.infer<typeof prepareOptsSchema>
+export type PrepareOpts = GlobalOpts
