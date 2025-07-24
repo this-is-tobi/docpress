@@ -9,8 +9,14 @@ import { createDir } from '../utils/functions.js'
 import { VITEPRESS_CONFIG } from '../utils/const.js'
 import { globalOpts } from './global.js'
 
+/**
+ * Command name for the prepare operation
+ */
 const cmdName = 'prepare'
 
+/**
+ * Command line options specific to the prepare command
+ */
 export const prepareOpts = [
   createOption('-c, --extra-public-content <string>', configSchema.shape.extraPublicContent.description),
   createOption('-f, --forks', configSchema.shape.forks.description),
@@ -21,6 +27,9 @@ export const prepareOpts = [
   createOption('--website-tagline <string>', configSchema.shape.websiteTagline.description),
 ]
 
+/**
+ * The prepare command definition for Commander
+ */
 export const prepareCmd = addOptions(createCommand(cmdName), [...prepareOpts, ...globalOpts])
   .description('Transform doc to the target vitepress format.')
   .action(async (opts) => {
@@ -28,6 +37,11 @@ export const prepareCmd = addOptions(createCommand(cmdName), [...prepareOpts, ..
     await main(parsedOpts)
   })
 
+/**
+ * Main function to execute the prepare command
+ *
+ * @param opts - Validated prepare options
+ */
 export async function main(opts: PrepareOpts) {
   const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, token, usernames, websiteTitle, websiteTagline } = opts
   log(`\n-> Start transform files to prepare Vitepress build.`, 'info')

@@ -2,8 +2,15 @@ import { z } from 'zod'
 import { loadConfigFile, prettifyEnum, splitByComma } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 
+/**
+ * List of supported Git providers
+ */
 const providers = ['github'] as const
 
+/**
+ * Schema for the DocPress configuration file
+ * Defines the structure and validation rules for the configuration
+ */
 export const configSchema = z.object({
   // Global
   usernames: z.string()
@@ -42,6 +49,10 @@ export const configSchema = z.object({
 
 export type Config = z.infer<typeof configSchema>
 
+/**
+ * Base CLI schema for parsing command line arguments
+ * All fields are optional in this schema
+ */
 export const baseCliSchema = configSchema.partial().extend({
   config: z.string()
     .describe('Path to the docpress configuration file.')
@@ -71,6 +82,9 @@ export const baseCliSchema = configSchema.partial().extend({
 
 export type RawCli = z.infer<typeof baseCliSchema>
 
+/**
+ * CLI schema with transformations applied to handle string-to-array conversions
+ */
 export const cliSchema = configSchema
   .partial()
   .extend({
@@ -108,6 +122,12 @@ export const cliSchema = configSchema
 export type Cli = z.infer<typeof cliSchema>
 
 // Helper functions to reduce complexity
+/**
+ * Prepares configuration data by converting string values to arrays when needed
+ *
+ * @param configData - Raw configuration data to process
+ * @returns Processed configuration data with proper array types
+ */
 function prepareConfigData(configData: any) {
   if (!configData) return {}
 
@@ -131,6 +151,13 @@ function prepareConfigData(configData: any) {
   return configData
 }
 
+/**
+ * Validates the final merged configuration to ensure required fields are present
+ *
+ * @param mergedConfig - The merged configuration to validate
+ * @returns The validated configuration if it passes validation
+ * @throws Error if required fields are missing
+ */
 function validateFinalConfig(mergedConfig: any) {
   // Ensure usernames exists
   if (!mergedConfig.usernames?.length) {
@@ -140,6 +167,10 @@ function validateFinalConfig(mergedConfig: any) {
   return mergedConfig
 }
 
+/**
+ * Schema for global options that combines CLI arguments and configuration files
+ * Applies transformations to merge different config sources and validate the result
+ */
 export const globalOptsSchema = cliSchema
   .partial()
   .transform((data) => {

@@ -7,6 +7,9 @@ import { DOCPRESS_DIR, DOCS_DIR } from '../utils/const.js'
 import { log } from '../utils/logger.js'
 import { cloneRepo, getInfos } from './git.js'
 
+/**
+ * Enhanced repository type with DocPress-specific metadata
+ */
 export type EnhancedRepository = Awaited<ReturnType<typeof getInfos>>['repos'][number] & {
   docpress: {
     branch: string
@@ -18,6 +21,14 @@ export type EnhancedRepository = Awaited<ReturnType<typeof getInfos>>['repos'][n
   }
 }
 
+/**
+ * Checks for the existence of documentation files in a repository
+ *
+ * @param repoOwner - Owner of the repository (username)
+ * @param repoName - Name of the repository
+ * @param branch - Branch to check for documentation
+ * @returns Object containing HTTP status codes for different documentation paths
+ */
 export async function checkDoc(repoOwner: GlobalOpts['usernames'][number], repoName: string, branch: FetchOpts['branch']) {
   const rootReadmeUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/README.md`
   const docsFolderUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/docs`
@@ -34,12 +45,29 @@ export async function checkDoc(repoOwner: GlobalOpts['usernames'][number], repoN
   }
 }
 
+/**
+ * Fetches documentation from a user's repositories
+ *
+ * @param options - Options for fetching documentation
+ * @param options.username - GitHub username
+ * @param options.branch - Branch to use for documentation
+ * @param options.reposFilter - Optional filter for repositories
+ * @param options.token - GitHub API token
+ */
 export async function fetchDoc({ username, branch, reposFilter, token }: FetchOptsUser) {
   await getInfos({ username, token, branch })
     .then(async ({ user, repos, branch }) => generateInfos(user, repos, branch, reposFilter))
     .then(async ({ repos }) => getDoc(repos, reposFilter))
 }
 
+/**
+ * Enhances repository information with DocPress metadata
+ *
+ * @param repos - List of repositories from Git provider
+ * @param branch - Branch to use for documentation
+ * @param reposFilter - Optional filter for repositories
+ * @returns Array of enhanced repositories with DocPress metadata
+ */
 export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter']) {
   const enhancedRepos: EnhancedRepository[] = []
 
@@ -71,6 +99,13 @@ export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getIn
   return enhancedRepos
 }
 
+/**
+ * Determines which files to include in the sparse checkout based on repository structure
+ *
+ * @param repo - Repository information
+ * @param branch - Branch to check for documentation
+ * @returns Array of file patterns to include in sparse checkout
+ */
 export async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos>>['repos'][number], branch: FetchOpts['branch']) {
   const docsStatus = await checkDoc(repo.owner.login, repo.name, branch)
 
@@ -87,6 +122,15 @@ export async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos
   return includes
 }
 
+/**
+ * Generates and saves user and repository information
+ *
+ * @param user - User information from Git provider
+ * @param repos - List of repositories from Git provider
+ * @param branch - Branch to use for documentation
+ * @param reposFilter - Optional filter for repositories
+ * @returns Object containing user and enhanced repository information
+ */
 export async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'], repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter']) {
   writeFileSync(`${DOCPRESS_DIR}/user-${user.login}.json`, JSON.stringify(user, null, 2))
 
@@ -96,6 +140,12 @@ export async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['
   return { user, repos: enhancedRepos }
 }
 
+/**
+ * Fetches documentation from repositories
+ *
+ * @param repos - List of enhanced repositories
+ * @param reposFilter - Optional filter for repositories
+ */
 export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOpts['reposFilter']) {
   if (!repos) {
     log(`   No repository respect docpress rules.`, 'warn')
@@ -111,6 +161,13 @@ export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOp
   )
 }
 
+/**
+ * Determines if a repository should be filtered out based on filter rules
+ *
+ * @param repo - Repository information
+ * @param reposFilter - Optional filter for repositories
+ * @returns True if the repository should be filtered out, false otherwise
+ */
 export function isRepoFiltered(repo: EnhancedRepository | Awaited<ReturnType<typeof getInfos>>['repos'][number], reposFilter?: FetchOpts['reposFilter']) {
   const hasOnlyExclusions = reposFilter?.every((filter: string) => filter.startsWith('!'))
   const isExcluded = reposFilter?.filter((filter: string) => filter.startsWith('!'))

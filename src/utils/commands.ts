@@ -12,8 +12,14 @@ import { prepareOptsSchema } from '../schemas/prepare.js'
 import { loadConfigFile } from './functions.js'
 import { log } from './logger.js'
 
+/**
+ * Type definition for command names
+ */
 type Cmd = 'fetch' | 'build' | 'prepare' | 'global'
 
+/**
+ * Interface mapping command names to their option types
+ */
 interface Options {
   build: BuildOpts
   fetch: FetchOpts
@@ -21,6 +27,9 @@ interface Options {
   global: GlobalOpts
 }
 
+/**
+ * Mapping of command names to their schema validators
+ */
 export const options = {
   build: buildOptsSchema,
   fetch: fetchOptsSchema,
@@ -28,7 +37,13 @@ export const options = {
   global: globalOptsSchema,
 }
 
-// Helper function to handle config file loading
+/**
+ * Handles loading and parsing of the configuration file
+ *
+ * @param configPath - Path to the configuration file
+ * @param token - Optional GitHub token
+ * @returns Parsed configuration data or null if loading/parsing failed
+ */
 function handleConfigFile(configPath: string, token?: string) {
   const configData = loadConfigFile(configPath)
   if (!configData) return null
@@ -46,6 +61,13 @@ function handleConfigFile(configPath: string, token?: string) {
   return null
 }
 
+/**
+ * Parses and validates command options based on the command type
+ *
+ * @param cmd - The command name ('fetch', 'build', 'prepare', or 'global')
+ * @param opts - Raw options from the command line
+ * @returns Validated and processed options for the specified command
+ */
 export function parseOptions<T extends Cmd>(cmd: T, opts: Record<string, unknown>): Options[T] {
   log(`Initializing Docpress...`, 'info', 'blue')
   log(`\n\n-> Checking for required environment settings and configurations.`, 'info')
@@ -89,6 +111,13 @@ export function parseOptions<T extends Cmd>(cmd: T, opts: Record<string, unknown
   }
 }
 
+/**
+ * Adds option definitions to a Command instance
+ *
+ * @param cmd - The Commander Command instance
+ * @param opts - Array of option definitions to add
+ * @returns The Command instance with options added
+ */
 export function addOptions(cmd: Command, opts: Option[]) {
   for (const opt of opts) {
     cmd.addOption(opt)

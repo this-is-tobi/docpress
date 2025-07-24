@@ -15,32 +15,59 @@ import type { getInfos } from './git.js'
 import { getContributors } from './git.js'
 import { getVitepressConfig } from './vitepress.js'
 
+/**
+ * Represents a navigation page item with text and link
+ */
 export interface Page {
   text: string
   link: string
 }
 
+/**
+ * Represents a sidebar project with nested items
+ */
 export interface SidebarProject {
   text: string
   collapsed: boolean
   items: (Page | SidebarProject)[]
 }
 
+/**
+ * Represents a feature to display on the index page
+ */
 export interface Feature {
   title: string
   details: string
   link: string
 }
 
+/**
+ * Represents the structure of the VitePress index page
+ */
 export interface Index {
   layout: string
   hero: {
     name: string
     tagline?: string
   }
+  /** List of features to display */
   features: Feature[]
 }
 
+/**
+ * Prepares the documentation structure for a user's repositories
+ *
+ * @param options - Options for documentation preparation
+ * @param options.extraHeaderPages - Array of paths to additional header pages
+ * @param options.extraPublicContent - Array of paths to additional public content
+ * @param options.extraTheme - Array of paths to additional theme files
+ * @param options.vitepressConfig - Path to the VitePress configuration file
+ * @param options.forks - Flag to include forked repositories
+ * @param options.token - GitHub token for API access
+ * @param options.username - GitHub username to fetch repositories for
+ * @param options.websiteTitle - Custom title for the documentation website
+ * @param options.websiteTagline - Custom tagline for the documentation website
+ */
 export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'gitProvider' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
   const user = getUserInfos(username)
   const repositories = getUserRepos(username)
@@ -108,6 +135,12 @@ export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTh
   generateVitepressFiles(config, finalIndex)
 }
 
+/**
+ * Adds a source reference section to a markdown file
+ *
+ * @param repoUrl - URL of the GitHub repository
+ * @param outputPath - Path to the markdown file where sources will be added
+ */
 export function addSources(repoUrl: string, outputPath: string) {
   const fileName = basename(outputPath)
   const title = prettify(fileName, { mode: 'lowercase', removeIdx: true }) === 'readme.md' ? '\n## Sources' : '# Sources'
@@ -117,11 +150,22 @@ export function addSources(repoUrl: string, outputPath: string) {
   appendFileSync(outputPath, sourcesContent, 'utf8')
 }
 
+/**
+ * Information about website title and tagline
+ */
 export interface WebsiteInfos {
   title?: string
   tagline?: string
 }
 
+/**
+ * Generates the index page content for the documentation site
+ *
+ * @param features - Array of features to display on the homepage
+ * @param user - User information retrieved from GitHub
+ * @param websiteInfos - Custom title and tagline information
+ * @returns An object with index page configuration
+ */
 export function generateIndex(features: Feature[], user: ReturnType<typeof getUserInfos>, websiteInfos: WebsiteInfos) {
   const { name, login, bio } = user
   const { title, tagline } = websiteInfos
@@ -137,6 +181,14 @@ export function generateIndex(features: Feature[], user: ReturnType<typeof getUs
   }
 }
 
+/**
+ * Generates feature cards for the homepage
+ *
+ * @param repoName - Name of the repository
+ * @param description - Description of the repository
+ * @param features - Optional existing features to append to
+ * @returns Array of feature objects for the homepage
+ */
 export function generateFeatures(repoName: string, description: string, features?: Feature[]) {
   const content = {
     title: prettify(repoName, { mode: 'capitalize', replaceDash: true }),
@@ -147,6 +199,13 @@ export function generateFeatures(repoName: string, description: string, features
   return features ? [...features, content] : [content]
 }
 
+/**
+ * Generates a sidebar project entry for the documentation navigation
+ *
+ * @param repoName - Name of the repository
+ * @param sidebarPages - Array of sidebar pages to include in this project
+ * @returns A sidebar project configuration object
+ */
 export function generateSidebarProject(repoName: string, sidebarPages: (SidebarProject | Page)[]) {
   return {
     text: prettify(repoName, { mode: 'capitalize', replaceDash: true }),
@@ -155,6 +214,14 @@ export function generateSidebarProject(repoName: string, sidebarPages: (SidebarP
   }
 }
 
+/**
+ * Generates sidebar page entries for the documentation navigation
+ *
+ * @param repoName - Name of the repository
+ * @param fileName - Name of the file
+ * @param sidebarPages - Optional existing sidebar pages to append to
+ * @returns Array of page objects for the sidebar
+ */
 export function generateSidebarPages(repoName: string, fileName: string, sidebarPages?: Page[]) {
   const content = {
     text: fileName === 'introduction' ? 'Introduction' : prettify(fileName, { mode: 'capitalize', replaceDash: true }),
@@ -164,6 +231,13 @@ export function generateSidebarPages(repoName: string, fileName: string, sidebar
   return sidebarPages ? [...sidebarPages, content] : [content]
 }
 
+/**
+ * Generates sidebar items from a repository's file structure
+ *
+ * @param repository - Repository information
+ * @param obj - Object representing the file tree structure
+ * @returns Array of sidebar items (projects and pages)
+ */
 export function generateSidebarItems(repository: EnhancedRepository, obj: any): (SidebarProject | Page)[] {
   return Object.entries(obj).flatMap(([key, value]): (SidebarProject | Page)[] => {
     if (key === '$') {
@@ -199,6 +273,12 @@ export function generateSidebarItems(repository: EnhancedRepository, obj: any): 
   })
 }
 
+/**
+ * Builds a tree structure from an array of file paths
+ *
+ * @param files - Array of file paths to be organized into a tree
+ * @returns A nested object representing the directory structure
+ */
 export function buildTree(files: string[]): any {
   return files.reduce((tree, file) => {
     const [first, ...rest] = file.split('/')
@@ -215,6 +295,13 @@ export function buildTree(files: string[]): any {
   }, {} as Record<string, any>)
 }
 
+/**
+ * Flattens a nested tree structure into an array of file paths
+ *
+ * @param subtree - The tree object to flatten
+ * @param prefix - Optional path prefix to prepend to each result
+ * @returns An array of file paths
+ */
 export function flattenTree(subtree: any, prefix = ''): string[] {
   return Object.entries(subtree).flatMap(([key, value]) => {
     if (key === '$') {
@@ -228,6 +315,12 @@ export function flattenTree(subtree: any, prefix = ''): string[] {
   })
 }
 
+/**
+ * Reorders sidebar items to ensure 'Sources' appears last
+ *
+ * @param arr - Array of sidebar items to reorder
+ * @returns Reordered array with 'Sources' as the last item
+ */
 function moveSourcesLast(arr: (SidebarProject | Page)[]) {
   if (!Array.isArray(arr)) {
     return arr
@@ -241,6 +334,14 @@ function moveSourcesLast(arr: (SidebarProject | Page)[]) {
   return arr
 }
 
+/**
+ * Transforms repository data into documentation structure
+ *
+ * @param repositories - Array of enhanced repositories
+ * @param user - User information retrieved from GitHub
+ * @param websiteInfos - Custom title and tagline information
+ * @returns Object containing sidebar and index page configurations
+ */
 export function transformDoc(repositories: EnhancedRepository[], user: ReturnType<typeof getUserInfos>, websiteInfos: WebsiteInfos) {
   const features: Feature[] = []
   const sidebar: SidebarProject[] = []
@@ -288,6 +389,12 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
   }
 }
 
+/**
+ * Adds extra pages to the documentation from specified paths
+ *
+ * @param paths - Array of paths to markdown files
+ * @returns Array of navigation page objects
+ */
 export function addExtraPages(paths: string[]) {
   const files = getMdFiles(paths)
   const nav: Page[] = []
@@ -306,6 +413,13 @@ export function addExtraPages(paths: string[]) {
   return nav
 }
 
+/**
+ * Adds content from specified paths to a target directory
+ *
+ * @param paths - String or array of paths to content
+ * @param dir - Target directory to copy content to
+ * @param fn - Optional callback function to execute for each file
+ */
 export function addContent(paths: string | string[], dir: string, fn?: () => void) {
   for (const path of Array.isArray(paths) ? paths : [paths]) {
     const absolutePath = resolve(process.cwd(), path)
@@ -324,6 +438,11 @@ export function addContent(paths: string | string[], dir: string, fn?: () => voi
   }
 }
 
+/**
+ * Creates a fork page to display external contributions
+ *
+ * @param forks - Array of repositories and contribution counts
+ */
 export function addForkPage(forks: { repository: Awaited<ReturnType<typeof getInfos>>['repos'][number], contributions: number }[]) {
   const separator = '---\n'
   const header = 'layout: fork-page\nrepoList:\n'
@@ -342,6 +461,13 @@ type AdaptedLicense = Omit<NonNullable<Source>['license'], 'spdx_id'> & { spdx_i
 
 type AdaptedRepository = Omit<NonNullable<Source>, 'license'> & { license: AdaptedLicense }
 
+/**
+ * Processes forked repositories to generate contribution information
+ *
+ * @param repositories - Array of enhanced repositories
+ * @param username - GitHub username
+ * @param token - Optional GitHub API token
+ */
 export async function processForks(repositories: EnhancedRepository[], username: GlobalOpts['usernames'][number], token?: GlobalOpts['token']) {
   const forks = await Promise.all(
     repositories.map(async (repository) => {
@@ -356,16 +482,35 @@ export async function processForks(repositories: EnhancedRepository[], username:
   addForkPage(forks)
 }
 
+/**
+ * Parses a VitePress configuration file
+ *
+ * @param path - Path to the VitePress config file
+ * @returns The parsed configuration object
+ */
 export async function parseVitepressConfig(path: string): Promise<Partial<ReturnType<typeof defineConfig>>> {
   const { config } = await import(resolve(process.cwd(), path)).catch(e => e)
   return config
 }
 
+/**
+ * Parses a VitePress index file
+ *
+ * @param path - Path to the index file
+ * @returns The parsed index object
+ */
 export async function parseVitepressIndex(path: string): Promise<Index> {
   const index = (await readFile(resolve(process.cwd(), path))).toString()
   return YAML.parse(index)
 }
 
+/**
+ * Generates VitePress configuration and index files
+ *
+ * @param vitepressConfig - VitePress configuration object
+ * @param index - Index page configuration
+ * @returns The list of theme files that were generated
+ */
 export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeof defineConfig>>, index: Index) {
   const separator = '---\n'
   createDir(dirname(VITEPRESS_CONFIG))

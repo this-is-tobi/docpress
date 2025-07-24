@@ -6,6 +6,11 @@ import { prepareCmd, main as prepareFn, prepareOpts } from './commands/prepare.j
 import { addOptions, parseOptions } from './utils/commands.js'
 import { globalOpts } from './commands/global.js'
 
+/**
+ * Creates and configures the Command Line Interface for DocPress
+ *
+ * @returns A configured Commander program instance
+ */
 export function getProgram() {
   const pm = new Command()
     .name('docpress')
@@ -33,6 +38,10 @@ export function getProgram() {
   return pm
 }
 
+/**
+ * Entry point for the DocPress CLI
+ * Initializes and runs the command parser
+ */
 export function main() {
   const pm = getProgram()
   pm.parseAsync(process.argv)

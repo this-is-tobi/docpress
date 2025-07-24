@@ -1,6 +1,10 @@
 import { cliSchema } from './global.js'
 import type { GlobalOpts } from './global.js'
 
+/**
+ * Schema for prepare command options
+ * Includes options related to documentation preparation and customization
+ */
 export const prepareOptsSchema = cliSchema
   .pick({
     extraHeaderPages: true,
@@ -14,4 +18,7 @@ export const prepareOptsSchema = cliSchema
     vitepressConfig: true,
   })
 
+/**
+ * Type for prepare options
+ */
 export type PrepareOpts = GlobalOpts
