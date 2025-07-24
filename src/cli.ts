@@ -7,6 +7,21 @@ import { addOptions, parseOptions } from './utils/commands.js'
 import { globalOpts } from './commands/global.js'
 
 /**
+ * Adds explicit defaults to options object for branch and gitProvider
+ *
+ * @param opts - Options object from Commander
+ * @returns Options with defaults explicitly set
+ */
+function addDefaults(opts: Record<string, unknown>): Record<string, unknown> {
+  // Create a new object with explicit defaults
+  return {
+    ...opts,
+    branch: 'main',
+    gitProvider: 'github',
+  }
+}
+
+/**
  * Creates and configures the Command Line Interface for DocPress
  *
  * @returns A configured Commander program instance
@@ -17,7 +32,8 @@ export function getProgram() {
     .description('Build your doc website faster than light ⚡️⚡️⚡️')
     .version(`${pkg.version}`)
     .action(async (opts, _cmd) => {
-      const parsedOpts = parseOptions('global', opts)
+      const optsWithDefaults = addDefaults(opts)
+      const parsedOpts = parseOptions('global', optsWithDefaults)
       await fetchFn(parsedOpts)
       await prepareFn(parsedOpts)
       await buildFn()

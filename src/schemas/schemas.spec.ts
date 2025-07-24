@@ -436,6 +436,7 @@ describe('prepareOptsSchema', () => {
     expect(result).toEqual({
       ...defaultConfig,
       usernames: [invalidData.usernames],
+      vitepressConfig: {},
     })
   })
 })

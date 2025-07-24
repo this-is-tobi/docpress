@@ -177,32 +177,28 @@ export const globalOptsSchema = cliSchema
     try {
       const { config, vitepressConfig, token, ...rest } = data
 
+      log(`Debug: Schema transform input: ${JSON.stringify(data)}`, 'debug')
+
       // Load configuration from file
       const configData = loadConfigFile(config)
       const preparedConfigData = prepareConfigData(configData)
 
-      // Create a manually initialized defaultConfig with explicit values
-      const defaultConfig = {
-        branch: 'main',
-        gitProvider: 'github',
-        forks: false,
-      }
-
-      // Load VitePress config if available
-      const loadedVPConfig = loadConfigFile(vitepressConfig) || {}
-
-      // Merge configurations with proper precedence
-      const vpConfig = {
-        ...loadedVPConfig,
-        ...(preparedConfigData.vitepressConfig || {}),
-      }
-
+      // Create final config
       const mergedConfig = {
-        ...defaultConfig,
+        forks: false,
         ...preparedConfigData,
         ...rest,
-        ...(Object.keys(vpConfig).length ? { vitepressConfig: vpConfig } : {}),
+        ...(vitepressConfig
+          ? {
+              vitepressConfig: {
+                ...(loadConfigFile(vitepressConfig) || {}),
+                ...(preparedConfigData.vitepressConfig || {}),
+              },
+            }
+          : {}),
       }
+
+      log(`Debug: Final merged config: ${JSON.stringify(mergedConfig)}`, 'debug')
 
       return validateFinalConfig({ ...mergedConfig, token })
     } catch (error) {
