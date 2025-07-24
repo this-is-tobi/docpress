@@ -5,7 +5,6 @@ export default antfu(
     stylistic: {
       overrides: {
         'perfectionist/sort-imports': 'off',
-        'import/order': ['error'],
         'antfu/if-newline': 'off',
         'jsonc/sort-keys': 'off',
         'no-console': 'off',

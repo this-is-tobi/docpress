@@ -1,22 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { globalOptsSchema } from '../schemas/global.js'
+import { baseCliSchema } from '../schemas/global.js'
 import { globalOpts } from './global.js'
-
-// vi.mock('../schemas/global.js', () => ({
-//   globalOptsSchema: {
-//     shape: {
-//       config: {
-//         _def: { description: 'Path to the docpress configuration file.' },
-//       },
-//       token: {
-//         _def: { description: 'Git provider token used to collect data' },
-//       },
-//       username: {
-//         _def: { description: 'Git provider username used to collect data.' },
-//       },
-//     },
-//   },
-// }))
 
 describe('globalOpts', () => {
   it('should contain 3 options', () => {
@@ -31,7 +15,7 @@ describe('globalOpts', () => {
 
   it('should have the correct description from the schema', () => {
     const option = globalOpts[0]
-    const expectedDescription = globalOptsSchema.innerType().shape.config._def.description
-    expect(option.description).toBe(expectedDescription)
+    // In Zod v4, when description is undefined it returns empty string
+    expect(option.description).toBe(baseCliSchema.shape.config.description || '')
   })
 })

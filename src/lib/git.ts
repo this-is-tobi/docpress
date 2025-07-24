@@ -8,6 +8,15 @@ import { createDir } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
 
+/**
+ * Fetches user and repository information from GitHub
+ *
+ * @param options - Options for retrieving GitHub data
+ * @param options.username - GitHub username
+ * @param options.token - GitHub API token
+ * @param options.branch - Branch to use for documentation
+ * @returns Object containing user information, repositories, and branch
+ */
 export async function getInfos({ username, token, branch }: Pick<FetchOpts, 'branch'> & Pick<GlobalOpts, 'token'> & { username: GlobalOpts['usernames'][number] }) {
   log(`   Get infos for username '${username}'.`, 'info')
   const octokit = new Octokit({ auth: token })
@@ -19,6 +28,14 @@ export async function getInfos({ username, token, branch }: Pick<FetchOpts, 'bra
   return { user, repos, branch }
 }
 
+/**
+ * Gets contributors for a repository
+ *
+ * @param options - Options for retrieving contributors
+ * @param options.repository - Repository information
+ * @param options.token - GitHub API token
+ * @returns Object with source repository and contributors list
+ */
 export async function getContributors({
   repository,
   token,
@@ -70,6 +87,15 @@ export async function getContributors({
   return { source: repo.source, contributors }
 }
 
+/**
+ * Clones a repository with sparse checkout
+ *
+ * @param name - Repository name
+ * @param url - Repository URL
+ * @param projectDir - Directory to clone into
+ * @param branch - Branch to clone
+ * @param includes - Patterns to include in sparse checkout
+ */
 export async function cloneRepo(name: string, url: string, projectDir: string, branch: string, includes: string[]) {
   createDir(projectDir, { clean: true })
 

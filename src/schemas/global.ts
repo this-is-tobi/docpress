@@ -1,11 +1,16 @@
 import { z } from 'zod'
-import { fromZodError } from 'zod-validation-error'
-import type { UserConfig } from 'vitepress'
 import { loadConfigFile, prettifyEnum, splitByComma } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 
+/**
+ * List of supported Git providers
+ */
 const providers = ['github'] as const
 
+/**
+ * Schema for the DocPress configuration file
+ * Defines the structure and validation rules for the configuration
+ */
 export const configSchema = z.object({
   // Global
   usernames: z.string()
@@ -42,34 +47,12 @@ export const configSchema = z.object({
     .describe('Website tagline.'),
 })
 
-export type Config = Zod.infer<typeof configSchema>
+export type Config = z.infer<typeof configSchema>
 
-export function applyGlobalOptsTransform(data: Cli) {
-  const { config, vitepressConfig, token, ...rest } = data
-
-  try {
-    const loadedDPConfig = configSchema.partial().parse(loadConfigFile(config)) as Config
-    const loadedVPConfig = loadConfigFile(vitepressConfig) as UserConfig
-    const defaultConfig = configSchema.partial().required({ branch: true, gitProvider: true }).parse({})
-    const vpConfig = {
-      ...loadedVPConfig,
-      ...loadedDPConfig.vitepressConfig,
-    }
-    const mergedConfig = {
-      ...loadedDPConfig,
-      ...defaultConfig,
-      ...rest,
-      ...(Object.keys(vpConfig).length && { vitepressConfig: vpConfig }),
-    }
-    const parsedConfig = configSchema.partial().required({ usernames: true }).parse(mergedConfig)
-
-    return { ...parsedConfig, token }
-  } catch (error) {
-    log(`   An error occurred while checking configuration.\n     ${fromZodError(error).toString()}`, 'error')
-    process.exit(1)
-  }
-}
-
+/**
+ * Base CLI schema for parsing command line arguments
+ * All fields are optional in this schema
+ */
 export const baseCliSchema = configSchema.partial().extend({
   config: z.string()
     .describe('Path to the docpress configuration file.')
@@ -99,6 +82,9 @@ export const baseCliSchema = configSchema.partial().extend({
 
 export type RawCli = z.infer<typeof baseCliSchema>
 
+/**
+ * CLI schema with transformations applied to handle string-to-array conversions
+ */
 export const cliSchema = configSchema
   .partial()
   .extend({
@@ -133,11 +119,99 @@ export const cliSchema = configSchema
       .optional(),
   })
 
-export type Cli = Zod.infer<typeof cliSchema>
+export type Cli = z.infer<typeof cliSchema>
 
+// Helper functions to reduce complexity
+/**
+ * Prepares configuration data by converting string values to arrays when needed
+ *
+ * @param configData - Raw configuration data to process
+ * @returns Processed configuration data with proper array types
+ */
+function prepareConfigData(configData: any) {
+  if (!configData) return {}
+
+  // Convert arrays that might be strings
+  if (configData.usernames && typeof configData.usernames === 'string') {
+    configData.usernames = [configData.usernames]
+  }
+  if (configData.reposFilter && typeof configData.reposFilter === 'string') {
+    configData.reposFilter = [configData.reposFilter]
+  }
+  if (configData.extraHeaderPages && typeof configData.extraHeaderPages === 'string') {
+    configData.extraHeaderPages = [configData.extraHeaderPages]
+  }
+  if (configData.extraPublicContent && typeof configData.extraPublicContent === 'string') {
+    configData.extraPublicContent = [configData.extraPublicContent]
+  }
+  if (configData.extraTheme && typeof configData.extraTheme === 'string') {
+    configData.extraTheme = [configData.extraTheme]
+  }
+
+  return configData
+}
+
+/**
+ * Validates the final merged configuration to ensure required fields are present
+ *
+ * @param mergedConfig - The merged configuration to validate
+ * @returns The validated configuration if it passes validation
+ * @throws Error if required fields are missing
+ */
+function validateFinalConfig(mergedConfig: any) {
+  // Ensure usernames exists
+  if (!mergedConfig.usernames?.length) {
+    throw new Error('The usernames field is required')
+  }
+
+  return mergedConfig
+}
+
+/**
+ * Schema for global options that combines CLI arguments and configuration files
+ * Applies transformations to merge different config sources and validate the result
+ */
 export const globalOptsSchema = cliSchema
   .partial()
-  .transform(applyGlobalOptsTransform)
+  .transform((data) => {
+    try {
+      const { config, vitepressConfig, token, ...rest } = data
 
-export type GlobalOpts = Required<Pick<Zod.infer<typeof globalOptsSchema>, 'branch' | 'gitProvider'>>
-  & Omit<Zod.infer<typeof globalOptsSchema>, 'branch' | 'gitProvider'>
+      log(`Debug: Schema transform input: ${JSON.stringify(data)}`, 'debug')
+
+      // Load configuration from file
+      const configData = loadConfigFile(config)
+      const preparedConfigData = prepareConfigData(configData)
+
+      // Create final config
+      const mergedConfig = {
+        forks: false,
+        ...preparedConfigData,
+        ...rest,
+        ...(vitepressConfig
+          ? {
+              vitepressConfig: {
+                ...(loadConfigFile(vitepressConfig) || {}),
+                ...(preparedConfigData.vitepressConfig || {}),
+              },
+            }
+          : {}),
+      }
+
+      log(`Debug: Final merged config: ${JSON.stringify(mergedConfig)}`, 'debug')
+
+      return validateFinalConfig({ ...mergedConfig, token })
+    } catch (error) {
+      // Handle errors gracefully
+      log(`   An error occurred while checking configuration.`, 'error')
+      if (error instanceof Error) {
+        log(`     ${error.message}`, 'error')
+      } else {
+        log(`     ${JSON.stringify(error, null, 2)}`, 'error')
+      }
+      process.exit(1)
+    }
+  })
+
+export type GlobalOpts = Required<Pick<z.infer<typeof globalOptsSchema>, 'branch' | 'gitProvider'>>
+  & Omit<z.infer<typeof globalOptsSchema>, 'branch' | 'gitProvider'>

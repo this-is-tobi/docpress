@@ -1,13 +1,12 @@
 /// <reference types="vitest" />
 import { fileURLToPath } from 'node:url'
 import { configDefaults, defineConfig } from 'vitest/config'
+import viteConfig from './vite.config.js'
 
 export default defineConfig({
-  optimizeDeps: {
-    force: true,
-    include: ['vitepress'],
-  },
+  ...viteConfig,
   test: {
+    ...viteConfig.test,
     environment: 'node',
     testTimeout: 2000,
     watch: false,

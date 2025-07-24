@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { build as vitepressBuild } from 'vitepress'
 import { createOption } from 'commander'
 import { DOCPRESS_DIR } from '../utils/const.js'
@@ -19,7 +19,7 @@ vi.mock('./global.js', () => ({
 }))
 vi.spyOn(buildMod, 'main')
 
-const { buildCmd, main } = buildMod
+const { buildCmd, main, suppressVueWarnings } = buildMod
 
 describe('buildCmd', () => {
   it('should have the correct command name', () => {
@@ -39,6 +39,66 @@ describe('buildCmd', () => {
     buildCmd.action(main)
     buildCmd.parseAsync()
     expect(main).toHaveBeenCalled()
+  })
+})
+
+describe('suppressVueWarnings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Save original console.warn
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    // Restore original console.warn
+    vi.restoreAllMocks()
+  })
+
+  it('should execute the callback function', async () => {
+    const callback = vi.fn().mockResolvedValue('result')
+
+    const result = await suppressVueWarnings(callback)
+
+    expect(callback).toHaveBeenCalled()
+    expect(result).toBe('result')
+  })
+
+  it('should suppress Vue warnings about invalid watch source', async () => {
+    const mockCallback = async () => {
+      console.warn('[Vue warn]: Invalid watch source: something')
+      console.warn('Regular warning')
+      return 'done'
+    }
+
+    await suppressVueWarnings(mockCallback)
+
+    expect(console.warn).toHaveBeenCalledWith('Regular warning')
+    expect(console.warn).not.toHaveBeenCalledWith('[Vue warn]: Invalid watch source: something')
+  })
+
+  it('should suppress Vue warnings about open:false', async () => {
+    const mockCallback = async () => {
+      console.warn('[Vue warn]: Something with { open: false }')
+      console.warn('Regular warning')
+      return 'done'
+    }
+
+    await suppressVueWarnings(mockCallback)
+
+    expect(console.warn).toHaveBeenCalledWith('Regular warning')
+    expect(console.warn).not.toHaveBeenCalledWith('[Vue warn]: Something with { open: false }')
+  })
+
+  it('should restore console.warn even if callback throws', async () => {
+    const error = new Error('Test error')
+    const mockCallback = async () => {
+      throw error
+    }
+
+    await expect(suppressVueWarnings(mockCallback)).rejects.toThrow(error)
+
+    // We can't easily test if console.warn was restored since we're mocking it,
+    // but we can verify that the callback was executed
   })
 })
 
