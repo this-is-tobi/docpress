@@ -46,7 +46,7 @@ export async function main(opts: FetchOpts) {
   createDir(DOCPRESS_DIR, { clean: true })
   for (const username of usernames) {
     const finalRF = usernames.length > 1
-      ? reposFilter?.filter((rf: string) => rf.startsWith(username)).map((rf: string) => rf.replace(`${username}/`, ''))
+      ? reposFilter?.filter((rf: string) => rf.startsWith(`${username}/`)).map((rf: string) => rf.replace(`${username}/`, ''))
       : reposFilter
     await fetchDoc({ username, branch, reposFilter: finalRF, gitProvider, token })
   }

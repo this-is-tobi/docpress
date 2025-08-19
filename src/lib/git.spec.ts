@@ -46,7 +46,7 @@ describe('getInfos', () => {
       branch: 'main',
     })
     expect(mockOctokit.rest.users.getByUsername).toHaveBeenCalledWith({ username: 'testUser' })
-    expect(mockOctokit.rest.repos.listForUser).toHaveBeenCalledWith({ username: 'testUser', sort: 'full_name' })
+    expect(mockOctokit.rest.repos.listForUser).toHaveBeenCalledWith({ username: 'testUser', sort: 'full_name', per_page: 500 })
   })
 })
 
