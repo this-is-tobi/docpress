@@ -65,13 +65,13 @@ const repositories = frontmatter.value.repoList || []
 
 @media (min-width: 640px) and (max-width: 959px) {
   .repo-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(1, 1fr);
   }
 }
 
 @media (min-width: 960px) {
   .repo-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -93,6 +93,7 @@ const repositories = frontmatter.value.repoList || []
 
 .repo-name {
   font-size: x-large;
+  font-weight: bold;
   color: var(--vp-c-brand-ligther);
   margin-top: 5px;
   margin-bottom: 15px;

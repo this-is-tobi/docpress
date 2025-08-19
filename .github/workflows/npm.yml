@@ -21,12 +21,12 @@ on:
         description: Nodejs version used
         required: true
         type: string
-        default: 22.17.1
+        default: 22.18.0
       PNPM_VERSION:
         description: Pnpm version used
         required: true
         type: string
-        default: 10.13.1
+        default: 10.14.0
       PUBLISH_PACKAGES:
         description: Publish packages modules
         required: true
