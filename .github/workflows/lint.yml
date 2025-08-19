@@ -15,7 +15,7 @@ on:
         description: Node version used to run lint
         required: true
         type: string
-        default: 22.17.1
+        default: 22.18.0
       PNPM_VERSION:
         description: Pnpm version used to run lint
         required: true
