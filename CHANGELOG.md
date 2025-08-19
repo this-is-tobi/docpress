@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/this-is-tobi/docpress/compare/v0.7.1...v0.7.2) (2025-08-19)
+
+
+### Bug Fixes
+
+* handle more user repos in fetch request ([3ab56a0](https://github.com/this-is-tobi/docpress/commit/3ab56a08a22f21b370f482e95a0456f0d03a52c5))
+
 ## [0.7.1](https://github.com/this-is-tobi/docpress/compare/v0.7.0...v0.7.1) (2025-07-24)
 
 
