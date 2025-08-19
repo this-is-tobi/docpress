@@ -23,7 +23,7 @@ on:
         description: Pnpm version used to run tests
         required: true
         type: string
-        default: 10.13.1
+        default: 10.14.0
       BUN_VERSION:
         description: Bun version used to run tests
         required: true

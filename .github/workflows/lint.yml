@@ -20,7 +20,7 @@ on:
         description: Pnpm version used to run lint
         required: true
         type: string
-        default: 10.13.1
+        default: 10.14.0
 
 jobs:
   lint:

@@ -8,7 +8,7 @@ on:
 
 env:
   NODE_VERSION: 22.17.1
-  PNPM_VERSION: 10.13.1
+  PNPM_VERSION: 10.14.0
   REGISTRY_NAMESPACE: ghcr.io/${{ github.repository }}
   MULTI_ARCH: true
   USE_QEMU: true
