@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/this-is-tobi/docpress/compare/v0.7.2...v0.7.3) (2025-09-02)
+
+
+### Bug Fixes
+
+* correctly handle sidebar link generation for repo with dots ([2857138](https://github.com/this-is-tobi/docpress/commit/28571386e54fe05199c082128e244eba20b3ee92))
+
 ## [0.7.2](https://github.com/this-is-tobi/docpress/compare/v0.7.1...v0.7.2) (2025-08-19)
 
 
