@@ -88,6 +88,16 @@ describe('prettify', () => {
     const result = prettify('.hello-world', { removeDot: true })
     expect(result).toBe('hello-world')
   })
+
+  it('should replace all dots with dashes when removeDot is true', () => {
+    const result = prettify('template.monorepo.ts', { removeDot: true })
+    expect(result).toBe('template-monorepo-ts')
+  })
+
+  it('should handle both leading dots and internal dots', () => {
+    const result = prettify('.github.workflows.test', { removeDot: true })
+    expect(result).toBe('github-workflows-test')
+  })
 })
 
 describe('createDir', () => {
@@ -336,7 +346,7 @@ describe('getUserInfos', () => {
 
     ;(readFileSync as any).mockReturnValue(JSON.stringify(mockUserInfo))
 
-    const userInfo = getUserInfos()
+    const userInfo = getUserInfos('testUser')
     expect(userInfo).toEqual(mockUserInfo)
   })
 })
@@ -350,7 +360,7 @@ describe('getUserRepos', () => {
 
     ;(readFileSync as any).mockReturnValue(JSON.stringify(mockRepos))
 
-    const repos = getUserRepos()
+    const repos = getUserRepos('testUser')
     expect(repos).toEqual(mockRepos)
   })
 })

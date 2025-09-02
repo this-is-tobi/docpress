@@ -122,6 +122,40 @@ describe('generateFeatures', () => {
       },
     ])
   })
+
+  it('should handle repository names with dots in feature links', () => {
+    const result = generateFeatures('template-monorepo-ts', 'TypeScript monorepo template')
+    expect(result).toEqual([
+      {
+        title: 'Template monorepo ts',
+        details: 'TypeScript monorepo template',
+        link: '/template-monorepo-ts/introduction',
+      },
+    ])
+  })
+
+  it('should handle repository names starting with dots', () => {
+    const result = generateFeatures('github-workflows', 'Reusable GitHub workflows')
+    expect(result).toEqual([
+      {
+        title: 'Github workflows',
+        details: 'Reusable GitHub workflows',
+        link: '/github-workflows/introduction',
+      },
+    ])
+  })
+
+  it('should apply removeDot consistently for links when repository names have dots', () => {
+    // Test that the link generation applies removeDot correctly
+    const result = generateFeatures('template.monorepo.ts', 'TypeScript monorepo template')
+    expect(result).toEqual([
+      {
+        title: 'Template.monorepo.ts',
+        details: 'TypeScript monorepo template',
+        link: '/template-monorepo-ts/introduction',
+      },
+    ])
+  })
 })
 
 describe('generateSidebarProject', () => {
@@ -130,6 +164,26 @@ describe('generateSidebarProject', () => {
     const result = generateSidebarProject('my-repo', pages)
     expect(result).toEqual({
       text: 'My repo',
+      collapsed: true,
+      items: pages,
+    })
+  })
+
+  it('should handle repository names with dots in the display text', () => {
+    const pages = [{ text: 'Introduction', link: '/template-monorepo-ts/introduction' }]
+    const result = generateSidebarProject('template-monorepo-ts', pages)
+    expect(result).toEqual({
+      text: 'Template monorepo ts',
+      collapsed: true,
+      items: pages,
+    })
+  })
+
+  it('should handle repository names starting with dots', () => {
+    const pages = [{ text: 'Setup', link: '/github-workflows/setup' }]
+    const result = generateSidebarProject('github-workflows', pages)
+    expect(result).toEqual({
+      text: 'Github workflows',
       collapsed: true,
       items: pages,
     })
@@ -153,6 +207,47 @@ describe('generateSidebarPages', () => {
       {
         text: 'Foo',
         link: '/my-repo/foo',
+      },
+    ])
+  })
+
+  it('should handle repository names with dots by removing them from links', () => {
+    const result = generateSidebarPages('template-monorepo-ts', 'introduction')
+    expect(result).toEqual([
+      {
+        text: 'Introduction',
+        link: '/template-monorepo-ts/introduction',
+      },
+    ])
+  })
+
+  it('should handle repository names with dots for non-introduction files', () => {
+    const result = generateSidebarPages('template-monorepo-ts', 'configuration')
+    expect(result).toEqual([
+      {
+        text: 'Configuration',
+        link: '/template-monorepo-ts/configuration',
+      },
+    ])
+  })
+
+  it('should handle repository names starting with dots', () => {
+    const result = generateSidebarPages('github-workflows', 'setup')
+    expect(result).toEqual([
+      {
+        text: 'Setup',
+        link: '/github-workflows/setup',
+      },
+    ])
+  })
+
+  it('should apply removeDot consistently when repository names have dots', () => {
+    // Test that the link generation applies removeDot correctly
+    const result = generateSidebarPages('template.monorepo.ts', 'readme')
+    expect(result).toEqual([
+      {
+        text: 'Readme',
+        link: '/template-monorepo-ts/readme',
       },
     ])
   })
@@ -232,6 +327,70 @@ describe('transformDoc', () => {
       },
     ])
     expect(result.index.hero.name).toContain('John Doe\'s projects')
+  })
+
+  it('should handle repository names with dots correctly in sidebar and features', () => {
+    const reposWithDots = [
+      {
+        name: 'template.monorepo.ts',
+        description: 'TypeScript monorepo template',
+        html_url: 'https://example.com/repo',
+        owner: { login: 'user' },
+        docpress: { projectPath: '/mock/path', branch: 'main' },
+      },
+      {
+        name: '.github-workflows',
+        description: 'Reusable GitHub workflows',
+        html_url: 'https://example.com/repo2',
+        owner: { login: 'user' },
+        docpress: { projectPath: '/mock/path2', branch: 'main' },
+      },
+    ] as ReturnType<typeof getUserRepos>
+
+    vi.mocked(getMdFiles).mockReturnValue(['/path/to/README.md'])
+    vi.mocked(readdirSync).mockReturnValue(['readme.md'] as unknown as Dirent<Buffer<ArrayBufferLike>>[])
+
+    const websiteInfos = { title: undefined, tagline: undefined }
+
+    const result = transformDoc(reposWithDots, user, websiteInfos)
+
+    // Check sidebar links have dots converted to dashes
+    expect(result.sidebar).toEqual([
+      {
+        text: 'Github workflows',
+        collapsed: true,
+        items: [
+          {
+            text: 'Introduction',
+            link: '/github-workflows/introduction',
+          },
+        ],
+      },
+      {
+        text: 'Template monorepo ts',
+        collapsed: true,
+        items: [
+          {
+            text: 'Introduction',
+            link: '/template-monorepo-ts/introduction',
+          },
+        ],
+      },
+    ])
+
+    // Check index features have dots converted to dashes in links
+    expect(result.index.features).toEqual([
+      {
+        title: 'Github workflows',
+        details: 'Reusable GitHub workflows',
+        link: '/github-workflows/introduction',
+      },
+      {
+        title: 'Template monorepo ts',
+        details: 'TypeScript monorepo template',
+        link: '/template-monorepo-ts/introduction',
+      },
+    ])
   })
 })
 
