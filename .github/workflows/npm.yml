@@ -26,7 +26,7 @@ on:
         description: Pnpm version used
         required: true
         type: string
-        default: 10.14.0
+        default: 10.15.1
       PUBLISH_PACKAGES:
         description: Publish packages modules
         required: true
