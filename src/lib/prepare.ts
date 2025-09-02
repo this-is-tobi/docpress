@@ -193,7 +193,7 @@ export function generateFeatures(repoName: string, description: string, features
   const content = {
     title: prettify(repoName, { mode: 'capitalize', replaceDash: true }),
     details: description,
-    link: `/${repoName}/introduction`,
+    link: `/${prettify(repoName, { removeDot: true })}/introduction`,
   }
 
   return features ? [...features, content] : [content]
@@ -225,7 +225,7 @@ export function generateSidebarProject(repoName: string, sidebarPages: (SidebarP
 export function generateSidebarPages(repoName: string, fileName: string, sidebarPages?: Page[]) {
   const content = {
     text: fileName === 'introduction' ? 'Introduction' : prettify(fileName, { mode: 'capitalize', replaceDash: true }),
-    link: `/${repoName}/${fileName}`,
+    link: `/${prettify(repoName, { removeDot: true })}/${fileName}`,
   }
 
   return sidebarPages ? [...sidebarPages, content] : [content]
@@ -256,7 +256,7 @@ export function generateSidebarItems(repository: EnhancedRepository, obj: any): 
             text: parse(filename).name === 'introduction'
               ? 'Introduction'
               : prettify(filename, { mode: 'capitalize', replaceDash: true, removeExt: true }),
-            link: prettify(`/${repository.name}/${parse(filename).name}`, { removeDot: true }),
+            link: `/${prettify(repository.name, { removeDot: true })}/${parse(filename).name}`,
           } as Page
         })
       }

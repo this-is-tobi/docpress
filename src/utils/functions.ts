@@ -43,16 +43,22 @@ interface PrettifyOpts {
 export function prettify(s: string, opts: PrettifyOpts) {
   let u: string = ''
 
-  if (s.startsWith('.') && opts?.removeDot) {
-    u = s.slice(1)
+  if (opts?.removeDot) {
+    if (s.startsWith('.')) {
+      u = s.slice(1)
+    } else {
+      u = s
+    }
+    // Replace all remaining dots with dashes to ensure consistency
+    u = u.replaceAll('.', '-')
   }
 
   if (opts?.removeIdx) {
-    u = s.replace(/^\d{2}-/, '')
+    u = (u || s).replace(/^\d{2}-/, '')
   }
 
   if (opts?.removeExt) {
-    u = s.split('.')[0]
+    u = (u || s).split('.')[0]
   }
 
   if (opts?.replaceDash) {
