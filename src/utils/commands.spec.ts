@@ -209,7 +209,7 @@ describe('addOptions', () => {
     const command = new Command()
     const options = [
       new Option('-T, --token <token>', 'Git provider token'),
-      new Option('-U, --username <username>', 'Git provider username'),
+      new Option('-U, --usernames <usernames>', 'Git provider usernames'),
     ]
 
     addOptions(command, options)
@@ -221,7 +221,7 @@ describe('addOptions', () => {
 
     expect(addedOptions).toEqual([
       { flags: '-T, --token <token>', description: 'Git provider token' },
-      { flags: '-U, --username <username>', description: 'Git provider username' },
+      { flags: '-U, --usernames <usernames>', description: 'Git provider usernames' },
     ])
   })
 })
