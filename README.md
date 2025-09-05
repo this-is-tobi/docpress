@@ -62,13 +62,15 @@ Options:
   -r, --repos-filter <string>          List of comma separated repositories to retrieve from Git provider. Default to all user's public repositories.
   -t, --extra-theme <string>           List of comma separated additional files or directories to use as Vitepress theme.
   -T, --token <string>                 Git provider token used to collect data.
-  -U, --username <string>              Git provider username used to collect data.
+  -U, --usernames <string>             List of comma separated Git provider usernames used to collect data.
   -v, --vitepress-config <string>      Path to the vitepress configuration file.
   -V, --version                        output the version number
+  --website-tagline <string>           Website tagline.
+  --website-title <string>             Website title.
 
 Commands:
   build [options]                      Build vitepress website.
-  fetch [options]                      Fetch docs with the given username and git provider.
+  fetch [options]                      Fetch docs with the given username(s) and git provider.
   prepare [options]                    Transform doc to the target vitepress format.
 ```
 
