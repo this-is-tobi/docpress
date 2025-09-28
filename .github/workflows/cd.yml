@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: 22.19.0
+  NODE_VERSION: 24.11.1
   PNPM_VERSION: 10.15.1
   REGISTRY_NAMESPACE: ghcr.io/${{ github.repository }}
   MULTI_ARCH: true
