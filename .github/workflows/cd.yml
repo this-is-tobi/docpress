@@ -38,12 +38,13 @@ jobs:
     needs:
     - expose-vars
     - release
+    permissions:
+      id-token: write
+      contents: read
     with:
       PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
       NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
       PUBLISH_PACKAGES: true
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   docker:
     uses: ./.github/workflows/docker.yml
