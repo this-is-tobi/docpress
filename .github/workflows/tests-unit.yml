@@ -22,12 +22,12 @@ on:
         description: Nodejs version used to run tests
         required: true
         type: string
-        default: 22.19.0
+        default: 24.11.1
       PNPM_VERSION:
         description: Pnpm version used to run tests
         required: true
         type: string
-        default: 10.15.1
+        default: 10.23.0
 
 jobs:
   unit-tests:

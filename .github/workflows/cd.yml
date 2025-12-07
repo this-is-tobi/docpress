@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: 22.19.0
-  PNPM_VERSION: 10.15.1
+  NODE_VERSION: 24.11.1
+  PNPM_VERSION: 10.23.0
   REGISTRY_NAMESPACE: ghcr.io/${{ github.repository }}
   MULTI_ARCH: true
   USE_QEMU: true
@@ -38,12 +38,13 @@ jobs:
     needs:
     - expose-vars
     - release
+    permissions:
+      id-token: write
+      contents: read
     with:
       PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
       NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
       PUBLISH_PACKAGES: true
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   docker:
     uses: ./.github/workflows/docker.yml
