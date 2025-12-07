@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.4](https://github.com/this-is-tobi/docpress/compare/v0.7.3...v0.7.4) (2025-12-07)
+
+
+### Code Refactoring
+
+* update remaining username flag missing plural ([309f434](https://github.com/this-is-tobi/docpress/commit/309f4349dbb2e526b67eddbc34d4346266e065fb))
+* update remaining username flag missing plural ([7d3176e](https://github.com/this-is-tobi/docpress/commit/7d3176eb3353c769133f0b3946818ec61f3475d9))
+
+
+### Dependencies
+
+* upgrade nodejs to v24.11.1 ([ae94ac6](https://github.com/this-is-tobi/docpress/commit/ae94ac65c7141fe7a324b7f384335d82299f0067))
+* upgrade pnpm to v10.23.0 ([f3cc060](https://github.com/this-is-tobi/docpress/commit/f3cc060fd6743bc958f074bb9bd12d4bde6e54fd))
+
 ## [0.7.3](https://github.com/this-is-tobi/docpress/compare/v0.7.2...v0.7.3) (2025-09-02)
 
 
