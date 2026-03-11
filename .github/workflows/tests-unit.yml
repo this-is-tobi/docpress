@@ -22,12 +22,12 @@ on:
         description: Nodejs version used to run tests
         required: true
         type: string
-        default: 24.11.1
+        default: 24.14.0
       PNPM_VERSION:
         description: Pnpm version used to run tests
         required: true
         type: string
-        default: 10.23.0
+        default: 10.32.0
 
 jobs:
   unit-tests:
@@ -149,7 +149,7 @@ jobs:
         echo "SONAR_ARGS_BRANCH=-Dsonar.branch.name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
 
     - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@master
+      uses: sonarsource/sonarqube-scan-action@v7
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -168,7 +168,7 @@ jobs:
 
     - name: SonarQube Quality Gate check
       id: sonarqube-quality-gate-check
-      uses: sonarsource/sonarqube-quality-gate-action@master
+      uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

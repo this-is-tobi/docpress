@@ -27,7 +27,6 @@ import type { getInfos } from './git.js'
 
 vi.mock('node:fs')
 vi.mock('node:fs/promises')
-vi.mock('../utils/regex.js')
 vi.mock('../utils/functions.js', async importOriginal => ({
   ...await importOriginal<typeof import('../utils/functions.js')>(),
   createDir: vi.fn(),
@@ -35,6 +34,8 @@ vi.mock('../utils/functions.js', async importOriginal => ({
   getMdFiles: vi.fn(),
   getUserInfos: vi.fn(),
   getUserRepos: vi.fn(),
+  replaceRelativePath: vi.fn(),
+  replaceReadmePath: vi.fn(),
 }))
 vi.mock('../utils/const.js', () => ({
   DOCS_DIR: '/tmp/docpress/mock/docs',
@@ -895,7 +896,7 @@ describe('moveSourcesLast', () => {
 
     const result = moveSourcesLastImpl(items)
 
-    expect(result[result.length - 1].text).toBe('Sources')
+    expect(result.at(-1).text).toBe('Sources')
     expect(result.length).toBe(3)
   })
 

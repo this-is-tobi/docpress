@@ -6,9 +6,8 @@ import type { defineConfig } from 'vitepress'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import { generateFile } from '../utils/templates.js'
 import type { GlobalOpts } from '../schemas/global.js'
-import { createDir, extractFiles, getMdFiles, getUserInfos, getUserRepos, prettify } from '../utils/functions.js'
+import { createDir, extractFiles, getMdFiles, getUserInfos, getUserRepos, prettify, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
 import { DOCPRESS_DIR, DOCS_DIR, FORKS_FILE, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
-import { replaceReadmePath, replaceRelativePath } from '../utils/regex.js'
 import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
 import type { getInfos } from './git.js'
@@ -452,7 +451,7 @@ export function addForkPage(forks: { repository: Awaited<ReturnType<typeof getIn
     return { name, owner: owner.login, html_url, description, stargazers_count, contributions }
   })
   log(`   Generate forks page.`, 'info')
-  writeFileSync(FORKS_FILE, separator.concat(header, YAML.stringify(frontmatter), separator, text))
+  writeFileSync(FORKS_FILE, separator + header + YAML.stringify(frontmatter) + separator + text)
 }
 
 type Source = Required<Awaited<ReturnType<typeof getContributors>>['source']>
@@ -518,7 +517,7 @@ export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeo
   log(`   Generate Vitepress config.`, 'info')
   writeFileSync(VITEPRESS_CONFIG, `export const config = ${JSON.stringify(vitepressConfig, null, 2)}\n\nexport default config\n`)
   log(`   Generate index file.`, 'info')
-  writeFileSync(INDEX_FILE, separator.concat(YAML.stringify(index)))
+  writeFileSync(INDEX_FILE, separator + YAML.stringify(index))
   log(`   Add Docpress theme files.`, 'info')
   return extractFiles(TEMPLATE_THEME).forEach((path) => {
     const relativePath = path.replace(`${TEMPLATE_THEME}/`, '')

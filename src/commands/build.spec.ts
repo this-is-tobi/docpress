@@ -120,11 +120,14 @@ describe('main', () => {
   it('should log start and error messages when build fails', async () => {
     const error = new Error('Build failed')
     ;(vitepressBuild as any).mockRejectedValueOnce(error) // Simulate failed build
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any)
 
     await main()
 
     expect(log).toHaveBeenCalledWith(`\n-> Start building Vitepress website.\n\n`, 'info')
     expect(vitepressBuild).toHaveBeenCalledWith(DOCPRESS_DIR)
     expect(log).toHaveBeenCalledWith(`\n\nDocpress build failed : ${error}`, 'error')
+    expect(exitSpy).toHaveBeenCalledWith(1)
+    exitSpy.mockRestore()
   })
 })
