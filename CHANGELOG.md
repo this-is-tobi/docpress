@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.5](https://github.com/this-is-tobi/docpress/compare/v0.7.4...v0.7.5) (2026-03-11)
+
+
+### Bug Fixes
+
+* correctly exit with error on vitepress build fail ([7bbf178](https://github.com/this-is-tobi/docpress/commit/7bbf17896ded431a889c50773c1f002d7a27721b))
+* dependency updates compatibility & code refactoring ([ace69b8](https://github.com/this-is-tobi/docpress/commit/ace69b89410eb31773b07f675c1fae497ff16c8e))
+
+
+### Dependencies
+
+* upgrade js dependencies ([82107c5](https://github.com/this-is-tobi/docpress/commit/82107c5940527322187f18d5d323651d251f996f))
+
 ## [0.7.4](https://github.com/this-is-tobi/docpress/compare/v0.7.3...v0.7.4) (2025-12-07)
 
 
