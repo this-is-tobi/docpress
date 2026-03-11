@@ -46,7 +46,7 @@ jobs:
         run_install: false
 
     - name: Install bun
-      uses: oven-sh/setup-bun@v1
+      uses: oven-sh/setup-bun@v2
       with:
         bun-version: "${{ inputs.BUN_VERSION }}"
 
