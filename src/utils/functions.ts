@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import axios from 'axios'
 import { rimrafSync } from 'rimraf'
@@ -6,6 +6,7 @@ import type { GlobalOpts } from '../schemas/global.js'
 import type { EnhancedRepository } from '../lib/fetch.js'
 import type { getInfos } from '../lib/git.js'
 import { DOCPRESS_DIR } from './const.js'
+import { readmeDocsPathRegex, readmePathRegex, relativePathRegex, removeIdxRegex } from './regex.js'
 
 /**
  * Checks the HTTP status code of a URL
@@ -54,7 +55,7 @@ export function prettify(s: string, opts: PrettifyOpts) {
   }
 
   if (opts?.removeIdx) {
-    u = (u || s).replace(/^\d{2}-/, '')
+    u = (u || s).replace(removeIdxRegex, '')
   }
 
   if (opts?.removeExt) {
@@ -253,4 +254,36 @@ export function loadConfigFile(configPath?: string) {
  */
 export function splitByComma(s: string) {
   return s.split(',')
+}
+
+/**
+ * Replaces relative paths in markdown links with absolute URLs
+ *
+ * @param file - Path to the markdown file to process
+ * @param url - Base URL to use for absolute links
+ */
+export function replaceRelativePath(file: string, url: string) {
+  const fileContent = readFileSync(file, 'utf8')
+  const updatedContent = fileContent.replace(relativePathRegex, (_match, p1, p2) => {
+    return `[${p1}](${url}/${p2})`
+  })
+  writeFileSync(file, updatedContent, 'utf8')
+}
+
+/**
+ * Processes README files to fix various link formats
+ *
+ * @param file - Path to the README file to process
+ * @param url - Base URL to use for absolute links
+ */
+export function replaceReadmePath(file: string, url: string) {
+  const readmeContent = readFileSync(file, 'utf8')
+  const updatedContent = readmeContent
+    .replace(readmePathRegex, (_match, p1, _p2, p3) => {
+      return `[${p1}](${url}/${p3})`
+    })
+    .replace(readmeDocsPathRegex, (_match, p1, _p2, p3) => {
+      return `[${p1}](${p3})`
+    })
+  writeFileSync(file, updatedContent, 'utf8')
 }

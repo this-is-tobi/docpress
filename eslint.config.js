@@ -45,4 +45,13 @@ export default antfu(
       '**/*.md/*.ts',
     ],
   },
+  {
+    files: ['**/*.spec.ts'],
+    rules: {
+      // vitest v4 requires regular function expressions for constructor mocks
+      // (arrow functions cannot be called with `new`)
+      'prefer-arrow-callback': 'off',
+      'style/space-before-function-paren': 'off',
+    },
+  },
 )

@@ -6,6 +6,7 @@ import.meta.glob('./**/*.css', { eager: true })
 
 const userFiles = import.meta.glob('./extras/**/*', { eager: true })
 const processedFiles = new Set<string>()
+const vuePathPrefixRegex = /^.*[\\/]/
 
 export default {
   enhanceApp({ app }) {
@@ -13,7 +14,7 @@ export default {
       if (!processedFiles.has(path)) {
         processedFiles.add(path)
         if (path.endsWith('.vue')) {
-          const componentName = path.replace(/^.*[\\/]/, '').replace('.vue', '')
+          const componentName = path.replace(vuePathPrefixRegex, '').replace('.vue', '')
           app.component(componentName, (file as { default: any }).default)
         }
       }

@@ -36,7 +36,7 @@ describe('getInfos', () => {
       },
     }
 
-    ;(Octokit as any).mockImplementation(() => mockOctokit)
+    ;(Octokit as any).mockImplementation(function () { return mockOctokit })
 
     const result = await getInfos({ username: 'testUser', token: 'testToken', branch: 'main' })
 
@@ -83,7 +83,7 @@ describe('getContributors', () => {
       },
     }
 
-    ;(Octokit as any).mockImplementation(() => mockOctokit)
+    ;(Octokit as any).mockImplementation(function () { return mockOctokit })
 
     const result = await getContributors({ repository: mockRepository, token: mockToken })
 
@@ -110,7 +110,7 @@ describe('getContributors', () => {
       },
     }
 
-    ;(Octokit as any).mockImplementation(() => mockOctokit)
+    ;(Octokit as any).mockImplementation(function () { return mockOctokit })
 
     const result = await getContributors({ repository: mockRepository, token: mockToken })
 
@@ -137,7 +137,7 @@ describe('getContributors', () => {
       },
     }
 
-    ;(Octokit as any).mockImplementation(() => mockOctokit)
+    ;(Octokit as any).mockImplementation(function () { return mockOctokit })
 
     const result = await getContributors({ repository: mockRepository, token: mockToken })
 

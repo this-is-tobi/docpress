@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { replaceReadmePath, replaceRelativePath } from './regex.js'
+import { replaceReadmePath, replaceRelativePath } from './functions.js'
 
 vi.mock('fs')
 
