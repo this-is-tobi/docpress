@@ -74,5 +74,6 @@ export async function main() {
     log(`\n\nDocpress build succedeed.`, 'success')
   } catch (error) {
     log(`\n\nDocpress build failed : ${error}`, 'error')
+    process.exit(1)
   }
 }
