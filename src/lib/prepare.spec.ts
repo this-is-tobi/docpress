@@ -486,10 +486,6 @@ describe('generateVitepressFiles', () => {
       expect.stringContaining('export default config'),
     )
     expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/.vitepress/config.js',
-      expect.stringContaining('import { withMermaid }'),
-    )
-    expect(writeFileSync).toHaveBeenCalledWith(
       '/tmp/docpress/mock/docs/index.md',
       expect.stringContaining('layout: home'),
     )

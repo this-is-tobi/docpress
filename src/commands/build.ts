@@ -1,4 +1,6 @@
 import { build as vitepressBuild } from 'vitepress'
+import type { UserConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 import { createCommand } from 'commander'
 import { addOptions } from '../utils/commands.js'
 import { DOCPRESS_DIR } from '../utils/const.js'
@@ -68,7 +70,11 @@ export async function main() {
   try {
     // Build VitePress with Vue warnings suppressed
     await suppressVueWarnings(async () => {
-      await vitepressBuild(DOCPRESS_DIR)
+      await vitepressBuild(DOCPRESS_DIR, {
+        onAfterConfigResolve(siteConfig) {
+          withMermaid(siteConfig as unknown as UserConfig)
+        },
+      })
     })
 
     log(`\n\nDocpress build succedeed.`, 'success')
