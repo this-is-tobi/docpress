@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/this-is-tobi/docpress/compare/v0.8.0...v0.8.1) (2026-03-16)
+
+
+### Bug Fixes
+
+* broken build with new mermaid feature ([2641f36](https://github.com/this-is-tobi/docpress/commit/2641f363809febc31819dd78084b3b6436618b68))
+
 ## [0.8.0](https://github.com/this-is-tobi/docpress/compare/v0.7.5...v0.8.0) (2026-03-16)
 
 
