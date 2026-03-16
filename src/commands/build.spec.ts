@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { build as vitepressBuild } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 import { createOption } from 'commander'
 import { DOCPRESS_DIR } from '../utils/const.js'
 import { log } from '../utils/logger.js'
@@ -8,6 +9,9 @@ import { globalOpts } from './global.js'
 
 vi.mock('vitepress', () => ({
   build: vi.fn(),
+}))
+vi.mock('vitepress-plugin-mermaid', () => ({
+  withMermaid: vi.fn(),
 }))
 vi.mock('../utils/logger.js', () => ({
   log: vi.fn(),
@@ -113,8 +117,20 @@ describe('main', () => {
     await main()
 
     expect(log).toHaveBeenCalledWith(`\n-> Start building Vitepress website.\n\n`, 'info')
-    expect(vitepressBuild).toHaveBeenCalledWith(DOCPRESS_DIR)
+    expect(vitepressBuild).toHaveBeenCalledWith(DOCPRESS_DIR, expect.objectContaining({
+      onAfterConfigResolve: expect.any(Function),
+    }))
     expect(log).toHaveBeenCalledWith(`\n\nDocpress build succedeed.`, 'success')
+  })
+
+  it('should apply withMermaid via onAfterConfigResolve', async () => {
+    (vitepressBuild as any).mockImplementation(async (_dir: string, opts: any) => {
+      opts.onAfterConfigResolve({ markdown: {}, vite: {} })
+    })
+
+    await main()
+
+    expect(withMermaid).toHaveBeenCalledWith({ markdown: {}, vite: {} })
   })
 
   it('should log start and error messages when build fails', async () => {
@@ -125,7 +141,9 @@ describe('main', () => {
     await main()
 
     expect(log).toHaveBeenCalledWith(`\n-> Start building Vitepress website.\n\n`, 'info')
-    expect(vitepressBuild).toHaveBeenCalledWith(DOCPRESS_DIR)
+    expect(vitepressBuild).toHaveBeenCalledWith(DOCPRESS_DIR, expect.objectContaining({
+      onAfterConfigResolve: expect.any(Function),
+    }))
     expect(log).toHaveBeenCalledWith(`\n\nDocpress build failed : ${error}`, 'error')
     expect(exitSpy).toHaveBeenCalledWith(1)
     exitSpy.mockRestore()

@@ -515,7 +515,7 @@ export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeo
   createDir(dirname(VITEPRESS_CONFIG))
 
   log(`   Generate Vitepress config.`, 'info')
-  writeFileSync(VITEPRESS_CONFIG, `import { withMermaid } from 'vitepress-plugin-mermaid'\n\nexport const config = withMermaid(${JSON.stringify(vitepressConfig, null, 2)})\n\nexport default config\n`)
+  writeFileSync(VITEPRESS_CONFIG, `export const config = ${JSON.stringify(vitepressConfig, null, 2)}\n\nexport default config\n`)
   log(`   Generate index file.`, 'info')
   writeFileSync(INDEX_FILE, separator + YAML.stringify(index))
   log(`   Add Docpress theme files.`, 'info')
