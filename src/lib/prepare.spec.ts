@@ -1,4 +1,3 @@
-import type { Dirent } from 'node:fs'
 import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -272,7 +271,7 @@ describe('transformDoc', () => {
 
   it('should transform repositories into index and sidebar data (multi-files docs)', () => {
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/01-file3.md', '/path/to/file1.md', '/path/to/FILE2.md', '/path/to/readme.md'])
-    vi.mocked(readdirSync).mockReturnValue(['readme.md', 'file1.md', 'FILE2.md', '01-file3.md'] as unknown as Dirent<Buffer<ArrayBufferLike>>[])
+    vi.mocked(readdirSync).mockReturnValue(['readme.md', 'file1.md', 'FILE2.md', '01-file3.md'] as any)
 
     const websiteInfos = { title: undefined, tagline: undefined }
 
@@ -310,7 +309,7 @@ describe('transformDoc', () => {
 
   it('should transform repositories into index and sidebar data (single-file docs)', () => {
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/README.md'])
-    vi.mocked(readdirSync).mockReturnValue(['readme.md'] as unknown as Dirent<Buffer<ArrayBufferLike>>[])
+    vi.mocked(readdirSync).mockReturnValue(['readme.md'] as any)
 
     const websiteInfos = { title: undefined, tagline: undefined }
 
@@ -349,7 +348,7 @@ describe('transformDoc', () => {
     ] as ReturnType<typeof getUserRepos>
 
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/README.md'])
-    vi.mocked(readdirSync).mockReturnValue(['readme.md'] as unknown as Dirent<Buffer<ArrayBufferLike>>[])
+    vi.mocked(readdirSync).mockReturnValue(['readme.md'] as any)
 
     const websiteInfos = { title: undefined, tagline: undefined }
 
@@ -485,6 +484,10 @@ describe('generateVitepressFiles', () => {
     expect(writeFileSync).toHaveBeenCalledWith(
       '/tmp/docpress/mock/.vitepress/config.js',
       expect.stringContaining('export default config'),
+    )
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/tmp/docpress/mock/.vitepress/config.js',
+      expect.stringContaining('import { withMermaid }'),
     )
     expect(writeFileSync).toHaveBeenCalledWith(
       '/tmp/docpress/mock/docs/index.md',
@@ -771,7 +774,7 @@ describe('prepareDoc', () => {
       },
     ] as ReturnType<typeof getUserRepos>)
     vi.mocked(existsSync).mockReturnValue(false)
-    vi.mocked(readdirSync).mockReturnValue(['readme.md'] as unknown as Dirent<Buffer<ArrayBufferLike>>[])
+    vi.mocked(readdirSync).mockReturnValue(['readme.md'] as any)
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/README.md'])
     vi.mocked(statSync).mockReturnValue({ isFile: () => true } as any)
   })
@@ -922,7 +925,7 @@ describe('moveSourcesLast', () => {
 
 describe('generateSidebarItems', () => {
   it('should generate sidebar items for files with dots in filenames', () => {
-    vi.mocked(readdirSync).mockReturnValue(['file.with.dots.md'] as unknown as Dirent<Buffer<ArrayBufferLike>>[])
+    vi.mocked(readdirSync).mockReturnValue(['file.with.dots.md'] as any)
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/file.with.dots.md'])
 
     // Call the exported function that uses generateSidebarItems internally
