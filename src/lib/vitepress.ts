@@ -52,7 +52,8 @@ const defaultVitepressConfig: ReturnType<typeof defineConfig> = {
  * @returns Merged VitePress configuration
  */
 export function getVitepressConfig(sidebar: SidebarProject[], nav: Page[], vitepressConfig?: ReturnType<typeof defineConfig>): Partial<ReturnType<typeof defineConfig>> {
-  return vitepressConfig
+  const config = vitepressConfig
     ? deepMerge(defaultVitepressConfig, vitepressConfig, { themeConfig: { sidebar, nav } })
     : deepMerge(defaultVitepressConfig, { themeConfig: { sidebar, nav } })
+  return config
 }
