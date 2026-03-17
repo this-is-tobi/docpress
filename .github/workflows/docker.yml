@@ -60,7 +60,7 @@ jobs:
       registry-user: ${{ steps.infos.outputs.REGISTRY_USER }}
     steps:
     - name: Checks-out repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Get variables
       id: infos
@@ -82,13 +82,13 @@ jobs:
         images: ${{ fromJSON(needs.infos.outputs.build-matrix) }}
     steps:
     - name: Checks-out repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Docker buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
 
     - name: Cache Docker layers
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: /tmp/.buildx-cache
         key: buildx-${{ runner.os }}-${{ runner.arch }}-${{ matrix.images.name }}-${{ hashFiles('src/**') }}
@@ -96,11 +96,11 @@ jobs:
           buildx-${{ runner.os }}-${{ runner.arch }}-${{ matrix.images.name }}-
 
     - name: Set up QEMU (for multi platform build)
-      uses: docker/setup-qemu-action@v3
+      uses: docker/setup-qemu-action@v4
       if: ${{ inputs.USE_QEMU }}
 
     - name: Login to GitHub Container Registry
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ${{ needs.infos.outputs.registry-domain }}
         username: ${{ github.actor }}
@@ -109,7 +109,7 @@ jobs:
 
     - name: Build and push docker image
       id: build
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: ${{ matrix.images.build.context }}
         file: ${{ matrix.images.build.dockerfile }}
@@ -138,7 +138,7 @@ jobs:
         touch "/tmp/digests/${{ matrix.images.name }}/${digest#sha256:}"
 
     - name: Upload digest
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: digests-${{ matrix.images.name }}-${{ inputs.MULTI_ARCH && inputs.USE_QEMU && 'linux-amd64_linux-arm64' || (contains(runner.arch, 'ARM') && 'linux-arm64' || 'linux-amd64') }}
         path: /tmp/digests/${{ matrix.images.name }}/*
@@ -156,18 +156,18 @@ jobs:
         images: ${{ fromJSON(needs.infos.outputs.build-matrix) }}
     steps:
     - name: Download digests
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         pattern: digests-${{ matrix.images.name }}-*
         path: /tmp/digests/${{ matrix.images.name }}
         merge-multiple: true
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
 
     - name: Docker meta
       id: meta
-      uses: docker/metadata-action@v5
+      uses: docker/metadata-action@v6
       with:
         images: ${{ needs.infos.outputs.registry-domain }}/${{ needs.infos.outputs.registry-user }}/${{ matrix.images.name }}
         tags: |
@@ -180,7 +180,7 @@ jobs:
           type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
 
     - name: Login to GitHub Container Registry
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ${{ needs.infos.outputs.registry-domain }}
         username: ${{ github.actor }}
