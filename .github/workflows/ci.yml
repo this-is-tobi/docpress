@@ -14,11 +14,7 @@ on:
 env:
   NODE_VERSION: 24.14.0
   PNPM_VERSION: 10.32.0
-  NPM_VERSION: latest
   BUN_VERSION: latest
-  REGISTRY_NAMESPACE: ghcr.io/${{ github.repository_owner }}
-  MULTI_ARCH: true
-  USE_QEMU: true
 
 jobs:
   expose-vars:
@@ -28,28 +24,28 @@ jobs:
       NODE_VERSION: ${{ env.NODE_VERSION }}
       PNPM_VERSION: ${{ env.PNPM_VERSION }}
       BUN_VERSION: ${{ env.BUN_VERSION }}
-      REGISTRY_NAMESPACE: ${{ env.REGISTRY_NAMESPACE }}
-      MULTI_ARCH: ${{ env.MULTI_ARCH }}
-      USE_QEMU: ${{ env.USE_QEMU }}
     steps:
     - name: Exposing env vars
       run: echo "Exposing env vars"
 
   lint:
-    uses: ./.github/workflows/lint.yml
+    uses: this-is-tobi/github-workflows/.github/workflows/lint-js.yml@v0
     needs:
     - expose-vars
     with:
-      NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
-      PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
+      RUNTIME_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
+      PACKAGE_MANAGER: pnpm
 
   tests-unit:
-    uses: ./.github/workflows/tests-unit.yml
+    uses: this-is-tobi/github-workflows/.github/workflows/test-vitest.yml@v0
     needs:
     - expose-vars
     with:
-      NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
-      PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
+      RUNTIME_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
+      PACKAGE_MANAGER: pnpm
+      COVERAGE: true
+      COVERAGE_REPORTER: lcov
+      TEST_COMMAND: pnpm run test:cov
 
   tests-cli:
     uses: ./.github/workflows/tests-cli.yml
@@ -61,16 +57,20 @@ jobs:
       BUN_VERSION: ${{ needs.expose-vars.outputs.BUN_VERSION }}
 
   build-docker:
-    uses: ./.github/workflows/docker.yml
+    uses: this-is-tobi/github-workflows/.github/workflows/build-docker.yml@v0
     needs:
     - expose-vars
     permissions:
+      contents: read
       packages: write
     with:
-      REGISTRY_NAMESPACE: ${{ needs.expose-vars.outputs.REGISTRY_NAMESPACE }}
-      PR_NUMBER: ${{ github.event.pull_request.number || github.event.number || '' }}
-      MULTI_ARCH: ${{ needs.expose-vars.outputs.MULTI_ARCH == 'true' }}
-      USE_QEMU: ${{ needs.expose-vars.outputs.USE_QEMU == 'true' }}
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/docpress
+      IMAGE_TAG: pr-${{ github.event.pull_request.number || github.event.number }}
+      IMAGE_DOCKERFILE: ./Dockerfile
+      IMAGE_CONTEXT: ./
+      IMAGE_TARGET: prod
+      USE_QEMU: true
+      CACHE: true
 
   tests-docker:
     uses: ./.github/workflows/tests-docker.yml
@@ -79,19 +79,46 @@ jobs:
     - build-docker
     with:
       PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
-      DOCKER_IMAGE: ${{ (github.event.pull_request.number || github.event.number) && format('{0}/{1}:pr-{2}', needs.expose-vars.outputs.REGISTRY_NAMESPACE, 'docpress', (github.event.pull_request.number || github.event.number)) }}
+      DOCKER_IMAGE: ${{ (github.event.pull_request.number || github.event.number) && format('ghcr.io/{0}/docpress:pr-{1}', github.repository_owner, (github.event.pull_request.number || github.event.number)) || '' }}
 
   scan-vuln:
-    uses: ./.github/workflows/scan.yml
+    uses: this-is-tobi/github-workflows/.github/workflows/scan-trivy.yml@v0
     if: ${{ !github.event.pull_request.draft && (github.base_ref == 'main' || github.base_ref == 'develop') }}
     needs:
-    - expose-vars
     - build-docker
     permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+      packages: read
+    with:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/docpress:pr-${{ github.event.pull_request.number || github.event.number }}
+      PATH: .
+      FORMAT: sarif
+      GITHUB_SECURITY_TAB: true
+      PR_NUMBER: ${{ format('{0}', github.event.pull_request.number || github.event.number) }}
+
+  # Sonarqube scan - requires vars.SONAR_URL repository variable and SONAR_TOKEN + SONAR_PROJECT_KEY secrets
+  code-scan:
+    uses: this-is-tobi/github-workflows/.github/workflows/scan-sonarqube.yml@v0
+    if: ${{ vars.SONAR_URL != '' }}
+    needs:
+    - tests-unit
+    permissions:
+      contents: read
+      issues: write
       pull-requests: write
     with:
-      REGISTRY_NAMESPACE: ${{ needs.expose-vars.outputs.REGISTRY_NAMESPACE }}
-      TAG: pr-${{ github.event.pull_request.number || github.event.number }}
+      SONAR_URL: ${{ vars.SONAR_URL }}
+      COVERAGE_IMPORT: true
+      SOURCES_PATH: src
+      FAIL_ON_ERROR: false
+      SONAR_EXTRA_ARGS: >
+        -Dsonar.javascript.node.maxspace=4096
+        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+        -Dsonar.coverage.exclusions=**/*.spec.js,**/*.spec.ts
+        -Dsonar.cpd.exclusions=**/*.spec.js,**/*.spec.ts
+    secrets: inherit
 
   # Workaround for required status check in protection branches (see. https://github.com/orgs/community/discussions/13690)
   all-jobs-passed:
@@ -106,6 +133,7 @@ jobs:
     - build-docker
     - tests-docker
     - scan-vuln
+    - code-scan
     steps:
     - name: Check status of all required jobs
       run: |-
