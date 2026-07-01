@@ -392,6 +392,22 @@ describe('transformDoc', () => {
       },
     ])
   })
+
+  it('should not throw and should skip sources when a repository has no markdown files (e.g. failed clone)', () => {
+    vi.mocked(getMdFiles).mockReturnValue([])
+    vi.mocked(readdirSync).mockReturnValue([] as any)
+
+    const websiteInfos = { title: undefined, tagline: undefined }
+
+    const result = transformDoc(repositories, user, websiteInfos)
+    expect(result.sidebar).toEqual([
+      {
+        text: 'My repo',
+        collapsed: true,
+        items: [],
+      },
+    ])
+  })
 })
 
 describe('addExtraPages', () => {

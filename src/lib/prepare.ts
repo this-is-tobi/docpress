@@ -368,10 +368,14 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
     if (projectFiles.length > 1) {
       sourceFile = resolve(repository.docpress.projectPath, 'sources.md')
       projectFiles.push('sources.md')
-    } else {
+    } else if (projectFiles.length === 1) {
       sourceFile = resolve(repository.docpress.projectPath, projectFiles[0])
     }
-    addSources(repository.html_url, sourceFile)
+    if (sourceFile) {
+      addSources(repository.html_url, sourceFile)
+    } else {
+      log(`   No markdown files found for repository '${repository.name}', skipping sources.`, 'warn')
+    }
 
     const projectTree = buildTree(projectFiles)
     const sidebarItems = moveSourcesLast(generateSidebarItems(repository, projectTree))
