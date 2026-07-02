@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": "./",
     "rootDirs": ["./src", "./public"],
     "types": [
       "node",

@@ -12,7 +12,7 @@ export default defineConfig({
       name: 'docpress',
       formats: ['es'],
     },
-    rollupOptions: {
+    rolldownOptions: {
       output: {
         entryFileNames: 'cli.js',
         chunkFileNames: 'chunk-[hash].js',
