@@ -270,8 +270,8 @@ describe('transformDoc', () => {
   })
 
   it('should transform repositories into index and sidebar data (multi-files docs)', () => {
-    vi.mocked(getMdFiles).mockReturnValue(['/path/to/01-file3.md', '/path/to/file1.md', '/path/to/FILE2.md', '/path/to/readme.md'])
-    vi.mocked(readdirSync).mockReturnValue(['readme.md', 'file1.md', 'FILE2.md', '01-file3.md'] as any)
+    vi.mocked(getMdFiles).mockReturnValue(['/path/to/01-readme.md', '/path/to/02-file1.md', '/path/to/03-FILE2.md', '/path/to/04-file3.md'])
+    vi.mocked(readdirSync).mockReturnValue(['01-readme.md', '02-file1.md', '03-FILE2.md', '04-file3.md'] as any)
 
     const websiteInfos = { title: undefined, tagline: undefined }
 
@@ -305,6 +305,45 @@ describe('transformDoc', () => {
       },
     ])
     expect(result.index.hero.name).toContain('John Doe\'s projects')
+  })
+
+  it('should order sidebar pages by numeric filename prefix, regardless of the order readdirSync returns them in', () => {
+    // readdirSync order reflects on-disk directory-entry order (not guaranteed to be
+    // sorted, e.g. on Linux/ext4 inside a container), so it's scrambled here on purpose.
+    vi.mocked(getMdFiles).mockReturnValue(['/path/to/04-file3.md', '/path/to/02-file1.md', '/path/to/03-FILE2.md', '/path/to/01-readme.md'])
+    vi.mocked(readdirSync).mockReturnValue(['04-file3.md', '01-readme.md', '03-FILE2.md', '02-file1.md'] as any)
+
+    const websiteInfos = { title: undefined, tagline: undefined }
+
+    const result = transformDoc(repositories, user, websiteInfos)
+    expect(result.sidebar).toEqual([
+      {
+        text: 'My repo',
+        collapsed: true,
+        items: [
+          {
+            text: 'Introduction',
+            link: '/my-repo/introduction',
+          },
+          {
+            text: 'File1',
+            link: '/my-repo/file1',
+          },
+          {
+            text: 'File2',
+            link: '/my-repo/file2',
+          },
+          {
+            text: 'File3',
+            link: '/my-repo/file3',
+          },
+          {
+            text: 'Sources',
+            link: '/my-repo/sources',
+          },
+        ],
+      },
+    ])
   })
 
   it('should transform repositories into index and sidebar data (single-file docs)', () => {

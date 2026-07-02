@@ -137,7 +137,7 @@ export function extractFiles(paths: string[] | string): string[] {
       return [path]
     }
     if (isDir(path)) {
-      return readdirSync(path).flatMap(file => extractFiles(join(path, file)))
+      return readdirSync(path).sort().flatMap(file => extractFiles(join(path, file)))
     }
     return []
   })
