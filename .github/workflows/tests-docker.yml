@@ -21,10 +21,10 @@ jobs:
     - name: Checks-out repository
       uses: actions/checkout@v6
 
-    - name: Setup Corepack
-      run: |
-        npm install -g corepack@latest
-        corepack enable
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        run_install: false
 
     - name: Run docker tests
       run: ./ci/scripts/run-tests.sh -d ${{ inputs.DOCKER_IMAGE }}
