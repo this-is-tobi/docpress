@@ -40,7 +40,8 @@ export const configSchema = z.object({
     .describe('Whether or not to create the dedicated fork page that aggregate external contributions.')
     .default(false),
   vitepressConfig: z.any()
-    .describe('Path to the vitepress configuration file.'),
+    .describe('Path to the vitepress configuration file.')
+    .optional(),
   websiteTitle: z.string()
     .describe('Website title.'),
   websiteTagline: z.string()
