@@ -255,6 +255,27 @@ describe('extractFiles', () => {
     const result = extractFiles('/path/to/nonexistent')
     expect(result).toEqual([])
   })
+
+  it('should sort entries regardless of the order readdirSync returns them in', () => {
+    vi.mocked(statSync).mockImplementation(path => ({
+      isFile: () => (path as string).endsWith('.md'),
+      isDirectory: () => !(path as string).endsWith('.md'),
+    } as unknown as ReturnType<typeof statSync>))
+
+    // readdirSync order reflects on-disk directory-entry order (not guaranteed to be
+    // sorted, e.g. on Linux/ext4 inside a container), so it's scrambled here on purpose.
+    vi.mocked(readdirSync).mockImplementation((path) => {
+      if (path === '/path/to/dir') return ['03-file3.md', '01-file1.md', '02-file2.md'] as any
+      return []
+    })
+
+    const result = extractFiles('/path/to/dir')
+    expect(result).toEqual([
+      '/path/to/dir/01-file1.md',
+      '/path/to/dir/02-file2.md',
+      '/path/to/dir/03-file3.md',
+    ])
+  })
 })
 
 describe('getMdFiles', () => {

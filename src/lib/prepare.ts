@@ -361,7 +361,8 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
       .filter((file) => {
         return statSync(resolve(repository.docpress.projectPath, file.toString())).isFile()
           && basename(resolve(repository.docpress.projectPath, file.toString())).endsWith('.md')
-      }) as string[]
+      })
+      .sort() as string[]
 
     log(`   Add sources for repository '${repository.name}'.`, 'info')
     let sourceFile
