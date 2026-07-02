@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.3](https://github.com/this-is-tobi/docpress/compare/v0.8.2...v0.8.3) (2026-07-02)
+
+
+### Bug Fixes
+
+* run build:clean before building so stale dist/ can't ship ([05e0709](https://github.com/this-is-tobi/docpress/commit/05e0709d73cf98e88c9fb5362cd488ab68dac691))
+
 ## [0.8.2](https://github.com/this-is-tobi/docpress/compare/v0.8.1...v0.8.2) (2026-07-02)
 
 
