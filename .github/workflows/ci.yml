@@ -13,7 +13,6 @@ on:
 
 env:
   NODE_VERSION: 24.14.0
-  PNPM_VERSION: 10.32.0
   BUN_VERSION: latest
 
 jobs:
@@ -22,7 +21,6 @@ jobs:
     if: ${{ !github.event.pull_request.draft }}
     outputs:
       NODE_VERSION: ${{ env.NODE_VERSION }}
-      PNPM_VERSION: ${{ env.PNPM_VERSION }}
       BUN_VERSION: ${{ env.BUN_VERSION }}
     steps:
     - name: Exposing env vars
@@ -53,7 +51,6 @@ jobs:
     - expose-vars
     with:
       NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
-      PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
       BUN_VERSION: ${{ needs.expose-vars.outputs.BUN_VERSION }}
 
   build-docker:
@@ -80,7 +77,6 @@ jobs:
     - expose-vars
     - build-docker
     with:
-      PNPM_VERSION: ${{ needs.expose-vars.outputs.PNPM_VERSION }}
       DOCKER_IMAGE: ${{ (github.event.pull_request.number || github.event.number) && format('ghcr.io/{0}/docpress:pr-{1}', github.repository_owner, (github.event.pull_request.number || github.event.number)) || '' }}
 
   scan-vuln:
