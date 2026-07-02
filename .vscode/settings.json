@@ -10,7 +10,6 @@
   "search.exclude": {
     "**/.git": true,
     "**/.nuxt": true,
-    "**/.pnpm": true,
     "**/.yarn": true,
     "**/.turbo": true,
     "**/dist/**": true,
@@ -18,7 +17,7 @@
     "**/logs": true,
     "**/node_modules": true,
     "**/package-lock.json": true,
-    "**/pnpm-lock.yaml": true,
+    "**/bun.lock": true,
     "**/yarn.lock": true
   },
   // general

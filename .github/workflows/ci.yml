@@ -31,19 +31,21 @@ jobs:
     needs:
     - expose-vars
     with:
-      RUNTIME_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
-      PACKAGE_MANAGER: pnpm
+      RUNTIME: bun
+      RUNTIME_VERSION: ${{ needs.expose-vars.outputs.BUN_VERSION }}
+      PACKAGE_MANAGER: bun
 
   tests-unit:
     uses: this-is-tobi/github-workflows/.github/workflows/test-vitest.yml@v0
     needs:
     - expose-vars
     with:
-      RUNTIME_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
-      PACKAGE_MANAGER: pnpm
+      RUNTIME: bun
+      RUNTIME_VERSION: ${{ needs.expose-vars.outputs.BUN_VERSION }}
+      PACKAGE_MANAGER: bun
       COVERAGE: true
       COVERAGE_REPORTER: lcov
-      TEST_COMMAND: pnpm run test:cov
+      TEST_COMMAND: bun run test:cov
 
   tests-cli:
     uses: ./.github/workflows/tests-cli.yml

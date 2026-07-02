@@ -21,10 +21,10 @@ jobs:
     - name: Checks-out repository
       uses: actions/checkout@v6
 
-    - name: Install pnpm
-      uses: pnpm/action-setup@v4
+    - name: Install bun
+      uses: oven-sh/setup-bun@v2
       with:
-        run_install: false
+        bun-version: latest
 
     - name: Run docker tests
       run: ./ci/scripts/run-tests.sh -d ${{ inputs.DOCKER_IMAGE }}

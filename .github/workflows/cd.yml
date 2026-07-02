@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: 24.14.0
+  BUN_VERSION: latest
 
 jobs:
   expose-vars:
     runs-on: ubuntu-latest
     outputs:
-      NODE_VERSION: ${{ env.NODE_VERSION }}
+      BUN_VERSION: ${{ env.BUN_VERSION }}
     steps:
     - name: Exposing env vars
       run: echo "Exposing env vars"
@@ -37,9 +37,10 @@ jobs:
       contents: read
       id-token: write
     with:
-      RUNTIME_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
-      PACKAGE_MANAGER: pnpm
-      BUILD_COMMAND: pnpm run build
+      RUNTIME: bun
+      RUNTIME_VERSION: ${{ needs.expose-vars.outputs.BUN_VERSION }}
+      PACKAGE_MANAGER: bun
+      BUILD_COMMAND: bun run build
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 

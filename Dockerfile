@@ -1,35 +1,32 @@
+ARG BUN_IMAGE=docker.io/oven/bun:1.3.14
 ARG NODE_IMAGE=docker.io/node:24.14.0-slim
 
 # Base stage
-FROM ${NODE_IMAGE} AS base
+FROM ${BUN_IMAGE} AS base
 
-ARG PNPM_VERSION=10.32.0
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
 WORKDIR /app
-RUN corepack enable pnpm && corepack install -g pnpm@${PNPM_VERSION}
-COPY --chown=node:root . ./
+COPY . ./
 
 
 # Dev stage
 FROM base AS dev
 
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-ENTRYPOINT [ "pnpm", "run" ]
+RUN --mount=type=cache,id=bun,target=/root/.bun/install/cache bun install --frozen-lockfile
+ENTRYPOINT [ "bun", "run" ]
 CMD [ "dev" ]
 
 
 # Prod dependencies stage
 FROM base AS prod-deps
 
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile --ignore-scripts
+RUN --mount=type=cache,id=bun,target=/root/.bun/install/cache bun install --production --frozen-lockfile --ignore-scripts
 
 
 # Build stage
 FROM base AS build
 
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm run build
+RUN --mount=type=cache,id=bun,target=/root/.bun/install/cache bun install --frozen-lockfile
+RUN bun run build
 
 
 # Prod stage
