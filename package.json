@@ -22,7 +22,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "pnpm run build:types && pnpm run build:vite",
+    "build": "pnpm run build:clean && pnpm run build:types && pnpm run build:vite",
     "build:clean": "rimraf ./dist ./types ./tsconfig.tsbuildinfo",
     "build:docker": "docker build --tag tobi-or-not/docpress --target prod .",
     "build:types": "tsc",
