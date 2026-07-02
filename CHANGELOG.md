@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.2](https://github.com/this-is-tobi/docpress/compare/v0.8.1...v0.8.2) (2026-07-02)
+
+
+### Bug Fixes
+
+* grant attestations/id-token permissions for build-docker.yml calls ([a298525](https://github.com/this-is-tobi/docpress/commit/a29852543ea02b2044fb9d9aab3595a3ff6c3f3b))
+* replace pnpm/action-setup with Corepack in local test workflows ([1f57c8c](https://github.com/this-is-tobi/docpress/commit/1f57c8c2a199811f7282e66ed6e0f1e91289cd11))
+* revert to pnpm/action-setup in local test workflows, auto-reading version ([02784e7](https://github.com/this-is-tobi/docpress/commit/02784e787a1e006d53373c83ab39bcd5fd26a921))
+* skip sources instead of crashing when a repo has no markdown files ([fd5632f](https://github.com/this-is-tobi/docpress/commit/fd5632f191eb789098fb079fb83f4e42739b449c))
+
 ## [0.8.1](https://github.com/this-is-tobi/docpress/compare/v0.8.0...v0.8.1) (2026-03-16)
 
 
