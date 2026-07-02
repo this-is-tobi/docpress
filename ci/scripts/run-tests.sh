@@ -13,7 +13,7 @@ PROJECT_DIR="$(git rev-parse --show-toplevel)"
 
 # Get versions
 NODE_VERSION="$(node --version)"
-PNPM_VERSION="$(pnpm --version)"
+BUN_VERSION="$(bun --version)"
 DOCKER_VERSION="$(docker --version)"
 DOCKER_BUILDX_VERSION="$(docker buildx version)"
 
@@ -70,8 +70,8 @@ if [ "$RUN_LINT" == "false" ] && [ "$RUN_UNIT_TESTS" == "false" ] && [ "$RUN_CLI
   exit 1
 fi
 
-if [ -z "$PNPM_VERSION" ]; then
-  printf "\nThis script uses pnpm, and it isn't installed - please install pnpm and try again! (https://pnpm.io)\n"
+if [ -z "$BUN_VERSION" ]; then
+  printf "\nThis script uses bun, and it isn't installed - please install bun and try again! (https://bun.com)\n"
   print_help
   exit 1
 fi
@@ -108,7 +108,7 @@ checkDocsResult() {
 # Settings
 printf "\nScript settings:
   -> node version: ${NODE_VERSION}
-  -> pnpm version: ${PNPM_VERSION}
+  -> bun version: ${BUN_VERSION}
   -> docker version: ${DOCKER_VERSION}
   -> docker buildx version: ${DOCKER_BUILDX_VERSION}
   -> run lint: ${RUN_LINT}
@@ -124,7 +124,7 @@ if [ "$RUN_LINT" == "true" ]; then
   printf "\n${red}${i}.${no_color} Launch lint\n"
   i=$(($i + 1))
 
-  pnpm run lint
+  bun run lint
 fi
 
 
@@ -133,7 +133,7 @@ if [ "$RUN_UNIT_TESTS" == "true" ]; then
   printf "\n${red}${i}.${no_color} Launch unit tests\n"
   i=$(($i + 1))
 
-  pnpm run test:cov
+  bun run test:cov
 fi
 
 
@@ -142,8 +142,8 @@ if [ "$RUN_CLI_TESTS" == "true" ]; then
   printf "\n${red}${i}.${no_color} Launch cli tests\n"
   i=$(($i + 1))
 
-  pnpm run build \
-    && pnpm pack \
+  bun run build \
+    && bun pm pack --ignore-scripts \
     && TGZ_PKG_NAME=$(ls -d $PWD/* | grep '.tgz')
 
   if [[ ",${PACKAGE_MANAGER}," == *",npm,"* ]]; then
@@ -187,7 +187,7 @@ if [ "$RUN_DOCKER_TESTS" == "true" ]; then
     mkdir -p /tmp/docpress/docker/docpress \
       && docker run --name docpress --rm -v /tmp/docpress/docker/docpress:/app/docpress:rw --user root $DOCKER_IMAGE  -U this-is-tobi -r homelab
   else
-    pnpm run build:docker && pnpm run start:docker -U this-is-tobi -r homelab
+    bun run build:docker && bun run start:docker -U this-is-tobi -r homelab
   fi
 
   checkDocsResult /tmp/docpress/docker/docpress

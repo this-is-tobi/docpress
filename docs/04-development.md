@@ -4,8 +4,7 @@
 
 To successfully run the Docpress application in development mode, you'll need to install the following prerequisites:
 
-- __[Node.js](https://nodejs.org/)__: A JavaScript runtime that allows you to execute JavaScript code server-side. Make sure you install a version that is compatible with the project requirements.
-- __[pnpm](https://pnpm.io/)__: A fast, disk space-efficient package manager for Node.js that is used to manage the project's dependencies.
+- __[Bun](https://bun.com/)__: The JavaScript runtime and package manager used to install dependencies and run the project's scripts.
 
 ## Setting Up the Development Environment
 
@@ -18,24 +17,24 @@ Follow these steps to set up the development environment and start working with 
     cd docpress
     ```
 2. __Install project dependencies__
-    Use pnpm to install all necessary Node.js dependencies:
+    Use bun to install all necessary dependencies:
     ```sh
-    pnpm install
+    bun install
     ```
 3. __Fetch and build the website__
     Run the following command to fetch documentation from the specified GitHub username and build the static website:
     ```sh
-    pnpm run dev -U <github_username>
+    bun run dev -U <github_username>
     ```
 4. __Preview the website__
     Launch a local development server to preview your website:
     ```sh
-    pnpm run vp:dev
+    bun run vp:dev
     ```
     You can access the preview by navigating to [http://localhost:8080](http://localhost:8080) in your web browser.
 
 > [!TIP]
-> Use command `pnpm run dev -h` to print options.
+> Use command `bun run dev -h` to print options.
 
 ## Contributions
 
