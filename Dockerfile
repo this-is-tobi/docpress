@@ -40,7 +40,6 @@ RUN apk add --no-cache git \
   && git config --system --add safe.directory '*'
 COPY --chown=bun:root --from=prod-deps /app/node_modules ./node_modules
 COPY --chown=bun:root --from=build /app/dist ./dist
-COPY --chown=bun:root --from=build /app/types ./types
 COPY --chown=bun:root --from=build /app/bin ./bin
 COPY --chown=bun:root --from=build /app/package.json ./
 USER bun

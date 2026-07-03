@@ -23,9 +23,8 @@ type ColorMap = {
  * @returns Log level number (default: 30)
  */
 function getLogLevel() {
-  return typeof Number(process.env['LOG_LEVEL']) === 'number' && !Number.isNaN(Number(process.env['LOG_LEVEL']))
-    ? Number(process.env['LOG_LEVEL'])
-    : 30
+  const level = Number(process.env['LOG_LEVEL'])
+  return Number.isNaN(level) ? 30 : level
 }
 
 /**
