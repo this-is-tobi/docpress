@@ -23,7 +23,7 @@ export async function getInfos({ username, token, branch }: Pick<FetchOpts, 'bra
   log(`   Get user infos.`, 'debug')
   const { data: user } = await octokit.rest.users.getByUsername({ username })
   log(`   Get repositories infos.`, 'debug')
-  const { data: repos } = await octokit.rest.repos.listForUser({ username, sort: 'full_name', per_page: 500 })
+  const repos = await octokit.paginate(octokit.rest.repos.listForUser, { username, sort: 'full_name', per_page: 100 })
 
   return { user, repos, branch }
 }
@@ -71,7 +71,7 @@ export async function getContributors({
       {
         owner: repo.source.owner.login,
         repo: repo.parent?.name ?? repo.name,
-        per_page: 500,
+        per_page: 100,
       },
     )) {
       contributors.push(...data)
