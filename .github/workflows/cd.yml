@@ -62,4 +62,3 @@ jobs:
       IMAGE_TARGET: prod
       TAG_MAJOR_AND_MINOR: true
       LATEST_TAG: true
-      USE_QEMU: true
