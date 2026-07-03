@@ -1,5 +1,5 @@
 ARG BUN_IMAGE=docker.io/oven/bun:1.3.14
-ARG NODE_IMAGE=docker.io/node:24.14.0-slim
+ARG BUN_ALPINE_IMAGE=docker.io/oven/bun:1.3.14-alpine
 
 # Base stage
 FROM ${BUN_IMAGE} AS base
@@ -30,20 +30,18 @@ RUN bun run build
 
 
 # Prod stage
-FROM ${NODE_IMAGE} AS prod
+FROM ${BUN_ALPINE_IMAGE} AS prod
 
 ARG APP_VERSION
 ENV APP_VERSION=$APP_VERSION
 WORKDIR /app
-RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/* \
-  && mkdir -p /home/node/logs && chmod 660 -R /home/node/logs \
-  && mkdir -p /home/node/.npm && chmod 660 -R /home/node/.npm \
-  && chown -R node:root /app \
+RUN apk add --no-cache git \
+  && chown -R bun:root /app \
   && git config --system --add safe.directory '*'
-COPY --chown=node:root --from=prod-deps /app/node_modules ./node_modules
-COPY --chown=node:root --from=build /app/dist ./dist
-COPY --chown=node:root --from=build /app/types ./types
-COPY --chown=node:root --from=build /app/bin ./bin
-COPY --chown=node:root --from=build /app/package.json ./
-USER node
-ENTRYPOINT ["/app/bin/docpress.js"]
+COPY --chown=bun:root --from=prod-deps /app/node_modules ./node_modules
+COPY --chown=bun:root --from=build /app/dist ./dist
+COPY --chown=bun:root --from=build /app/types ./types
+COPY --chown=bun:root --from=build /app/bin ./bin
+COPY --chown=bun:root --from=build /app/package.json ./
+USER bun
+ENTRYPOINT ["bun", "/app/bin/docpress.js"]
