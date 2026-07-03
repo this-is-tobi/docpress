@@ -1,11 +1,11 @@
 import { resolve } from 'node:path'
 import { writeFileSync } from 'node:fs'
-import type { GlobalOpts } from '../schemas/global.js'
 import type { FetchOpts, FetchOptsUser } from '../schemas/fetch.js'
 import { checkHttpStatus, prettify } from '../utils/functions.js'
 import { DOCPRESS_DIR, DOCS_DIR } from '../utils/const.js'
 import { log } from '../utils/logger.js'
 import { cloneRepo, getInfos } from './git.js'
+import { getInfos as getGitlabInfos } from './gitlab.js'
 
 /**
  * Enhanced repository type with DocPress-specific metadata
@@ -22,21 +22,49 @@ export type EnhancedRepository = Awaited<ReturnType<typeof getInfos>>['repos'][n
 }
 
 /**
+ * Web URLs of a repository for a given branch, depending on the Git provider
+ */
+export interface ProviderUrls {
+  blob_url: string
+  tree_url: string
+  raw_url: string
+}
+
+/**
+ * Builds the web URLs of a repository for a given branch and Git provider
+ *
+ * @param repo - Repository information
+ * @param branch - Branch to build URLs for
+ * @param gitProvider - Git provider used to retrieve data
+ * @returns Object containing blob, tree and raw base URLs
+ */
+export function getProviderUrls(repo: Awaited<ReturnType<typeof getInfos>>['repos'][number], branch: FetchOpts['branch'], gitProvider?: FetchOpts['gitProvider']): ProviderUrls {
+  if (gitProvider === 'gitlab') {
+    const base = repo.html_url ?? `https://gitlab.com/${repo.owner.login}/${repo.name}`
+    return {
+      blob_url: `${base}/-/blob/${branch}`,
+      tree_url: `${base}/-/tree/${branch}`,
+      raw_url: `${base}/-/raw/${branch}`,
+    }
+  }
+  const base = repo.html_url ?? `https://github.com/${repo.owner.login}/${repo.name}`
+  return {
+    blob_url: `${base}/blob/${branch}`,
+    tree_url: `${base}/tree/${branch}`,
+    raw_url: `https://raw.githubusercontent.com/${repo.owner.login}/${repo.name}/${branch}`,
+  }
+}
+
+/**
  * Checks for the existence of documentation files in a repository
  *
- * @param repoOwner - Owner of the repository (username)
- * @param repoName - Name of the repository
- * @param branch - Branch to check for documentation
+ * @param urls - Web URLs of the repository for the target branch
  * @returns Object containing HTTP status codes for different documentation paths
  */
-export async function checkDoc(repoOwner: GlobalOpts['usernames'][number], repoName: string, branch: FetchOpts['branch']) {
-  const rootReadmeUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/README.md`
-  const docsFolderUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/docs`
-  const docsReadmeUrl = `https://github.com/${repoOwner}/${repoName}/tree/${branch}/docs/01-readme.md`
-
-  const rootReadmeStatus = await checkHttpStatus(rootReadmeUrl)
-  const docsFolderStatus = await checkHttpStatus(docsFolderUrl)
-  const docsReadmeStatus = await checkHttpStatus(docsReadmeUrl)
+export async function checkDoc(urls: ProviderUrls) {
+  const rootReadmeStatus = await checkHttpStatus(`${urls.blob_url}/README.md`)
+  const docsFolderStatus = await checkHttpStatus(`${urls.tree_url}/docs`)
+  const docsReadmeStatus = await checkHttpStatus(`${urls.blob_url}/docs/01-readme.md`)
 
   return {
     rootReadmeStatus,
@@ -49,14 +77,16 @@ export async function checkDoc(repoOwner: GlobalOpts['usernames'][number], repoN
  * Fetches documentation from a user's repositories
  *
  * @param options - Options for fetching documentation
- * @param options.username - GitHub username
+ * @param options.username - Git provider username
  * @param options.branch - Branch to use for documentation
  * @param options.reposFilter - Optional filter for repositories
- * @param options.token - GitHub API token
+ * @param options.gitProvider - Git provider used to retrieve data
+ * @param options.token - Git provider API token
  */
-export async function fetchDoc({ username, branch, reposFilter, token }: FetchOptsUser) {
-  await getInfos({ username, token, branch })
-    .then(async ({ user, repos, branch }) => generateInfos(user, repos, branch, reposFilter))
+export async function fetchDoc({ username, branch, reposFilter, gitProvider, token }: FetchOptsUser) {
+  const getProviderInfos = gitProvider === 'gitlab' ? getGitlabInfos : getInfos
+  await getProviderInfos({ username, token, branch })
+    .then(async ({ user, repos, branch }) => generateInfos(user, repos, branch, reposFilter, gitProvider))
     .then(async ({ repos }) => getDoc(repos, reposFilter))
 }
 
@@ -68,7 +98,7 @@ export async function fetchDoc({ username, branch, reposFilter, token }: FetchOp
  * @param reposFilter - Optional filter for repositories
  * @returns Array of enhanced repositories with DocPress metadata
  */
-export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter']) {
+export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter'], gitProvider?: FetchOpts['gitProvider']) {
   const enhancedRepos: EnhancedRepository[] = []
 
   await Promise.all(
@@ -76,10 +106,11 @@ export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getIn
       const computedBranch = branch ?? repo.default_branch ?? 'main'
       const projectPath = resolve(DOCS_DIR, prettify(repo.name, { removeDot: true }))
       const filtered = isRepoFiltered(repo, reposFilter)
+      const urls = getProviderUrls(repo, computedBranch, gitProvider)
       let includes: string[] = []
 
       if (!repo.fork && !repo.private && !filtered) {
-        includes = await getSparseCheckout(repo, computedBranch)
+        includes = await getSparseCheckout(repo, computedBranch, gitProvider)
       }
 
       enhancedRepos.push({
@@ -89,8 +120,8 @@ export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getIn
           branch: computedBranch,
           includes,
           projectPath,
-          raw_url: `https://raw.githubusercontent.com/${repo.owner.login}/${repo.name}/${computedBranch}`,
-          replace_url: `https://github.com/${repo.owner.login}/${repo.name}/tree/${computedBranch}`,
+          raw_url: urls.raw_url,
+          replace_url: urls.tree_url,
         },
       })
     }),
@@ -104,19 +135,20 @@ export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getIn
  *
  * @param repo - Repository information
  * @param branch - Branch to check for documentation
+ * @param gitProvider - Git provider used to retrieve data
  * @returns Array of file patterns to include in sparse checkout
  */
-export async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos>>['repos'][number], branch: FetchOpts['branch']) {
-  const docsStatus = await checkDoc(repo.owner.login, repo.name, branch)
+export async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos>>['repos'][number], branch: FetchOpts['branch'], gitProvider?: FetchOpts['gitProvider']) {
+  const docsStatus = await checkDoc(getProviderUrls(repo, branch, gitProvider))
 
   const includes: string[] = []
-  if (Object.values(docsStatus).every(status => status === 404) || !repo.size) {
+  if (Object.values(docsStatus).every(status => status !== 200) || !repo.size) {
     return []
   }
-  if (docsStatus.docsFolderStatus !== 404) {
+  if (docsStatus.docsFolderStatus === 200) {
     includes.push('docs/*')
   }
-  if (docsStatus.docsFolderStatus === 404 || docsStatus.docsReadmeStatus === 404) {
+  if (docsStatus.docsFolderStatus !== 200 || docsStatus.docsReadmeStatus !== 200) {
     includes.push('README.md', '!*/**/README.md')
   }
   return includes
@@ -129,12 +161,13 @@ export async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos
  * @param repos - List of repositories from Git provider
  * @param branch - Branch to use for documentation
  * @param reposFilter - Optional filter for repositories
+ * @param gitProvider - Git provider used to retrieve data
  * @returns Object containing user and enhanced repository information
  */
-export async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'], repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter']) {
+export async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'], repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter'], gitProvider?: FetchOpts['gitProvider']) {
   writeFileSync(`${DOCPRESS_DIR}/user-${user.login}.json`, JSON.stringify(user, null, 2))
 
-  const enhancedRepos = await enhanceRepositories(repos, branch, reposFilter)
+  const enhancedRepos = await enhanceRepositories(repos, branch, reposFilter, gitProvider)
   writeFileSync(`${DOCPRESS_DIR}/repos-${user.login}.json`, JSON.stringify(enhancedRepos, null, 2))
 
   return { user, repos: enhancedRepos }

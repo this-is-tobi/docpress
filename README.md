@@ -56,7 +56,9 @@ Options:
   -c, --extra-public-content <string>  List of comma separated additional files or directories to process Vitepress public folder.
   -C, --config <string>                Path to the docpress configuration file.
   -f, --forks                          Whether or not to create the dedicated fork page that aggregate external contributions.
-  -g, --git-provider <string>          Git provider used to retrieve data. Values should be "github". (default: "github")
+  -g, --git-provider <string>          Git provider used to retrieve data.
+                                       Values should be "github" or "gitlab".
+                                       (default: "github")
   -h, --help                           display help for command
   -p, --extra-header-pages <string>    List of comma separated additional files or directories to process Vitepress header pages.
   -r, --repos-filter <string>          List of comma separated repositories to retrieve from Git provider. Default to all user's public repositories.

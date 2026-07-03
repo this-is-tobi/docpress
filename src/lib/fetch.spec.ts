@@ -9,10 +9,12 @@ import {
   fetchDoc,
   generateInfos,
   getDoc,
+  getProviderUrls,
   getSparseCheckout,
   isRepoFiltered,
 } from './fetch.js'
 import { cloneRepo, getInfos } from './git'
+import { getInfos as getGitlabInfos } from './gitlab.js'
 
 vi.mock('node:fs', () => ({ writeFileSync: vi.fn() }))
 vi.mock('node:path', () => ({ resolve: vi.fn((...args) => args.join('/')) }))
@@ -25,8 +27,42 @@ vi.mock('./git.js', () => ({
   getInfos: vi.fn(),
   cloneRepo: vi.fn(),
 }))
+vi.mock('./gitlab.js', () => ({
+  getInfos: vi.fn(),
+}))
 vi.spyOn(await import('./fetch.js'), 'generateInfos')
 vi.spyOn(await import('./fetch.js'), 'getDoc')
+
+describe('getProviderUrls', () => {
+  const repo = {
+    name: 'testRepo',
+    owner: { login: 'testUser' },
+    html_url: 'https://github.com/testUser/testRepo',
+  } as Awaited<ReturnType<typeof getInfos>>['repos'][number]
+
+  it('should build github urls by default', () => {
+    expect(getProviderUrls(repo, 'main')).toEqual({
+      blob_url: 'https://github.com/testUser/testRepo/blob/main',
+      tree_url: 'https://github.com/testUser/testRepo/tree/main',
+      raw_url: 'https://raw.githubusercontent.com/testUser/testRepo/main',
+    })
+  })
+
+  it('should build gitlab urls when the provider is gitlab', () => {
+    const gitlabRepo = { ...repo, html_url: 'https://gitlab.com/testUser/testRepo' } as typeof repo
+    expect(getProviderUrls(gitlabRepo, 'main', 'gitlab')).toEqual({
+      blob_url: 'https://gitlab.com/testUser/testRepo/-/blob/main',
+      tree_url: 'https://gitlab.com/testUser/testRepo/-/tree/main',
+      raw_url: 'https://gitlab.com/testUser/testRepo/-/raw/main',
+    })
+  })
+
+  it('should fall back to building the base url from owner and name', () => {
+    const bareRepo = { name: 'testRepo', owner: { login: 'testUser' } } as typeof repo
+    expect(getProviderUrls(bareRepo, 'main').tree_url).toBe('https://github.com/testUser/testRepo/tree/main')
+    expect(getProviderUrls(bareRepo, 'main', 'gitlab').tree_url).toBe('https://gitlab.com/testUser/testRepo/-/tree/main')
+  })
+})
 
 describe('checkDoc', () => {
   it('should return the correct status for each document URL', async () => {
@@ -35,13 +71,21 @@ describe('checkDoc', () => {
       .mockResolvedValueOnce(200) // docsFolderStatus
       .mockResolvedValueOnce(404) // docsReadmeStatus
 
-    const result = await checkDoc('testUser', 'testRepo', 'main')
+    const urls = {
+      blob_url: 'https://github.com/testUser/testRepo/blob/main',
+      tree_url: 'https://github.com/testUser/testRepo/tree/main',
+      raw_url: 'https://raw.githubusercontent.com/testUser/testRepo/main',
+    }
+    const result = await checkDoc(urls)
 
     expect(result).toEqual({
       rootReadmeStatus: 404,
       docsFolderStatus: 200,
       docsReadmeStatus: 404,
     })
+    expect(checkHttpStatus).toHaveBeenCalledWith(`${urls.blob_url}/README.md`)
+    expect(checkHttpStatus).toHaveBeenCalledWith(`${urls.tree_url}/docs`)
+    expect(checkHttpStatus).toHaveBeenCalledWith(`${urls.blob_url}/docs/01-readme.md`)
   })
 })
 
@@ -295,5 +339,19 @@ describe('fetchDoc', () => {
       token: mockFetchOpts.token,
       branch: mockFetchOpts.branch,
     })
+    expect(getGitlabInfos).not.toHaveBeenCalled()
+  })
+
+  it('should use the gitlab provider when configured', async () => {
+    ;(getGitlabInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos, branch: 'main' })
+
+    await fetchDoc({ ...mockFetchOpts, gitProvider: 'gitlab' })
+
+    expect(getGitlabInfos).toHaveBeenCalledWith({
+      username: mockFetchOpts.username,
+      token: mockFetchOpts.token,
+      branch: mockFetchOpts.branch,
+    })
+    expect(getInfos).not.toHaveBeenCalled()
   })
 })

@@ -43,11 +43,11 @@ export const prepareCmd = addOptions(createCommand(cmdName), [...prepareOpts, ..
  * @param opts - Validated prepare options
  */
 export async function main(opts: PrepareOpts) {
-  const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, token, usernames, websiteTitle, websiteTagline } = opts
+  const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, token, usernames, websiteTitle, websiteTagline } = opts
   log(`\n-> Start transform files to prepare Vitepress build.`, 'info')
 
   createDir(dirname(VITEPRESS_CONFIG), { clean: true })
   for (const username of usernames) {
-    await prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, token, username, websiteTitle, websiteTagline })
+    await prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, token, username, websiteTitle, websiteTagline })
   }
 }
