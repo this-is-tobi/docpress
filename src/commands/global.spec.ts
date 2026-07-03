@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { baseCliSchema } from '../schemas/global.js'
+import { cliSchema } from '../schemas/global.js'
 import { globalOpts } from './global.js'
 
 describe('globalOpts', () => {
@@ -16,6 +16,6 @@ describe('globalOpts', () => {
   it('should have the correct description from the schema', () => {
     const option = globalOpts[0]
     // In Zod v4, when description is undefined it returns empty string
-    expect(option.description).toBe(baseCliSchema.shape.config.description || '')
+    expect(option.description).toBe(cliSchema.shape.config.description || '')
   })
 })

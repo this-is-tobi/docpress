@@ -109,6 +109,33 @@ describe('main', () => {
     })
   })
 
+  it('should keep exclusion filters when handling multiple usernames', async () => {
+    const mockOpts = {
+      usernames: ['user1', 'user2'],
+      reposFilter: ['user1/repo1', '!user1/repo2', '!user2/repo3'],
+      token: 'testToken',
+      branch: 'main',
+      gitProvider: 'github' as const,
+    }
+
+    await main(mockOpts)
+
+    expect(fetchDoc).toHaveBeenCalledWith({
+      username: 'user1',
+      reposFilter: ['repo1', '!repo2'],
+      token: 'testToken',
+      branch: 'main',
+      gitProvider: 'github',
+    })
+    expect(fetchDoc).toHaveBeenCalledWith({
+      username: 'user2',
+      reposFilter: ['!repo3'],
+      token: 'testToken',
+      branch: 'main',
+      gitProvider: 'github',
+    })
+  })
+
   it('should create the docpress directory before fetching', async () => {
     const mockOpts = {
       usernames: ['testUser'],
@@ -129,9 +156,9 @@ describe('fetchOpts', () => {
     const gitProviderOption = fetchOpts.find(opt => opt.flags.includes('--git-provider'))
 
     expect(branchOption?.description).toBe(configSchema.shape.branch.description || '')
-    expect(branchOption?.defaultValue).toBe(configSchema.shape.branch.default)
+    expect(branchOption?.defaultValue).toBe('main')
 
     expect(gitProviderOption?.description).toBe(configSchema.shape.gitProvider.description || '')
-    expect(gitProviderOption?.defaultValue).toBe(configSchema.shape.gitProvider.default)
+    expect(gitProviderOption?.defaultValue).toBe('github')
   })
 })

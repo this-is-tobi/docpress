@@ -1,6 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
-import axios from 'axios'
 import { rimrafSync } from 'rimraf'
 import type { GlobalOpts } from '../schemas/global.js'
 import type { EnhancedRepository } from '../lib/fetch.js'
@@ -16,10 +15,10 @@ import { readmeDocsPathRegex, readmePathRegex, relativePathRegex, removeIdxRegex
  */
 export async function checkHttpStatus(url: string): Promise<number> {
   try {
-    const response = await axios.head(url)
+    const response = await fetch(url, { method: 'HEAD' })
     return response.status
-  } catch (error) {
-    return error.response?.status || error.status || 500
+  } catch (_error) {
+    return 500
   }
 }
 
@@ -231,18 +230,24 @@ export function isObject(val: any): val is object {
  * Loads and parses a JSON configuration file
  *
  * @param configPath - Path to the configuration file
- * @returns Parsed configuration object or empty object if file doesn't exist
+ * @returns Parsed configuration object, or an empty object when no path is given
+ * @throws Error if the file cannot be read or contains invalid JSON
  */
 export function loadConfigFile(configPath?: string) {
   if (!configPath) {
     return {}
   }
+  const fullPath = resolve(process.cwd(), configPath)
+  let fileContents: string
   try {
-    const fullPath = resolve(process.cwd(), configPath)
-    const fileContents = readFileSync(fullPath, 'utf8')
+    fileContents = readFileSync(fullPath, 'utf8')
+  } catch (_error) {
+    throw new Error(`Cannot read config file '${configPath}'.`)
+  }
+  try {
     return JSON.parse(fileContents)
   } catch (_error) {
-    return {}
+    throw new Error(`Invalid JSON in config file '${configPath}'.`)
   }
 }
 

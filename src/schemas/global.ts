@@ -18,11 +18,11 @@ export const configSchema = z.object({
     .describe('List of comma separated Git provider usernames used to collect data.'),
   // Fetch
   branch: z.string()
-    .describe('Branch used to collect Git provider data.')
-    .default('main'),
+    .default('main')
+    .describe('Branch used to collect Git provider data.'),
   gitProvider: z.enum(providers)
-    .describe(`Git provider used to retrieve data. Values should be ${prettifyEnum(providers)}.`)
-    .default('github'),
+    .default('github')
+    .describe(`Git provider used to retrieve data. Values should be ${prettifyEnum(providers)}.`),
   reposFilter: z.string()
     .array()
     .describe('List of comma separated repositories to retrieve from Git provider. Default to all user\'s public repositories.'),
@@ -37,11 +37,11 @@ export const configSchema = z.object({
     .array()
     .describe('List of comma separated additional files or directories to use as Vitepress theme.'),
   forks: z.boolean()
-    .describe('Whether or not to create the dedicated fork page that aggregate external contributions.')
-    .default(false),
+    .default(false)
+    .describe('Whether or not to create the dedicated fork page that aggregate external contributions.'),
   vitepressConfig: z.any()
-    .describe('Path to the vitepress configuration file.')
-    .optional(),
+    .optional()
+    .describe('Path to the vitepress configuration file.'),
   websiteTitle: z.string()
     .describe('Website title.'),
   websiteTagline: z.string()
@@ -51,78 +51,55 @@ export const configSchema = z.object({
 export type Config = z.infer<typeof configSchema>
 
 /**
- * Base CLI schema for parsing command line arguments
- * All fields are optional in this schema
- */
-export const baseCliSchema = configSchema.partial().extend({
-  config: z.string()
-    .describe('Path to the docpress configuration file.')
-    .optional(),
-  token: z.string()
-    .describe('Git provider token used to collect data.')
-    .optional(),
-  usernames: z.string()
-    .describe(configSchema.shape.usernames.description || '')
-    .optional(),
-  reposFilter: z.string()
-    .describe(configSchema.shape.reposFilter.description || '')
-    .optional(),
-  extraHeaderPages: z.string()
-    .describe(configSchema.shape.extraHeaderPages.description || '')
-    .optional(),
-  extraPublicContent: z.string()
-    .describe(configSchema.shape.extraPublicContent.description || '')
-    .optional(),
-  extraTheme: z.string()
-    .describe(configSchema.shape.extraTheme.description || '')
-    .optional(),
-  vitepressConfig: z.string()
-    .describe(configSchema.shape.vitepressConfig.description || '')
-    .optional(),
-})
-
-export type RawCli = z.infer<typeof baseCliSchema>
-
-/**
  * CLI schema with transformations applied to handle string-to-array conversions
+ * Fields with config defaults are redefined without them, so that values coming
+ * from a config file are not overridden by schema defaults
  */
 export const cliSchema = configSchema
   .partial()
   .extend({
+    branch: z.string()
+      .optional()
+      .describe(configSchema.shape.branch.description || ''),
+    gitProvider: z.enum(providers)
+      .optional()
+      .describe(configSchema.shape.gitProvider.description || ''),
+    forks: z.boolean()
+      .optional()
+      .describe(configSchema.shape.forks.description || ''),
     config: z.string()
-      .describe('Path to the docpress configuration file.')
-      .optional(),
+      .optional()
+      .describe('Path to the docpress configuration file.'),
     token: z.string()
-      .describe('Git provider token used to collect data.')
-      .optional(),
+      .optional()
+      .describe('Git provider token used to collect data.'),
     usernames: z.string()
-      .describe(configSchema.shape.usernames.description || '')
       .transform(splitByComma)
-      .optional(),
+      .optional()
+      .describe(configSchema.shape.usernames.description || ''),
     reposFilter: z.string()
-      .describe(configSchema.shape.reposFilter.description || '')
       .transform(splitByComma)
-      .optional(),
+      .optional()
+      .describe(configSchema.shape.reposFilter.description || ''),
     extraHeaderPages: z.string()
-      .describe(configSchema.shape.extraHeaderPages.description || '')
       .transform(splitByComma)
-      .optional(),
+      .optional()
+      .describe(configSchema.shape.extraHeaderPages.description || ''),
     extraPublicContent: z.string()
-      .describe(configSchema.shape.extraPublicContent.description || '')
       .transform(splitByComma)
-      .optional(),
+      .optional()
+      .describe(configSchema.shape.extraPublicContent.description || ''),
     extraTheme: z.string()
-      .describe(configSchema.shape.extraTheme.description || '')
       .transform(splitByComma)
-      .optional(),
+      .optional()
+      .describe(configSchema.shape.extraTheme.description || ''),
     vitepressConfig: z.string()
-      .describe(configSchema.shape.vitepressConfig.description || '')
-      .optional(),
+      .optional()
+      .describe(configSchema.shape.vitepressConfig.description || ''),
   })
 
 export type Cli = z.infer<typeof cliSchema>
 
-// Helper functions to reduce complexity
 /**
  * Prepares configuration data by converting string values to arrays when needed
  *
@@ -132,24 +109,29 @@ export type Cli = z.infer<typeof cliSchema>
 function prepareConfigData(configData: any) {
   if (!configData) return {}
 
-  // Convert arrays that might be strings
-  if (configData.usernames && typeof configData.usernames === 'string') {
-    configData.usernames = [configData.usernames]
-  }
-  if (configData.reposFilter && typeof configData.reposFilter === 'string') {
-    configData.reposFilter = [configData.reposFilter]
-  }
-  if (configData.extraHeaderPages && typeof configData.extraHeaderPages === 'string') {
-    configData.extraHeaderPages = [configData.extraHeaderPages]
-  }
-  if (configData.extraPublicContent && typeof configData.extraPublicContent === 'string') {
-    configData.extraPublicContent = [configData.extraPublicContent]
-  }
-  if (configData.extraTheme && typeof configData.extraTheme === 'string') {
-    configData.extraTheme = [configData.extraTheme]
+  const arrayKeys = ['usernames', 'reposFilter', 'extraHeaderPages', 'extraPublicContent', 'extraTheme'] as const
+  for (const key of arrayKeys) {
+    if (configData[key] && typeof configData[key] === 'string') {
+      configData[key] = [configData[key]]
+    }
   }
 
   return configData
+}
+
+/**
+ * Validates configuration file data against the config schema
+ *
+ * @param configData - Prepared configuration data to validate
+ * @returns The validated configuration data
+ * @throws Error if the configuration data is invalid
+ */
+function validateConfigData(configData: any) {
+  const result = configSchema.partial().safeParse(configData)
+  if (!result.success) {
+    throw new Error(z.prettifyError(result.error))
+  }
+  return result.data
 }
 
 /**
@@ -160,7 +142,6 @@ function prepareConfigData(configData: any) {
  * @throws Error if required fields are missing
  */
 function validateFinalConfig(mergedConfig: any) {
-  // Ensure usernames exists
   if (!mergedConfig.usernames?.length) {
     throw new Error('The usernames field is required')
   }
@@ -170,7 +151,7 @@ function validateFinalConfig(mergedConfig: any) {
 
 /**
  * Schema for global options that combines CLI arguments and configuration files
- * Applies transformations to merge different config sources and validate the result
+ * Merges config sources with precedence: CLI options > config file > defaults
  */
 export const globalOptsSchema = cliSchema
   .partial()
@@ -180,20 +161,21 @@ export const globalOptsSchema = cliSchema
 
       log(`Debug: Schema transform input: ${JSON.stringify(data)}`, 'debug')
 
-      // Load configuration from file
-      const configData = loadConfigFile(config)
-      const preparedConfigData = prepareConfigData(configData)
+      // Load and validate configuration from file
+      const configData = validateConfigData(prepareConfigData(loadConfigFile(config)))
 
       // Create final config
       const mergedConfig = {
+        branch: 'main',
+        gitProvider: 'github',
         forks: false,
-        ...preparedConfigData,
+        ...configData,
         ...rest,
         ...(vitepressConfig
           ? {
               vitepressConfig: {
                 ...(loadConfigFile(vitepressConfig) || {}),
-                ...(preparedConfigData.vitepressConfig || {}),
+                ...(configData.vitepressConfig || {}),
               },
             }
           : {}),
@@ -203,7 +185,6 @@ export const globalOptsSchema = cliSchema
 
       return validateFinalConfig({ ...mergedConfig, token })
     } catch (error) {
-      // Handle errors gracefully
       log(`   An error occurred while checking configuration.`, 'error')
       if (error instanceof Error) {
         log(`     ${error.message}`, 'error')
