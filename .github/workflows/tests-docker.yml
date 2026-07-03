@@ -27,4 +27,6 @@ jobs:
         bun-version: latest
 
     - name: Run docker tests
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./ci/scripts/run-tests.sh -d ${{ inputs.DOCKER_IMAGE }}

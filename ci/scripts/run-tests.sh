@@ -142,35 +142,44 @@ if [ "$RUN_CLI_TESTS" == "true" ]; then
   printf "\n${red}${i}.${no_color} Launch cli tests\n"
   i=$(($i + 1))
 
+  # Pass a token when available to avoid unauthenticated API rate limits on shared runners
+  DOCPRESS_ARGS="-U this-is-tobi -r homelab ${GITHUB_TOKEN:+-T $GITHUB_TOKEN}"
+
   bun run build \
     && bun pm pack --ignore-scripts \
     && TGZ_PKG_NAME=$(ls -d $PWD/* | grep '.tgz')
 
+  # Scenarios run as plain sequential commands so that 'set -e' aborts loudly on
+  # the first failure ('&&' chains swallow mid-chain failures under 'set -e').
+  # The installed bin is called directly: pnpm 11 'exec' consumes flags like -r
+  # for itself and silently runs nothing outside a workspace.
   if [[ ",${PACKAGE_MANAGER}," == *",npm,"* ]]; then
-    mkdir -p /tmp/docpress/cli/npm \
-      && cd /tmp/docpress/cli/npm \
-      && [ -f "./package.json" ] || npm init -y \
-      && npm install $TGZ_PKG_NAME \
-      && npm exec docpress -- -U this-is-tobi -r homelab \
-      && cd - > /dev/null
+    mkdir -p /tmp/docpress/cli/npm
+    cd /tmp/docpress/cli/npm
+    [ -f "./package.json" ] || npm init -y
+    npm install $TGZ_PKG_NAME
+    ./node_modules/.bin/docpress $DOCPRESS_ARGS
+    cd - > /dev/null
     checkDocsResult /tmp/docpress/cli/npm/docpress
   fi
   if [[ ",${PACKAGE_MANAGER}," == *",pnpm,"* ]]; then
-    mkdir -p /tmp/docpress/cli/pnpm \
-      && cd /tmp/docpress/cli/pnpm \
-      && [ -f "./package.json" ] || pnpm init \
-      && pnpm add $TGZ_PKG_NAME \
-      && pnpm exec docpress -U this-is-tobi -r homelab \
-      && cd - > /dev/null
+    mkdir -p /tmp/docpress/cli/pnpm
+    cd /tmp/docpress/cli/pnpm
+    [ -f "./package.json" ] || pnpm init
+    # pnpm 11 exits 1 when dependency build scripts are ignored (esbuild only
+    # runs a validation postinstall, its binary comes from optionalDependencies)
+    pnpm add --config.strict-dep-builds=false $TGZ_PKG_NAME
+    ./node_modules/.bin/docpress $DOCPRESS_ARGS
+    cd - > /dev/null
     checkDocsResult /tmp/docpress/cli/pnpm/docpress
   fi
   if [[ ",${PACKAGE_MANAGER}," == *",bun,"* ]]; then
-    mkdir -p /tmp/docpress/cli/bun \
-      && cd /tmp/docpress/cli/bun \
-      && [ -f "./package.json" ] || bun init -y \
-      && bun add $TGZ_PKG_NAME \
-      && bunx docpress -U this-is-tobi -r homelab \
-      && cd - > /dev/null
+    mkdir -p /tmp/docpress/cli/bun
+    cd /tmp/docpress/cli/bun
+    [ -f "./package.json" ] || bun init -y
+    bun add $TGZ_PKG_NAME
+    ./node_modules/.bin/docpress $DOCPRESS_ARGS
+    cd - > /dev/null
     checkDocsResult /tmp/docpress/cli/bun/docpress
   fi
 fi
@@ -183,11 +192,15 @@ if [ "$RUN_DOCKER_TESTS" == "true" ]; then
 
   checkDockerRunning
 
+  # Pass a token when available to avoid unauthenticated API rate limits on shared runners
+  DOCPRESS_ARGS="-U this-is-tobi -r homelab ${GITHUB_TOKEN:+-T $GITHUB_TOKEN}"
+
   if [ -n "$DOCKER_IMAGE" ]; then
-    mkdir -p /tmp/docpress/docker/docpress \
-      && docker run --name docpress --rm -v /tmp/docpress/docker/docpress:/app/docpress:rw --user root $DOCKER_IMAGE  -U this-is-tobi -r homelab
+    mkdir -p /tmp/docpress/docker/docpress
+    docker run --name docpress --rm -v /tmp/docpress/docker/docpress:/app/docpress:rw --user root $DOCKER_IMAGE $DOCPRESS_ARGS
   else
-    bun run build:docker && bun run start:docker -U this-is-tobi -r homelab
+    bun run build:docker
+    bun run start:docker $DOCPRESS_ARGS
   fi
 
   checkDocsResult /tmp/docpress/docker/docpress

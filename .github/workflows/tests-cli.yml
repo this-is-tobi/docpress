@@ -67,4 +67,6 @@ jobs:
       run: bun install --frozen-lockfile
 
     - name: Run cli tests
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./ci/scripts/run-tests.sh -c 'npm,pnpm,bun'
