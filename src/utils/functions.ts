@@ -9,13 +9,15 @@ import { readmeDocsPathRegex, readmePathRegex, relativePathRegex, removeIdxRegex
 
 /**
  * Checks the HTTP status code of a URL
+ * Redirects are not followed: some providers (e.g. GitLab) redirect to a
+ * sign-in page instead of returning 404 for missing resources
  *
  * @param url - URL to check
- * @returns HTTP status code (404 if not found, 500 for errors)
+ * @returns HTTP status code (500 for network errors)
  */
 export async function checkHttpStatus(url: string): Promise<number> {
   try {
-    const response = await fetch(url, { method: 'HEAD' })
+    const response = await fetch(url, { method: 'HEAD', redirect: 'manual' })
     return response.status
   } catch (_error) {
     return 500

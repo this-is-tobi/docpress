@@ -62,12 +62,18 @@ export interface Index {
  * @param options.extraTheme - Array of paths to additional theme files
  * @param options.vitepressConfig - Path to the VitePress configuration file
  * @param options.forks - Flag to include forked repositories
- * @param options.token - GitHub token for API access
- * @param options.username - GitHub username to fetch repositories for
+ * @param options.gitProvider - Git provider used to retrieve data
+ * @param options.token - Git provider token for API access
+ * @param options.username - Git provider username to fetch repositories for
  * @param options.websiteTitle - Custom title for the documentation website
  * @param options.websiteTagline - Custom tagline for the documentation website
  */
-export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'gitProvider' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
+export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
+  // The forks page relies on matching contributors by login, which the GitLab API does not expose
+  const forksEnabled = forks && gitProvider !== 'gitlab'
+  if (forks && !forksEnabled) {
+    log(`   The forks page is not supported with the 'gitlab' provider, skipping.`, 'warn')
+  }
   const user = getUserInfos(username)
   const repositories = getUserRepos(username)
     .reduce(({ internals, forks }: { internals: EnhancedRepository[], forks: EnhancedRepository[] }, cur) => {
@@ -109,7 +115,7 @@ export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTh
 
   if (extraHeaderPages) {
     const pages = addExtraPages(extraHeaderPages)
-    if (forks) {
+    if (forksEnabled) {
       nav.push(...pages.filter(p => p.link !== '/forks'))
     } else {
       nav.push(...pages)
@@ -123,7 +129,7 @@ export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTh
     log(`   Add extras Vitepress theme files.`, 'info')
     addContent(extraTheme, resolve(VITEPRESS_USER_THEME))
   }
-  if (forks && username.length) {
+  if (forksEnabled && username.length) {
     log(`   Add fork page to display external contributions.`, 'info')
     await processForks(repositories.forks, username, token)
     nav.push({ text: 'Forks', link: '/forks' })
@@ -349,10 +355,10 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
     log(`   Replace urls for repository '${repository.name}'.`, 'info')
     getMdFiles([repository.docpress.projectPath]).forEach((file) => {
       log(`   Processing file '${basename(file)}' for repository '${repository.name}'.`, 'debug')
-      replaceRelativePath(file, `https://github.com/${repository.owner.login}/${repository.name}/tree/${repository.docpress.branch}`)
+      replaceRelativePath(file, repository.docpress.replace_url)
 
       if (basename(file).toLowerCase() === 'readme.md') {
-        replaceReadmePath(file, `https://github.com/${repository.owner.login}/${repository.name}/tree/${repository.docpress.branch}`)
+        replaceReadmePath(file, repository.docpress.replace_url)
       }
     })
 

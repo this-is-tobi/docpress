@@ -12,7 +12,9 @@ Options:
   -c, --extra-public-content <string>  List of comma separated additional files or directories to process Vitepress public folder.
   -C, --config <string>                Path to the docpress configuration file.
   -f, --forks                          Whether or not to create the dedicated fork page that aggregate external contributions.
-  -g, --git-provider <string>          Git provider used to retrieve data. Values should be "github". (default: "github")
+  -g, --git-provider <string>          Git provider used to retrieve data.
+                                       Values should be "github" or "gitlab".
+                                       (default: "github")
   -h, --help                           display help for command
   -p, --extra-header-pages <string>    List of comma separated additional files or directories to process Vitepress header pages.
   -r, --repos-filter <string>          List of comma separated repositories to retrieve from Git provider. Default to all user's public repositories.
@@ -174,7 +176,10 @@ This option accepts a comma-separated list of file or directory paths.
 
 ## Fork Contributions Page
 
-The `-f` or `--forks` option generates a dedicated page showcasing all forked repositories where the user's contributions have been successfully merged into the original source repositories. This feature is ideal for creating a centralized portfolio or documentation to highlight the user's collaborative work and contributions across multiple projects.
+The `-f` or `--forks` option generates a dedicated page showcasing all forked repositories where the user's contributions have been successfully merged into the original source repositories.
+
+> [!NOTE]
+> The forks page is only available with the `github` provider: the GitLab API does not expose the contributor identity needed to match merged contributions. This feature is ideal for creating a centralized portfolio or documentation to highlight the user's collaborative work and contributions across multiple projects.
 
 By aggregating these repositories, the page serves as both a recognition of the user’s contributions and a historical archive of projects influenced by their efforts. It emphasizes the impact of these contributions and celebrates the investment made in community and open-source projects.
 
@@ -258,9 +263,13 @@ With multiple users it is needed to specify user prefix (with the format `<usern
 }
 ```
 
-## GitHub Token Option
+## Git Provider Selection
 
-When using the Docpress tool to fetch data from GitHub, you have the option to provide a personal access token using the `-T` flag. This token is important as it allows you to authenticate your requests, which can help increase your request limits on the GitHub API.
+The `-g` or `--git-provider` option selects the platform used to collect data. Docpress supports `github` (default) and `gitlab` (gitlab.com). With `gitlab`, the given names can be usernames or group paths, and the fetched repositories are the public projects of that user or group.
+
+## Git Provider Token Option
+
+When using the Docpress tool to fetch data from GitHub or GitLab, you have the option to provide a personal access token using the `-T` flag. This token is important as it allows you to authenticate your requests, which can help increase your request limits on the provider API.
 
 Utilizing a personal access token not only helps you avoid rate limiting issues but also enhances the reliability of data retrieval for your documentation projects.
 

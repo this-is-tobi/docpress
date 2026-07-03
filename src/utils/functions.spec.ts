@@ -15,7 +15,7 @@ describe('checkHttpStatus', () => {
 
     const status = await checkHttpStatus(testUrl)
     expect(status).toBe(200)
-    expect(fetch).toHaveBeenCalledWith(testUrl, { method: 'HEAD' })
+    expect(fetch).toHaveBeenCalledWith(testUrl, { method: 'HEAD', redirect: 'manual' })
   })
 
   it('should return the status code on an error response', async () => {

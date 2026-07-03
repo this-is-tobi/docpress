@@ -5,7 +5,7 @@ import { log } from '../utils/logger.js'
 /**
  * List of supported Git providers
  */
-const providers = ['github'] as const
+const providers = ['github', 'gitlab'] as const
 
 /**
  * Schema for the DocPress configuration file
