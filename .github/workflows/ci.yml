@@ -70,7 +70,6 @@ jobs:
       IMAGE_DOCKERFILE: ./Dockerfile
       IMAGE_CONTEXT: ./
       IMAGE_TARGET: prod
-      USE_QEMU: true
       CACHE: true
 
   tests-docker:
