@@ -493,8 +493,13 @@ export async function processForks(repositories: EnhancedRepository[], username:
  * @returns The parsed configuration object
  */
 export async function parseVitepressConfig(path: string): Promise<Partial<ReturnType<typeof defineConfig>>> {
-  const { config } = await import(resolve(process.cwd(), path)).catch(e => e)
-  return config
+  try {
+    const { config } = await import(resolve(process.cwd(), path))
+    return config ?? {}
+  } catch (error) {
+    log(`   Unable to load existing Vitepress config '${path}', starting from an empty config. ${error instanceof Error ? error.message : ''}`, 'warn')
+    return {}
+  }
 }
 
 /**

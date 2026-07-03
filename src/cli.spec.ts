@@ -28,6 +28,7 @@ vi.mock('./commands/prepare.js', () => ({
 vi.mock('./utils/commands.js', () => ({
   addOptions: vi.fn(),
   parseOptions: vi.fn(),
+  explicitOptions: vi.fn((_cmd, opts) => opts),
 }))
 
 describe('getProgram', () => {

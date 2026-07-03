@@ -1,7 +1,7 @@
 import { dirname } from 'node:path'
 import { createCommand, createOption } from 'commander'
 import { configSchema } from '../schemas/global.js'
-import { addOptions, parseOptions } from '../utils/commands.js'
+import { addOptions, explicitOptions, parseOptions } from '../utils/commands.js'
 import { prepareDoc } from '../lib/prepare.js'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import { log } from '../utils/logger.js'
@@ -32,8 +32,8 @@ export const prepareOpts = [
  */
 export const prepareCmd = addOptions(createCommand(cmdName), [...prepareOpts, ...globalOpts])
   .description('Transform doc to the target vitepress format.')
-  .action(async (opts) => {
-    const parsedOpts = parseOptions(cmdName, opts)
+  .action(async (opts, cmd) => {
+    const parsedOpts = parseOptions(cmdName, explicitOptions(cmd, opts))
     await main(parsedOpts)
   })
 

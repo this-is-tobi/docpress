@@ -2,7 +2,7 @@ import { createCommand, createOption } from 'commander'
 import { createDir } from '../utils/functions.js'
 import { DOCPRESS_DIR } from '../utils/const.js'
 import { log } from '../utils/logger.js'
-import { addOptions, parseOptions } from '../utils/commands.js'
+import { addOptions, explicitOptions, parseOptions } from '../utils/commands.js'
 import type { FetchOpts } from '../schemas/fetch.js'
 import { fetchDoc } from '../lib/fetch.js'
 import { configSchema } from '../schemas/global.js'
@@ -18,9 +18,9 @@ const cmdName = 'fetch'
  */
 export const fetchOpts = [
   createOption('-b, --branch <string>', configSchema.shape.branch.description)
-    .default(configSchema.shape.branch.default),
+    .default(configSchema.shape.branch.def.defaultValue),
   createOption('-g, --git-provider <string>', configSchema.shape.gitProvider.description)
-    .default(configSchema.shape.gitProvider.default),
+    .default(configSchema.shape.gitProvider.def.defaultValue),
   createOption('-r, --repos-filter <string>', configSchema.shape.reposFilter.description),
 ]
 
@@ -29,8 +29,8 @@ export const fetchOpts = [
  */
 export const fetchCmd = addOptions(createCommand(cmdName), [...fetchOpts, ...globalOpts])
   .description('Fetch docs with the given username(s) and git provider.')
-  .action(async (opts) => {
-    const parsedOpts = parseOptions(cmdName, opts)
+  .action(async (opts, cmd) => {
+    const parsedOpts = parseOptions(cmdName, explicitOptions(cmd, opts))
     await main(parsedOpts)
   })
 
@@ -45,8 +45,9 @@ export async function main(opts: FetchOpts) {
 
   createDir(DOCPRESS_DIR, { clean: true })
   for (const username of usernames) {
+    // With multiple users, filters are scoped as '<username>/<repo>' or '!<username>/<repo>'
     const finalRF = usernames.length > 1
-      ? reposFilter?.filter((rf: string) => rf.startsWith(`${username}/`)).map((rf: string) => rf.replace(`${username}/`, ''))
+      ? reposFilter?.filter((rf: string) => rf.replace(/^!/, '').startsWith(`${username}/`)).map((rf: string) => rf.replace(`${username}/`, ''))
       : reposFilter
     await fetchDoc({ username, branch, reposFilter: finalRF, gitProvider, token })
   }

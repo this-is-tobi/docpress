@@ -1,11 +1,9 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import axios from 'axios'
 import { rimrafSync } from 'rimraf'
 import { checkHttpStatus, createDir, deepMerge, extractFiles, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, isObject, loadConfigFile, prettify, prettifyEnum, splitByComma } from './functions.js'
 
-vi.mock('axios')
 vi.mock('fs')
 vi.mock('rimraf')
 
@@ -13,25 +11,22 @@ describe('checkHttpStatus', () => {
   const testUrl = 'http://example.com'
 
   it('should return the status code on a successful request', async () => {
-    vi.spyOn(axios, 'head').mockResolvedValue({ status: 200 })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200 }))
 
     const status = await checkHttpStatus(testUrl)
     expect(status).toBe(200)
+    expect(fetch).toHaveBeenCalledWith(testUrl, { method: 'HEAD' })
   })
 
   it('should return the status code on an error response', async () => {
-    vi.spyOn(axios, 'head').mockRejectedValue({
-      response: { status: 404 },
-    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 404 }))
 
     const status = await checkHttpStatus(testUrl)
     expect(status).toBe(404)
   })
 
   it('should return 500 when there is no response from the server', async () => {
-    vi.spyOn(axios, 'head').mockRejectedValue({
-      response: undefined,
-    })
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network error')))
 
     const status = await checkHttpStatus(testUrl)
     expect(status).toBe(500)
@@ -492,13 +487,18 @@ describe('loadConfigFile', () => {
     expect(readFileSync).toHaveBeenCalledWith(resolve('/mock', mockPath), 'utf8')
   })
 
-  it('should return an empty object if file does not exist or JSON parsing fails', () => {
+  it('should throw an error if the file cannot be read', () => {
     vi.spyOn(process, 'cwd').mockReturnValue('/mock')
     ;(readFileSync as any).mockImplementation(() => { throw new Error('File not found') })
 
-    const result = loadConfigFile(mockPath)
+    expect(() => loadConfigFile(mockPath)).toThrow(`Cannot read config file '${mockPath}'.`)
+  })
 
-    expect(result).toEqual({})
+  it('should throw an error if the file contains invalid JSON', () => {
+    vi.spyOn(process, 'cwd').mockReturnValue('/mock')
+    ;(readFileSync as any).mockReturnValue('not json {')
+
+    expect(() => loadConfigFile(mockPath)).toThrow(`Invalid JSON in config file '${mockPath}'.`)
   })
 })
 

@@ -1,9 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import type { Config, GlobalOpts } from './global.js'
-import { configSchema, globalOptsSchema } from './global.js'
-import { fetchOptsSchema } from './fetch.js'
-import { prepareOptsSchema } from './prepare.js'
+import { cliSchema, configSchema, globalOptsSchema } from './global.js'
 
 vi.mock('fs')
 
@@ -43,7 +41,11 @@ describe('globalOptsSchema', () => {
     })
   })
 
-  it('should return empty config for invalid config path', () => {
+  it('should exit for an unreadable config path', () => {
+    const originalExit = process.exit
+    process.exit = vi.fn() as any
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
     const invalidData = {
       config: './invalid-config.json',
       usernames: 'user1',
@@ -53,11 +55,11 @@ describe('globalOptsSchema', () => {
       throw new Error('File not found')
     })
 
-    const result = globalOptsSchema.parse(invalidData)
-    expect(result).toEqual({
-      ...defaultConfig,
-      usernames: [invalidData.usernames],
-    })
+    globalOptsSchema.parse(invalidData)
+    expect(process.exit).toHaveBeenCalledWith(1)
+
+    process.exit = originalExit
+    consoleErrorSpy.mockRestore()
   })
 
   it('should handle optional config field correctly', () => {
@@ -305,57 +307,30 @@ describe('configSchema', () => {
   })
 })
 
-describe('fetchOptsSchema', () => {
-  it('should validate valid fetch options', () => {
-    const validData = {
-      branch: 'develop',
-      gitProvider: 'github',
-      reposFilter: 'repo1,repo2',
-      token: 'some-token',
-      usernames: 'user1',
-    }
-
-    const result = fetchOptsSchema.parse(validData)
-    expect(result).toEqual({
-      ...validData,
-      reposFilter: ['repo1', 'repo2'],
-      usernames: ['user1'],
-    })
-  })
-
-  it('should apply default values for optional fields', () => {
-    const partialData = {
-      usernames: 'user1',
-    }
-
-    const result = fetchOptsSchema.parse(partialData)
-    expect(result).toEqual({
-      branch: 'main',
-      gitProvider: 'github',
-      usernames: ['user1'],
-    })
-  })
-
-  it('should transform reposFilter into an array', () => {
-    const dataWithString = {
-      gitProvider: 'github',
-      usernames: 'user1',
+describe('cliSchema', () => {
+  it('should transform comma-separated strings into arrays', () => {
+    const dataWithStrings = {
+      usernames: 'user1,user2',
       reposFilter: 'repo1,repo2,repo3',
+      extraHeaderPages: 'header1.md,header2.md',
+      extraPublicContent: 'public1,public2',
+      extraTheme: 'theme1,theme2',
     }
 
-    const result = fetchOptsSchema.parse(dataWithString)
+    const result = cliSchema.parse(dataWithStrings)
+    expect(result.usernames).toEqual(['user1', 'user2'])
     expect(result.reposFilter).toEqual(['repo1', 'repo2', 'repo3'])
+    expect(result.extraHeaderPages).toEqual(['header1.md', 'header2.md'])
+    expect(result.extraPublicContent).toEqual(['public1', 'public2'])
+    expect(result.extraTheme).toEqual(['theme1', 'theme2'])
   })
 
-  it('should validate required fields', () => {
-    const invalidData = {
-      branch: 'develop',
-      token: 'some-token',
-    }
-
-    // Changed to not expect a throw since the schema doesn't enforce 'usernames'
-    const result = fetchOptsSchema.parse(invalidData)
-    expect(result).toBeDefined()
+  it('should keep the vitepressConfig path as a string', () => {
+    const result = cliSchema.parse({
+      usernames: 'user1',
+      vitepressConfig: './vitepress.config.json',
+    })
+    expect(result.vitepressConfig).toBe('./vitepress.config.json')
   })
 
   it('should throw an error for invalid gitProvider', () => {
@@ -364,65 +339,14 @@ describe('fetchOptsSchema', () => {
       gitProvider: 'bitbucket',
     }
 
-    expect(() => fetchOptsSchema.parse(invalidData)).toThrow()
-  })
-})
-
-describe('prepareOptsSchema', () => {
-  it('should validate valid prepare options', () => {
-    const validData = {
-      usernames: 'user1',
-      extraHeaderPages: 'header1.md,header2.md',
-      extraPublicContent: 'public1,public2',
-      extraTheme: 'theme1,theme2',
-      vitepressConfig: './vitepress.config.json',
-    }
-
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ title: 'VitePress Config' }))
-
-    const result = prepareOptsSchema.parse(validData)
-    expect(result).toEqual({
-      usernames: ['user1'],
-      extraHeaderPages: ['header1.md', 'header2.md'],
-      extraPublicContent: ['public1', 'public2'],
-      extraTheme: ['theme1', 'theme2'],
-      vitepressConfig: './vitepress.config.json',
-      gitProvider: 'github',
-    })
+    expect(() => cliSchema.parse(invalidData)).toThrow()
   })
 
-  it('should apply default values for optional fields', () => {
-    const partialData = {
-      usernames: 'user1',
-      vitepressConfig: './vitepress.config.json',
-    }
+  it('should exit for an unreadable vitepressConfig path', () => {
+    const originalExit = process.exit
+    process.exit = vi.fn() as any
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ title: 'VitePress Config' }))
-
-    const result = prepareOptsSchema.parse(partialData)
-    expect(result).toEqual({
-      usernames: ['user1'],
-      vitepressConfig: './vitepress.config.json',
-      gitProvider: 'github',
-    })
-  })
-
-  it('should transform string fields into arrays', () => {
-    const dataWithStrings = {
-      usernames: 'user1,user2',
-      extraHeaderPages: 'header1.md,header2.md',
-      extraPublicContent: 'public1,public2',
-      extraTheme: 'theme1,theme2',
-    }
-
-    const result = prepareOptsSchema.parse(dataWithStrings)
-    expect(result.usernames).toEqual(['user1', 'user2'])
-    expect(result.extraHeaderPages).toEqual(['header1.md', 'header2.md'])
-    expect(result.extraPublicContent).toEqual(['public1', 'public2'])
-    expect(result.extraTheme).toEqual(['theme1', 'theme2'])
-  })
-
-  it('should throw an error for invalid vitepressConfig path', () => {
     const invalidData = {
       usernames: 'user1',
       vitepressConfig: './invalid-config.json',
@@ -432,11 +356,10 @@ describe('prepareOptsSchema', () => {
       throw new Error('File not found')
     })
 
-    const result = globalOptsSchema.parse(invalidData)
-    expect(result).toEqual({
-      ...defaultConfig,
-      usernames: [invalidData.usernames],
-      vitepressConfig: {},
-    })
+    globalOptsSchema.parse(invalidData)
+    expect(process.exit).toHaveBeenCalledWith(1)
+
+    process.exit = originalExit
+    consoleErrorSpy.mockRestore()
   })
 })
