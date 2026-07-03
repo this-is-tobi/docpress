@@ -30,10 +30,11 @@ describe('getInfos', () => {
             .mockResolvedValueOnce({ data: mockUser }),
         },
         repos: {
-          listForUser: vi.fn()
-            .mockResolvedValueOnce({ data: mockRepos }),
+          listForUser: vi.fn(),
         },
       },
+      paginate: vi.fn()
+        .mockResolvedValueOnce(mockRepos),
     }
 
     ;(Octokit as any).mockImplementation(function () { return mockOctokit })
@@ -46,7 +47,7 @@ describe('getInfos', () => {
       branch: 'main',
     })
     expect(mockOctokit.rest.users.getByUsername).toHaveBeenCalledWith({ username: 'testUser' })
-    expect(mockOctokit.rest.repos.listForUser).toHaveBeenCalledWith({ username: 'testUser', sort: 'full_name', per_page: 500 })
+    expect(mockOctokit.paginate).toHaveBeenCalledWith(mockOctokit.rest.repos.listForUser, { username: 'testUser', sort: 'full_name', per_page: 100 })
   })
 })
 
