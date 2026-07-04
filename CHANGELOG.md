@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/this-is-tobi/docpress/compare/v0.9.0...v0.9.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* **npm:** guard husky prepare script so bun publish does not fail ([687d149](https://github.com/this-is-tobi/docpress/commit/687d1493da094396d1f656da89add475576fd199))
+
 ## [0.9.0](https://github.com/this-is-tobi/docpress/compare/v0.8.3...v0.9.0) (2026-07-04)
 
 
