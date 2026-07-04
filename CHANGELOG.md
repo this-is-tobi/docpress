@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.9.0](https://github.com/this-is-tobi/docpress/compare/v0.8.3...v0.9.0) (2026-07-04)
+
+
+### Features
+
+* add gitlab git provider support ([aa70d48](https://github.com/this-is-tobi/docpress/commit/aa70d48af079823e1bb60e44ec3d7a204eadf491))
+
+
+### Bug Fixes
+
+* **ci:** make CLI test scenarios actually install and run docpress ([3e8bdb7](https://github.com/this-is-tobi/docpress/commit/3e8bdb7d9e73e609930fc7e442111cd29b66fa8b))
+* **cli:** fail with a clean error message on runtime errors ([f8f72a1](https://github.com/this-is-tobi/docpress/commit/f8f72a1392ab5d48b24b54576dd3fcb83768c50a))
+* **cli:** load config file in subcommands and apply proper option precedence ([9deb950](https://github.com/this-is-tobi/docpress/commit/9deb950ac62b3c4910c4b9faef88211838167ddb))
+* **config:** give CLI vitepress config precedence over config file ([3dc7bf1](https://github.com/this-is-tobi/docpress/commit/3dc7bf1d5e48c707c0cee500f1cb5019e5ce1256))
+* **fetch:** paginate GitHub repository listing beyond 100 repos ([e8b78ca](https://github.com/this-is-tobi/docpress/commit/e8b78ca96c07ca1c6ce66e70e8d9b4a3847e60b3))
+* **hooks:** migrate husky scripts from pnpm to bun ([a686028](https://github.com/this-is-tobi/docpress/commit/a68602808bd86be7cffb6fec1d61704e926ebadc))
+* mark vitepressConfig as optional in configSchema ([2fd6267](https://github.com/this-is-tobi/docpress/commit/2fd626738093eb06a5ce53644872dcc0da0a2981))
+* order sidebar/nav pages by filename regardless of readdirSync order ([2644324](https://github.com/this-is-tobi/docpress/commit/264432422555540d70bb1fdaaa46b1e527d6b2cc))
+* **pkg:** remove broken module and types entry points ([f5d593f](https://github.com/this-is-tobi/docpress/commit/f5d593f06f3cbd07d699492379697619d95504cf))
+* prevent git background maintenance from racing repository cleanup ([9238d60](https://github.com/this-is-tobi/docpress/commit/9238d605307a4177b0afb8c4aadd2d124d3ec646))
+
 ## [0.8.3](https://github.com/this-is-tobi/docpress/compare/v0.8.2...v0.8.3) (2026-07-02)
 
 
