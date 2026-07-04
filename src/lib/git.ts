@@ -9,6 +9,20 @@ import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
 
 /**
+ * Octokit logger that stays quiet on 404s, which are handled explicitly
+ */
+const quietOctokitLog = {
+  debug: () => {},
+  info: () => {},
+  warn: (message: string) => {
+    if (!message.includes('404')) console.warn(message)
+  },
+  error: (message: string) => {
+    if (!message.includes('404')) console.error(message)
+  },
+}
+
+/**
  * Fetches user and repository information from GitHub
  *
  * @param options - Options for retrieving GitHub data
@@ -19,9 +33,12 @@ import type { EnhancedRepository } from './fetch.js'
  */
 export async function getInfos({ username, token, branch }: Pick<FetchOpts, 'branch'> & Pick<GlobalOpts, 'token'> & { username: GlobalOpts['usernames'][number] }) {
   log(`   Get infos for username '${username}'.`, 'info')
-  const octokit = new Octokit({ auth: token })
+  const octokit = new Octokit({ auth: token, log: quietOctokitLog })
   log(`   Get user infos.`, 'debug')
   const { data: user } = await octokit.rest.users.getByUsername({ username })
+    .catch((error) => {
+      throw error.status === 404 ? new Error(`No GitHub user found for '${username}'.`) : error
+    })
   log(`   Get repositories infos.`, 'debug')
   const repos = await octokit.paginate(octokit.rest.repos.listForUser, { username, sort: 'full_name', per_page: 100 })
 
@@ -44,19 +61,7 @@ export async function getContributors({
   token: GlobalOpts['token']
 }) {
   log(`   Get contributors infos for repository '${repository.name}'.`, 'info')
-  const octokit = new Octokit({
-    auth: token,
-    log: {
-      debug: () => {},
-      info: () => {},
-      warn: (message) => {
-        if (!message.includes('404')) console.warn(message)
-      },
-      error: (message) => {
-        if (!message.includes('404')) console.error(message)
-      },
-    },
-  })
+  const octokit = new Octokit({ auth: token, log: quietOctokitLog })
   const { data: repo } = await octokit.rest.repos.get({
     owner: repository.owner.login,
     repo: repository.name,
