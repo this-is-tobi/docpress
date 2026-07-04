@@ -6,16 +6,6 @@ import { resolve } from 'node:path'
 export const DOCPRESS_DIR = resolve(process.cwd(), 'docpress')
 
 /**
- * Path to repositories information JSON file
- */
-export const USER_REPOS_INFOS = resolve(process.cwd(), 'docpress/repositories.json')
-
-/**
- * Path to user information JSON file
- */
-export const USER_INFOS = resolve(process.cwd(), 'docpress/owner.json')
-
-/**
  * Directory for documentation files
  */
 export const DOCS_DIR = resolve(process.cwd(), 'docpress/docs')
