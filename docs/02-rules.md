@@ -19,12 +19,12 @@ To ensure that the program functions correctly, please follow these conventions:
 
 ## Link management
 
-- Any inline link in the `./README.md` file that does not point to `./docs/**` will be replaced with the corresponding GitHub link.
-- Similarly, any inline link in the `./docs/*.md` files that does not reference `./docs/**` will also be replaced with the appropriate GitHub link.
+- Any inline link in the `./README.md` file that does not point to `./docs/**` will be replaced with the corresponding Git provider link.
+- Similarly, any inline link in the `./docs/*.md` files that does not reference `./docs/**` will also be replaced with the appropriate Git provider link.
 
 ## Project descriptions
 
-- The project description displayed on the home page of the generated website is extracted from the GitHub repository's description.
+- The project description displayed on the home page of the generated website is extracted from the repository's description on the Git provider.
 
 ---
 

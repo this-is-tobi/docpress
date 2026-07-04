@@ -1,10 +1,10 @@
 # Docpress :zap:
 
-This project aims to automate the construction of documentation website based on a Github username and optionally a list of repositories.
+This project aims to automate the construction of documentation website based on a GitHub or GitLab username and optionally a list of repositories.
 
 ## Explanation
 
-Docpress automates the process of downloading documentation files from specified GitHub repositories. Here's how it works:
+Docpress automates the process of downloading documentation files from specified GitHub or GitLab repositories. Here's how it works:
 
 1. __Repository Documentation Retrieval__:
     - The program checks if a `docs/` folder is present at the root level of each specified repository.
@@ -21,7 +21,7 @@ For optimal use of Docpress, please check the [rules section](rules) to understa
 1. Generate website using the Docpress docker image.
     ```sh
     docker run --name docpress --rm -v $(pwd)/docpress:/app/docpress:rw \
-      ghcr.io/this-is-tobi/docpress -U <github_username>
+      ghcr.io/this-is-tobi/docpress -U <username>
     ```
     > The dist folder is available at `./docpress/.vitepress/dist`, ready to be served by a web server like Nginx, Apache, etc...
 
@@ -77,7 +77,7 @@ If you prefer Node.js package managers like npm, pnpm, or bun, you can easily in
 
 To run Docpress using npm:
 ```sh
-npx @tobi-or-not/docpress -U <github_username>
+npx @tobi-or-not/docpress -U <username>
 ```
 
 > [!TIP]
@@ -89,7 +89,7 @@ Docpress also provides a Docker image, which is especially useful if you want to
 
 To run Docpress with Docker:
 ```sh
-docker run --rm -v $(pwd)/docpress:/app/docpress:rw ghcr.io/this-is-tobi/docpress -U <github_username>
+docker run --rm -v $(pwd)/docpress:/app/docpress:rw ghcr.io/this-is-tobi/docpress -U <username>
 ```
 
 In this command:

@@ -22,9 +22,9 @@ Follow these steps to set up the development environment and start working with 
     bun install
     ```
 3. __Fetch and build the website__
-    Run the following command to fetch documentation from the specified GitHub username and build the static website:
+    Run the following command to fetch documentation from the specified username and build the static website:
     ```sh
-    bun run dev -U <github_username>
+    bun run dev -U <username>
     ```
 4. __Preview the website__
     Launch a local development server to preview your website:
