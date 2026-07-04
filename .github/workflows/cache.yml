@@ -3,6 +3,7 @@ name: Clean cache
 on:
   pull_request:
     types:
+    - synchronize
     - closed
   workflow_dispatch:
     inputs:
@@ -16,7 +17,25 @@ on:
         type: string
 
 jobs:
+  # Runs on every push to an open PR: the 'pr-<N>' tag moves to the new build
+  # as soon as it lands, orphaning the previous commit's image (and its
+  # per-arch children). Sweeping it here keeps the backlog from growing for
+  # the whole lifetime of a long-lived PR instead of only at close.
+  clean-orphaned-images:
+    if: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
+    uses: this-is-tobi/github-workflows/.github/workflows/clean-cache.yml@v0
+    permissions:
+      packages: write
+    with:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/docpress:pr-${{ github.event.pull_request.number }}
+      CLEAN_GH_CACHE: false
+      CLEAN_GHCR_IMAGE: false
+      CLEAN_ORPHANED_GHCR_IMAGE: true
+
+  # Runs once the PR closes: also drops its Actions cache entries and the
+  # final build's image (plus its per-arch children).
   clean-cache:
+    if: ${{ github.event_name != 'pull_request' || github.event.action == 'closed' }}
     uses: this-is-tobi/github-workflows/.github/workflows/clean-cache.yml@v0
     permissions:
       actions: write
@@ -27,3 +46,4 @@ jobs:
       IMAGE: ${{ format('ghcr.io/{0}/docpress:{1}', github.repository_owner, inputs.BRANCH_NAME || format('pr-{0}', github.event.pull_request.number || inputs.PR_NUMBER || '0')) }}
       CLEAN_GH_CACHE: true
       CLEAN_GHCR_IMAGE: true
+      CLEAN_ORPHANED_GHCR_IMAGE: true
