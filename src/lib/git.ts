@@ -100,7 +100,9 @@ export async function cloneRepo(name: string, url: string, projectDir: string, b
   createDir(projectDir, { clean: true })
 
   try {
-    const git = simpleGit({ baseDir: projectDir })
+    // Background maintenance is disabled so no git process keeps writing into
+    // .git (e.g. commit-graph files) while it is being removed below
+    const git = simpleGit({ baseDir: projectDir, config: ['maintenance.auto=false', 'gc.auto=0', 'fetch.writeCommitGraph=false'] })
     await git.init()
       .addConfig('core.sparseCheckout', 'true', true, 'local')
       .addRemote('origin', url)
