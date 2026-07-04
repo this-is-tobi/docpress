@@ -120,7 +120,7 @@ describe('main', () => {
     expect(vitepressBuild).toHaveBeenCalledWith(DOCPRESS_DIR, expect.objectContaining({
       onAfterConfigResolve: expect.any(Function),
     }))
-    expect(log).toHaveBeenCalledWith(`\n\nDocpress build succedeed.`, 'success')
+    expect(log).toHaveBeenCalledWith(`\n\nDocpress build succeeded.`, 'success')
   })
 
   it('should apply withMermaid via onAfterConfigResolve', async () => {

@@ -353,7 +353,7 @@ describe('prettifyEnum', () => {
 })
 
 describe('getUserInfos', () => {
-  it('should return parsed user information from USER_INFOS file', () => {
+  it('should return parsed user information from the cached user file', () => {
     const mockUserInfo = {
       username: 'testUser',
       name: 'Test User',
@@ -368,7 +368,7 @@ describe('getUserInfos', () => {
 })
 
 describe('getUserRepos', () => {
-  it('should return parsed repository information from USER_REPOS_INFOS file', () => {
+  it('should return parsed repository information from the cached repos file', () => {
     const mockRepos = [
       { name: 'repo1', description: 'Test repo 1', stars: 5 },
       { name: 'repo2', description: 'Test repo 2', stars: 3 },

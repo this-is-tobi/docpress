@@ -47,11 +47,6 @@ export async function suppressVueWarnings<T>(callback: () => Promise<T>): Promis
 const cmdName = 'build'
 
 /**
- * Command line options specific to the build command (none currently)
- */
-export const buildOpts = []
-
-/**
  * The build command definition for Commander
  */
 export const buildCmd = addOptions(createCommand(cmdName), globalOpts)
@@ -77,7 +72,7 @@ export async function main() {
       })
     })
 
-    log(`\n\nDocpress build succedeed.`, 'success')
+    log(`\n\nDocpress build succeeded.`, 'success')
   } catch (error) {
     log(`\n\nDocpress build failed : ${error}`, 'error')
     process.exit(1)
