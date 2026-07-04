@@ -220,10 +220,10 @@ describe('globalOptsSchema', () => {
 
     const result = globalOptsSchema.parse(data)
 
-    // Note: in the actual implementation, the CLI vitepress file takes precedence
-    // over the config file's vitepress settings, but the implementation
-    // might vary. We'll test what we get instead of what we expect.
+    // The CLI-provided vitepress file wins over the config file's inline
+    // vitepress settings, non-conflicting keys are merged
     expect(result).toHaveProperty('vitepressConfig')
+    expect(result.vitepressConfig).toHaveProperty('title', 'CLI Title')
     expect(result.vitepressConfig).toHaveProperty('description', 'Config Description')
     expect(result.vitepressConfig).toHaveProperty('themeConfig.nav')
   })

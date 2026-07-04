@@ -174,8 +174,8 @@ export const globalOptsSchema = cliSchema
         ...(vitepressConfig
           ? {
               vitepressConfig: {
-                ...(loadConfigFile(vitepressConfig) || {}),
                 ...(configData.vitepressConfig || {}),
+                ...(loadConfigFile(vitepressConfig) || {}),
               },
             }
           : {}),
