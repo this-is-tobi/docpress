@@ -64,6 +64,10 @@ vi.mock('./vitepress.js', () => ({
   getVitepressConfig: vi.fn(() => ({ themeConfig: { sidebar: [] } })),
 }))
 
+// Virtual module consumed by the parseVitepressConfig test below,
+// declared here because vi.mock calls are hoisted to the top level anyway
+vi.mock('/mock/config.json', () => ({ config: { title: 'My Project' } }))
+
 const tempDir = resolve(__dirname, 'temp-test-dir')
 
 describe('addSources', () => {
@@ -474,8 +478,6 @@ describe('addContent', () => {
 
 describe('parseVitepressConfig', () => {
   it('should parse Vitepress configuration from JSON file', async () => {
-    vi.mock('/mock/config.json', () => ({ config: { title: 'My Project' } }))
-
     const config = await parseVitepressConfig('/mock/config.json')
     expect(config).toEqual({ title: 'My Project' })
   })
