@@ -49,6 +49,48 @@ describe('getInfos', () => {
     expect(mockOctokit.rest.users.getByUsername).toHaveBeenCalledWith({ username: 'testUser' })
     expect(mockOctokit.paginate).toHaveBeenCalledWith(mockOctokit.rest.repos.listForUser, { username: 'testUser', sort: 'full_name', per_page: 100 })
   })
+
+  it('should throw a friendly error when the user does not exist', async () => {
+    const mockOctokit = {
+      rest: {
+        users: {
+          getByUsername: vi.fn()
+            .mockRejectedValueOnce(Object.assign(new Error('Not Found'), { status: 404 })),
+        },
+        repos: {
+          listForUser: vi.fn(),
+        },
+      },
+      paginate: vi.fn(),
+    }
+
+    ;(Octokit as any).mockImplementation(function () { return mockOctokit })
+
+    await expect(getInfos({ username: 'ghostUser', token: 'testToken', branch: 'main' }))
+      .rejects
+      .toThrow(`No GitHub user found for 'ghostUser'.`)
+  })
+
+  it('should rethrow unexpected user lookup errors unchanged', async () => {
+    const mockOctokit = {
+      rest: {
+        users: {
+          getByUsername: vi.fn()
+            .mockRejectedValueOnce(Object.assign(new Error('Server Error'), { status: 500 })),
+        },
+        repos: {
+          listForUser: vi.fn(),
+        },
+      },
+      paginate: vi.fn(),
+    }
+
+    ;(Octokit as any).mockImplementation(function () { return mockOctokit })
+
+    await expect(getInfos({ username: 'testUser', token: 'testToken', branch: 'main' }))
+      .rejects
+      .toThrow('Server Error')
+  })
 })
 
 describe('getContributors', () => {

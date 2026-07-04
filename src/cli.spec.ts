@@ -6,6 +6,7 @@ import { main as buildFn } from './commands/build.js'
 import { main as prepareFn, prepareOpts } from './commands/prepare.js'
 import { addOptions } from './utils/commands.js'
 import { globalOpts } from './commands/global.js'
+import { log } from './utils/logger.js'
 import { getProgram, main } from './cli.js'
 
 vi.mock('./commands/fetch.js', () => ({
@@ -29,6 +30,10 @@ vi.mock('./utils/commands.js', () => ({
   addOptions: vi.fn(),
   parseOptions: vi.fn(),
   explicitOptions: vi.fn((_cmd, opts) => opts),
+}))
+
+vi.mock('./utils/logger.js', () => ({
+  log: vi.fn(),
 }))
 
 describe('getProgram', () => {
@@ -96,5 +101,17 @@ describe('main', () => {
     main()
     expect(parseAsyncSpy).toHaveBeenCalled()
     parseAsyncSpy.mockRestore()
+  })
+
+  it('should log the error message and exit with code 1 when parsing rejects', async () => {
+    const parseAsyncSpy = vi.spyOn(Command.prototype, 'parseAsync').mockRejectedValue(new Error('runtime failure'))
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never)
+
+    main()
+    await vi.waitFor(() => expect(exitSpy).toHaveBeenCalledWith(1))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('runtime failure'), 'error')
+
+    parseAsyncSpy.mockRestore()
+    exitSpy.mockRestore()
   })
 })

@@ -5,6 +5,7 @@ import { buildCmd, main as buildFn } from './commands/build.js'
 import { prepareCmd, main as prepareFn, prepareOpts } from './commands/prepare.js'
 import { addOptions, explicitOptions, parseOptions } from './utils/commands.js'
 import { globalOpts } from './commands/global.js'
+import { log } from './utils/logger.js'
 
 /**
  * Creates and configures the Command Line Interface for DocPress
@@ -44,5 +45,8 @@ export function getProgram() {
  */
 export function main() {
   const pm = getProgram()
-  pm.parseAsync(process.argv)
+  pm.parseAsync(process.argv).catch((error) => {
+    log(`\n${error instanceof Error ? error.message : String(error)}`, 'error')
+    process.exit(1)
+  })
 }
