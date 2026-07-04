@@ -1,12 +1,12 @@
 import { basename, dirname, parse, resolve } from 'node:path'
-import { appendFileSync, cpSync, existsSync, readdirSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, cpSync, existsSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import YAML from 'yaml'
 import type { defineConfig } from 'vitepress'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import { generateFile } from '../utils/templates.js'
 import type { GlobalOpts } from '../schemas/global.js'
-import { createDir, extractFiles, getMdFiles, getUserInfos, getUserRepos, prettify, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
+import { createDir, extractFiles, getMdFiles, getUserInfos, getUserRepos, isFile, prettify, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
 import { DOCPRESS_DIR, DOCS_DIR, FORKS_FILE, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
 import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
@@ -359,8 +359,10 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
     log(`   Generate sidebar for repository '${repository.name}'.`, 'info')
     const projectFiles = readdirSync(repository.docpress.projectPath, { recursive: true })
       .filter((file) => {
-        return statSync(resolve(repository.docpress.projectPath, file.toString())).isFile()
-          && basename(resolve(repository.docpress.projectPath, file.toString())).endsWith('.md')
+        const filePath = resolve(repository.docpress.projectPath, file.toString())
+        // Name check first, then a stat that tolerates files vanishing between
+        // the directory scan and the check (e.g. leftover git lock files)
+        return basename(filePath).endsWith('.md') && isFile(filePath)
       })
       .sort() as string[]
 
