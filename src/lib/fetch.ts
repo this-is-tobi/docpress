@@ -82,12 +82,13 @@ export async function checkDoc(urls: ProviderUrls) {
  * @param options.reposFilter - Optional filter for repositories
  * @param options.gitProvider - Git provider used to retrieve data
  * @param options.token - Git provider API token
+ * @param options.lastUpdated - Whether or not to inject each page's last Git commit date as frontmatter
  */
-export async function fetchDoc({ username, branch, reposFilter, gitProvider, token }: FetchOptsUser) {
+export async function fetchDoc({ username, branch, reposFilter, gitProvider, token, lastUpdated }: FetchOptsUser) {
   const getProviderInfos = gitProvider === 'gitlab' ? getGitlabInfos : getInfos
   await getProviderInfos({ username, token, branch })
     .then(async ({ user, repos, branch }) => generateInfos(user, repos, branch, reposFilter, gitProvider))
-    .then(async ({ repos }) => getDoc(repos, reposFilter))
+    .then(async ({ repos }) => getDoc(repos, reposFilter, lastUpdated))
 }
 
 /**
@@ -178,8 +179,9 @@ export async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['
  *
  * @param repos - List of enhanced repositories
  * @param reposFilter - Optional filter for repositories
+ * @param lastUpdated - Whether or not to inject each page's last Git commit date as frontmatter
  */
-export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOpts['reposFilter']) {
+export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOpts['reposFilter'], lastUpdated?: boolean) {
   if (!repos) {
     log(`   No repository respect docpress rules.`, 'warn')
     return
@@ -189,7 +191,7 @@ export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOp
     repos
       .filter(repo => !isRepoFiltered(repo, reposFilter))
       .map(async (repo) => {
-        await cloneRepo(repo.name, repo.clone_url as string, repo.docpress.projectPath, repo.docpress.branch, repo.docpress.includes)
+        await cloneRepo(repo.name, repo.clone_url as string, repo.docpress.projectPath, repo.docpress.branch, repo.docpress.includes, lastUpdated)
       }),
   )
 }

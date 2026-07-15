@@ -1,11 +1,12 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import { rimrafSync } from 'rimraf'
+import YAML from 'yaml'
 import type { GlobalOpts } from '../schemas/global.js'
 import type { EnhancedRepository } from '../lib/fetch.js'
 import type { getInfos } from '../lib/git.js'
 import { DOCPRESS_DIR } from './const.js'
-import { readmeDocsPathRegex, readmePathRegex, relativePathRegex, removeIdxRegex } from './regex.js'
+import { frontmatterRegex, readmeDocsPathRegex, readmePathRegex, relativePathRegex, removeIdxRegex } from './regex.js'
 
 /**
  * Checks the HTTP status code of a URL
@@ -138,7 +139,7 @@ export function extractFiles(paths: string[] | string): string[] {
       return [path]
     }
     if (isDir(path)) {
-      return readdirSync(path).sort().flatMap(file => extractFiles(join(path, file)))
+      return readdirSync(path).filter(file => file !== '.git').sort().flatMap(file => extractFiles(join(path, file)))
     }
     return []
   })
@@ -275,6 +276,26 @@ export function replaceRelativePath(file: string, url: string) {
     return `[${p1}](${url}/${p2})`
   })
   writeFileSync(file, updatedContent, 'utf8')
+}
+
+/**
+ * Adds or updates the "lastUpdated" frontmatter field of a markdown file, preserving
+ * any frontmatter already present
+ *
+ * @param file - Path to the markdown file to update
+ * @param date - Datetime to set as the "lastUpdated" value
+ */
+export function addLastUpdatedFrontmatter(file: string, date: string) {
+  const content = readFileSync(file, 'utf8')
+  const match = content.match(frontmatterRegex)
+
+  if (match) {
+    const data = YAML.parse(match[1]) ?? {}
+    data.lastUpdated = date
+    writeFileSync(file, content.replace(frontmatterRegex, `---\n${YAML.stringify(data)}---\n`), 'utf8')
+  } else {
+    writeFileSync(file, `---\nlastUpdated: ${date}\n---\n\n${content}`, 'utf8')
+  }
 }
 
 /**

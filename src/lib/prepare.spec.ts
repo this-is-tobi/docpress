@@ -23,6 +23,7 @@ import {
 } from './prepare.js'
 import type { EnhancedRepository } from './fetch.js'
 import type { getInfos } from './git.js'
+import { getVitepressConfig } from './vitepress.js'
 
 vi.mock('node:fs')
 vi.mock('node:fs/promises')
@@ -862,6 +863,41 @@ describe('prepareDoc', () => {
       '/tmp/docpress/mock/docs/forks.md',
       expect.any(String),
     )
+  })
+
+  it('should default vitepressConfig.lastUpdated to true when the lastUpdated option is enabled', async () => {
+    await prepareDoc({
+      username: 'test-user',
+      lastUpdated: true,
+    })
+
+    expect(getVitepressConfig).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ lastUpdated: true }),
+    )
+  })
+
+  it('should not override an explicit vitepressConfig.lastUpdated value', async () => {
+    await prepareDoc({
+      username: 'test-user',
+      lastUpdated: true,
+      vitepressConfig: { lastUpdated: false } as any,
+    })
+
+    expect(getVitepressConfig).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ lastUpdated: false }),
+    )
+  })
+
+  it('should leave vitepressConfig untouched when the lastUpdated option is disabled', async () => {
+    await prepareDoc({
+      username: 'test-user',
+    })
+
+    expect(getVitepressConfig).toHaveBeenCalledWith(expect.anything(), expect.anything(), undefined)
   })
 
   it('should handle extra header pages', async () => {

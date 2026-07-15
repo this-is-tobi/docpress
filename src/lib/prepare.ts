@@ -63,12 +63,13 @@ export interface Index {
  * @param options.vitepressConfig - Path to the VitePress configuration file
  * @param options.forks - Flag to include forked repositories
  * @param options.gitProvider - Git provider used to retrieve data
+ * @param options.lastUpdated - Flag to display each page's last Git commit date, computed by the fetch step
  * @param options.token - Git provider token for API access
  * @param options.username - Git provider username to fetch repositories for
  * @param options.websiteTitle - Custom title for the documentation website
  * @param options.websiteTagline - Custom tagline for the documentation website
  */
-export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
+export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
   // The forks page relies on matching contributors by login, which the GitLab API does not expose
   const forksEnabled = forks && gitProvider !== 'gitlab'
   if (forks && !forksEnabled) {
@@ -135,7 +136,10 @@ export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTh
     nav.push({ text: 'Forks', link: '/forks' })
   }
 
-  const config = getVitepressConfig(finalSB, nav, vitepressConfig)
+  // Vitepress only renders the last updated date once its own "lastUpdated" flag is on;
+  // default it to true when the docpress equivalent is enabled, without overriding an explicit user choice
+  const finalVitepressConfig = lastUpdated ? { lastUpdated: true, ...vitepressConfig } : vitepressConfig
+  const config = getVitepressConfig(finalSB, nav, finalVitepressConfig)
 
   generateVitepressFiles(config, finalIndex)
 }

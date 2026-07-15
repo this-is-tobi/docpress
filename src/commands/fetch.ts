@@ -21,6 +21,7 @@ export const fetchOpts = [
     .default(configSchema.shape.branch.def.defaultValue),
   createOption('-g, --git-provider <string>', configSchema.shape.gitProvider.description)
     .default(configSchema.shape.gitProvider.def.defaultValue),
+  createOption('-l, --last-updated', configSchema.shape.lastUpdated.description),
   createOption('-r, --repos-filter <string>', configSchema.shape.reposFilter.description),
 ]
 
@@ -40,7 +41,7 @@ export const fetchCmd = addOptions(createCommand(cmdName), [...fetchOpts, ...glo
  * @param opts - Validated fetch options
  */
 export async function main(opts: FetchOpts) {
-  const { usernames, reposFilter, token, branch, gitProvider } = opts
+  const { usernames, reposFilter, token, branch, gitProvider, lastUpdated } = opts
   log(`\n-> Start fetching documentation files. This may take a moment, especially for larger repositories.`, 'info')
 
   createDir(DOCPRESS_DIR, { clean: true })
@@ -49,6 +50,6 @@ export async function main(opts: FetchOpts) {
     const finalRF = usernames.length > 1
       ? reposFilter?.filter((rf: string) => rf.replace(/^!/, '').startsWith(`${username}/`)).map((rf: string) => rf.replace(`${username}/`, ''))
       : reposFilter
-    await fetchDoc({ username, branch, reposFilter: finalRF, gitProvider, token })
+    await fetchDoc({ username, branch, reposFilter: finalRF, gitProvider, token, lastUpdated })
   }
 }

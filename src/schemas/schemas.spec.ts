@@ -10,6 +10,7 @@ const defaultConfig = {
   token: undefined,
   gitProvider: 'github',
   forks: false,
+  lastUpdated: false,
 }
 
 describe('globalOptsSchema', () => {
@@ -235,6 +236,7 @@ describe('configSchema', () => {
       branch: 'main',
       gitProvider: 'github',
       forks: false,
+      lastUpdated: false,
       token: 'your_token',
       usernames: ['your_username'],
       reposFilter: ['repo1', 'repo2'],

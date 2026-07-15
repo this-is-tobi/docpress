@@ -180,8 +180,32 @@ describe('getDoc', () => {
       repos[0].docpress.projectPath,
       repos[0].docpress.branch,
       repos[0].docpress.includes,
+      undefined,
     )
-    expect(cloneRepo).not.toHaveBeenCalledWith(repos[1].name, expect.anything(), expect.anything(), expect.anything(), expect.anything())
+    expect(cloneRepo).not.toHaveBeenCalledWith(repos[1].name, expect.anything(), expect.anything(), expect.anything(), expect.anything(), expect.anything())
+  })
+
+  it('should forward the lastUpdated flag to cloneRepo', async () => {
+    const repos = [
+      {
+        name: 'repo1',
+        clone_url: 'https://github.com/testUser/repo1',
+        fork: false,
+        private: false,
+        docpress: { projectPath: '/path/to/repo1', branch: 'main', includes: ['README.md'] },
+      },
+    ] as unknown as EnhancedRepository[]
+
+    await getDoc(repos, ['repo1'], true)
+
+    expect(cloneRepo).toHaveBeenCalledWith(
+      repos[0].name,
+      repos[0].clone_url,
+      repos[0].docpress.projectPath,
+      repos[0].docpress.branch,
+      repos[0].docpress.includes,
+      true,
+    )
   })
 
   it('should warn if no repositories are provided', async () => {
@@ -211,6 +235,7 @@ describe('getDoc', () => {
       repos[0].docpress.projectPath,
       repos[0].docpress.branch,
       repos[0].docpress.includes,
+      undefined,
     )
   })
 })
@@ -340,6 +365,22 @@ describe('fetchDoc', () => {
       branch: mockFetchOpts.branch,
     })
     expect(getGitlabInfos).not.toHaveBeenCalled()
+  })
+
+  it('should forward the lastUpdated flag down through generateInfos/getDoc to cloneRepo', async () => {
+    ;(getInfos as any).mockResolvedValue({ user: mockUser, repos: mockRepos, branch: 'main' })
+    ;(checkHttpStatus as any).mockResolvedValue(200)
+
+    await fetchDoc({ ...mockFetchOpts, lastUpdated: true })
+
+    expect(cloneRepo).toHaveBeenCalledWith(
+      mockRepos[0].name,
+      mockRepos[0].clone_url,
+      expect.any(String),
+      'main',
+      expect.any(Array),
+      true,
+    )
   })
 
   it('should use the gitlab provider when configured', async () => {

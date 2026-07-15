@@ -28,6 +28,7 @@ describe('parseOptions', () => {
       branch: 'main',
       gitProvider: 'github',
       forks: false,
+      lastUpdated: false,
       reposFilter: ['repo1', 'repo2'],
       token: 'token123',
       usernames: ['user1'],

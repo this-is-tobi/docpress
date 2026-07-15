@@ -123,6 +123,11 @@ describe('main', () => {
     expect(prepareDoc).toHaveBeenCalled()
   })
 
+  it('should forward the lastUpdated flag to prepareDoc', async () => {
+    await main({ ...mockOpts, lastUpdated: true })
+    expect(prepareDoc).toHaveBeenCalledWith(expect.objectContaining({ lastUpdated: true }))
+  })
+
   // it('should log the start message and call getUserInfos and getUserRepos', async () => {
   //   await main(mockOpts)
   //   expect(log).toHaveBeenCalledWith(
