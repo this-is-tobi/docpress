@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/this-is-tobi/docpress/compare/v0.10.0...v0.10.1) (2026-07-15)
+
+
+### Bug Fixes
+
+* **ci:** publish to npm via trusted publishing ([b3397e4](https://github.com/this-is-tobi/docpress/commit/b3397e495357c17495ea5c1c21b78e5347bc2440))
+
 ## [0.10.0](https://github.com/this-is-tobi/docpress/compare/v0.9.1...v0.10.0) (2026-07-15)
 
 
