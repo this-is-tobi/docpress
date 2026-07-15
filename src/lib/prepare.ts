@@ -6,7 +6,7 @@ import type { defineConfig } from 'vitepress'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import { generateFile } from '../utils/templates.js'
 import type { GlobalOpts } from '../schemas/global.js'
-import { createDir, extractFiles, getMdFiles, getUserInfos, getUserRepos, isFile, prettify, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
+import { createDir, extractFiles, getMdFiles, getUserInfos, getUserRepos, isFile, prettify, replaceInternalMdLinks, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
 import { DOCPRESS_DIR, DOCS_DIR, FORKS_FILE, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
 import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
@@ -364,6 +364,9 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
       if (basename(file).toLowerCase() === 'readme.md') {
         replaceReadmePath(file, repository.docpress.replace_url)
       }
+      // Runs last so remaining relative links are rewritten to match the
+      // renamed files (index prefix stripped, lowercased, readme -> introduction)
+      replaceInternalMdLinks(file)
     })
 
     log(`   Generate sidebar for repository '${repository.name}'.`, 'info')

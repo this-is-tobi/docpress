@@ -36,6 +36,7 @@ vi.mock('../utils/functions.js', async importOriginal => ({
   getUserRepos: vi.fn(),
   replaceRelativePath: vi.fn(),
   replaceReadmePath: vi.fn(),
+  replaceInternalMdLinks: vi.fn(),
 }))
 vi.mock('../utils/const.js', () => ({
   DOCS_DIR: '/tmp/docpress/mock/docs',
