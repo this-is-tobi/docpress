@@ -136,6 +136,19 @@ describe('main', () => {
     })
   })
 
+  it('should forward the lastUpdated flag to fetchDoc', async () => {
+    const mockOpts = {
+      usernames: ['testUser'],
+      branch: 'main',
+      gitProvider: 'github' as const,
+      lastUpdated: true,
+    }
+
+    await main(mockOpts)
+
+    expect(fetchDoc).toHaveBeenCalledWith(expect.objectContaining({ lastUpdated: true }))
+  })
+
   it('should create the docpress directory before fetching', async () => {
     const mockOpts = {
       usernames: ['testUser'],
@@ -154,11 +167,14 @@ describe('fetchOpts', () => {
   it('should configure options with correct descriptions and default values', () => {
     const branchOption = fetchOpts.find(opt => opt.flags.includes('--branch'))
     const gitProviderOption = fetchOpts.find(opt => opt.flags.includes('--git-provider'))
+    const lastUpdatedOption = fetchOpts.find(opt => opt.flags.includes('--last-updated'))
 
     expect(branchOption?.description).toBe(configSchema.shape.branch.description || '')
     expect(branchOption?.defaultValue).toBe('main')
 
     expect(gitProviderOption?.description).toBe(configSchema.shape.gitProvider.description || '')
     expect(gitProviderOption?.defaultValue).toBe('github')
+
+    expect(lastUpdatedOption?.description).toBe(configSchema.shape.lastUpdated.description || '')
   })
 })

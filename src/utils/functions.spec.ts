@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { rimrafSync } from 'rimraf'
-import { checkHttpStatus, createDir, deepMerge, extractFiles, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, isObject, loadConfigFile, prettify, prettifyEnum, splitByComma } from './functions.js'
+import { addLastUpdatedFrontmatter, checkHttpStatus, createDir, deepMerge, extractFiles, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, isObject, loadConfigFile, prettify, prettifyEnum, splitByComma } from './functions.js'
 
 vi.mock('fs')
 vi.mock('rimraf')
@@ -271,6 +271,22 @@ describe('extractFiles', () => {
       '/path/to/dir/03-file3.md',
     ])
   })
+
+  it('should skip a top-level .git directory during traversal', () => {
+    vi.mocked(statSync).mockImplementation(path => ({
+      isFile: () => (path as string).endsWith('.md'),
+      isDirectory: () => !(path as string).endsWith('.md'),
+    } as unknown as ReturnType<typeof statSync>))
+
+    vi.mocked(readdirSync).mockImplementation((path) => {
+      if (path === '/path/to/dir') return ['readme.md', '.git'] as any
+      if (path === '/path/to/dir/.git') return ['HEAD', 'objects'] as any
+      return []
+    })
+
+    const result = extractFiles('/path/to/dir')
+    expect(result).toEqual(['/path/to/dir/readme.md'])
+  })
 })
 
 describe('getMdFiles', () => {
@@ -517,5 +533,46 @@ describe('splitByComma', () => {
 
   it('should handle multiple consecutive commas by returning empty elements', () => {
     expect(splitByComma('a,,b,,c')).toEqual(['a', '', 'b', '', 'c'])
+  })
+})
+
+describe('addLastUpdatedFrontmatter', () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should prepend a new frontmatter block when none exists', () => {
+    vi.mocked(readFileSync).mockReturnValue('# Title\n\nContent' as any)
+
+    addLastUpdatedFrontmatter('/path/to/file.md', '2024-05-01T12:00:00+00:00')
+
+    expect(writeFileSync).toHaveBeenCalledWith(
+      '/path/to/file.md',
+      '---\nlastUpdated: 2024-05-01T12:00:00+00:00\n---\n\n# Title\n\nContent',
+      'utf8',
+    )
+  })
+
+  it('should merge into existing frontmatter without dropping other fields', () => {
+    vi.mocked(readFileSync).mockReturnValue('---\ntitle: Hello\n---\n# Title\n\nContent' as any)
+
+    addLastUpdatedFrontmatter('/path/to/file.md', '2024-05-01T12:00:00+00:00')
+
+    const [filePath, content, encoding] = vi.mocked(writeFileSync).mock.calls[0]
+    expect(filePath).toBe('/path/to/file.md')
+    expect(encoding).toBe('utf8')
+    expect(content).toContain('title: Hello')
+    expect(content).toContain('lastUpdated: 2024-05-01T12:00:00+00:00')
+    expect(content).toContain('# Title\n\nContent')
+  })
+
+  it('should overwrite an existing lastUpdated value', () => {
+    vi.mocked(readFileSync).mockReturnValue('---\nlastUpdated: 2020-01-01T00:00:00+00:00\n---\nContent' as any)
+
+    addLastUpdatedFrontmatter('/path/to/file.md', '2024-05-01T12:00:00+00:00')
+
+    const content = vi.mocked(writeFileSync).mock.calls[0][1] as string
+    expect(content).toContain('lastUpdated: 2024-05-01T12:00:00+00:00')
+    expect(content).not.toContain('2020-01-01T00:00:00+00:00')
   })
 })

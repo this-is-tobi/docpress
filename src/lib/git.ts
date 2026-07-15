@@ -1,10 +1,11 @@
 import { appendFileSync, cpSync, rmSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { relative, resolve } from 'node:path'
 import { Octokit } from '@octokit/rest'
 import { simpleGit } from 'simple-git'
+import type { SimpleGit } from 'simple-git'
 import type { GlobalOpts } from '../schemas/global.js'
 import type { FetchOpts } from '../schemas/fetch.js'
-import { createDir } from '../utils/functions.js'
+import { addLastUpdatedFrontmatter, createDir, getMdFiles } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
 
@@ -93,6 +94,30 @@ export async function getContributors({
 }
 
 /**
+ * Injects each markdown file's last Git commit date as a "lastUpdated" frontmatter field
+ * Reads the commit history straight from the local clone, so no Git provider API call is
+ * needed and no rate limit is spent, regardless of how many files or repositories are processed
+ *
+ * @param git - Simple-git instance scoped to the cloned repository, with history still intact
+ * @param projectDir - Directory containing the cloned repository
+ * @param name - Repository name, used for logging
+ */
+export async function applyLastUpdated(git: SimpleGit, projectDir: string, name: string) {
+  for (const file of getMdFiles([projectDir])) {
+    const filePath = relative(projectDir, file)
+
+    try {
+      const { latest } = await git.log({ file: filePath, maxCount: 1 })
+      if (latest?.date) {
+        addLastUpdatedFrontmatter(file, latest.date)
+      }
+    } catch (error) {
+      log(`   Unable to get last commit date for '${filePath}' in repository '${name}'. Error : ${error}`, 'warn')
+    }
+  }
+}
+
+/**
  * Clones a repository with sparse checkout
  *
  * @param name - Repository name
@@ -100,8 +125,9 @@ export async function getContributors({
  * @param projectDir - Directory to clone into
  * @param branch - Branch to clone
  * @param includes - Patterns to include in sparse checkout
+ * @param lastUpdated - Whether or not to inject each page's last Git commit date as frontmatter
  */
-export async function cloneRepo(name: string, url: string, projectDir: string, branch: string, includes: string[]) {
+export async function cloneRepo(name: string, url: string, projectDir: string, branch: string, includes: string[], lastUpdated?: boolean) {
   createDir(projectDir, { clean: true })
 
   try {
@@ -119,6 +145,10 @@ export async function cloneRepo(name: string, url: string, projectDir: string, b
 
     log(`   Clone repository '${name}'.`, 'info')
     await git.pull('origin', branch)
+
+    if (lastUpdated) {
+      await applyLastUpdated(git, projectDir, name)
+    }
 
     if (includes.some(item => item.includes('docs'))) {
       cpSync(resolve(projectDir, 'docs'), projectDir, { recursive: true })

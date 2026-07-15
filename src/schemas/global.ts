@@ -39,6 +39,9 @@ export const configSchema = z.object({
   forks: z.boolean()
     .default(false)
     .describe('Whether or not to create the dedicated fork page that aggregate external contributions.'),
+  lastUpdated: z.boolean()
+    .default(false)
+    .describe('Whether or not to inject each page\'s last Git commit date as Vitepress "lastUpdated" frontmatter.'),
   vitepressConfig: z.any()
     .optional()
     .describe('Path to the vitepress configuration file.'),
@@ -67,6 +70,9 @@ export const cliSchema = configSchema
     forks: z.boolean()
       .optional()
       .describe(configSchema.shape.forks.description || ''),
+    lastUpdated: z.boolean()
+      .optional()
+      .describe(configSchema.shape.lastUpdated.description || ''),
     config: z.string()
       .optional()
       .describe('Path to the docpress configuration file.'),
@@ -169,6 +175,7 @@ export const globalOptsSchema = cliSchema
         branch: 'main',
         gitProvider: 'github',
         forks: false,
+        lastUpdated: false,
         ...configData,
         ...rest,
         ...(vitepressConfig
