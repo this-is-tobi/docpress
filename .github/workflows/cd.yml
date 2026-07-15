@@ -41,8 +41,8 @@ jobs:
       RUNTIME_VERSION: ${{ needs.expose-vars.outputs.BUN_VERSION }}
       PACKAGE_MANAGER: bun
       BUILD_COMMAND: bun run build
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    # No NPM_TOKEN: publishing relies on the npmjs.com trusted publisher (OIDC)
+    # registered for this repository and workflow file, via id-token: write
 
   docker:
     uses: this-is-tobi/github-workflows/.github/workflows/build-docker.yml@v0
