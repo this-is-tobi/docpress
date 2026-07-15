@@ -132,6 +132,7 @@ To ensure that the program functions correctly, please follow these conventions:
 
 - Any inline link in the `./README.md` file that does not point to `./docs/**` will be replaced with the corresponding Git provider link.
 - Similarly, any inline link in the `./docs/*.md` files that does not reference `./docs/**` will also be replaced with the appropriate Git provider link.
+- Relative links between markdown files are rewritten to follow the file renaming rules, so `[profiles](./04-profiles.md#anchor)` will be rewritten to `[profiles](./profiles.md#anchor)` to match the renamed target file.
 
 ### Project descriptions
 

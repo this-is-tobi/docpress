@@ -6,7 +6,7 @@ import type { GlobalOpts } from '../schemas/global.js'
 import type { EnhancedRepository } from '../lib/fetch.js'
 import type { getInfos } from '../lib/git.js'
 import { DOCPRESS_DIR } from './const.js'
-import { frontmatterRegex, readmeDocsPathRegex, readmePathRegex, relativePathRegex, removeIdxRegex } from './regex.js'
+import { frontmatterRegex, internalMdLinkRegex, readmeDocsPathRegex, readmePathRegex, relativePathRegex, removeIdxRegex } from './regex.js'
 
 /**
  * Checks the HTTP status code of a URL
@@ -296,6 +296,26 @@ export function addLastUpdatedFrontmatter(file: string, date: string) {
   } else {
     writeFileSync(file, `---\nlastUpdated: ${date}\n---\n\n${content}`, 'utf8')
   }
+}
+
+/**
+ * Rewrites relative markdown links to match the renamed target files
+ * Files are renamed during sidebar generation (index prefix stripped, name lowercased,
+ * readme becoming introduction), so in-page links must follow the same convention
+ * to avoid pointing to files that no longer exist
+ *
+ * @param file - Path to the markdown file to process
+ */
+export function replaceInternalMdLinks(file: string) {
+  const fileContent = readFileSync(file, 'utf8')
+  const updatedContent = fileContent.replace(internalMdLinkRegex, (_match, text, dir, target, anchor) => {
+    let filename = prettify(target, { mode: 'lowercase', removeIdx: true })
+    if (filename === 'readme.md') {
+      filename = 'introduction.md'
+    }
+    return `[${text}](${dir ?? ''}${filename}${anchor ?? ''})`
+  })
+  writeFileSync(file, updatedContent, 'utf8')
 }
 
 /**
