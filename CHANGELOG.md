@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.0](https://github.com/this-is-tobi/docpress/compare/v0.9.1...v0.10.0) (2026-07-15)
+
+
+### Features
+
+* inject last git commit date as vitepress lastUpdated frontmatter ([11e7abb](https://github.com/this-is-tobi/docpress/commit/11e7abbbf0e3804f138e0e5ec443c45ea8523011))
+
+
+### Bug Fixes
+
+* rewrite internal doc links to match renamed files ([0b20035](https://github.com/this-is-tobi/docpress/commit/0b200357f467891ae894334ae2d26f2e02967d4b))
+
 ## [0.9.1](https://github.com/this-is-tobi/docpress/compare/v0.9.0...v0.9.1) (2026-07-04)
 
 
