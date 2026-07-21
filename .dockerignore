@@ -2,19 +2,22 @@
 README.md
 CHANGELOG.md
 .prototools
-release-pelase-config.json
-.release-pelase-manifest.json
+release-please-config.json
+.release-please-manifest.json
 
 # Npm
 node_modules
 npm-debug.log
 
 # Git
+.git
 .gitkeep
+.gitignore
+.github
 
 # Lint
 .editorconfig
-.eslint.config.js
+eslint.config.js
 .eslintrc.js
 .eslintrc.cjs
 .eslintrc.json
