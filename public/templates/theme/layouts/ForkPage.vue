@@ -3,6 +3,17 @@ import { useData } from 'vitepress'
 
 const { frontmatter } = useData()
 const repositories = frontmatter.value.repoList || []
+
+// Only allow http(s) links to be rendered as-is; anything else (e.g. a
+// `javascript:` scheme) is neutralised to avoid an href-injection vector.
+function safeUrl(url) {
+  try {
+    const { protocol } = new URL(url)
+    return protocol === 'https:' || protocol === 'http:' ? url : '#'
+  } catch {
+    return '#'
+  }
+}
 </script>
 
 <template>
@@ -13,7 +24,7 @@ const repositories = frontmatter.value.repoList || []
         <a
           v-for="repo in repositories"
           :key="repo.name"
-          :href="repo.html_url"
+          :href="safeUrl(repo.html_url)"
           target="_blank"
           rel="noopener noreferrer"
           class="repo-card VPFeature link"
