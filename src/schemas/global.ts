@@ -1,11 +1,17 @@
 import { z } from 'zod'
-import { loadConfigFile, prettifyEnum, splitByComma } from '../utils/functions.js'
+import { loadConfigFile, prettifyEnum, redactToken, splitByComma } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 
 /**
  * List of supported Git providers
  */
 const providers = ['github', 'gitlab'] as const
+
+/**
+ * Allowed characters for a Git branch/ref name (must not start with "-")
+ */
+const safeRefRegex = /^\w[\w./-]*$/
+const safeRefMessage = 'Branch name must start with a letter, digit or underscore and only contain letters, digits, ".", "-", "_" or "/".'
 
 /**
  * Schema for the DocPress configuration file
@@ -18,6 +24,7 @@ export const configSchema = z.object({
     .describe('List of comma separated Git provider usernames used to collect data.'),
   // Fetch
   branch: z.string()
+    .regex(safeRefRegex, safeRefMessage)
     .default('main')
     .describe('Branch used to collect Git provider data.'),
   gitProvider: z.enum(providers)
@@ -62,6 +69,7 @@ export const cliSchema = configSchema
   .partial()
   .extend({
     branch: z.string()
+      .regex(safeRefRegex, safeRefMessage)
       .optional()
       .describe(configSchema.shape.branch.description || ''),
     gitProvider: z.enum(providers)
@@ -115,14 +123,15 @@ export type Cli = z.infer<typeof cliSchema>
 function prepareConfigData(configData: any) {
   if (!configData) return {}
 
+  const result = { ...configData }
   const arrayKeys = ['usernames', 'reposFilter', 'extraHeaderPages', 'extraPublicContent', 'extraTheme'] as const
   for (const key of arrayKeys) {
-    if (configData[key] && typeof configData[key] === 'string') {
-      configData[key] = [configData[key]]
+    if (typeof result[key] === 'string') {
+      result[key] = [result[key]]
     }
   }
 
-  return configData
+  return result
 }
 
 /**
@@ -156,6 +165,24 @@ function validateFinalConfig(mergedConfig: any) {
 }
 
 /**
+ * Resolves the API token, with precedence: explicit token > DOCPRESS_TOKEN >
+ * provider-specific env var (GITHUB_TOKEN / GITLAB_TOKEN)
+ *
+ * @param token - Token explicitly provided via CLI flag or config file
+ * @param gitProvider - Git provider used to pick the provider-specific env var
+ * @returns The resolved token, or undefined when none is available
+ */
+function resolveToken(token: string | undefined, gitProvider: string | undefined): string | undefined {
+  if (token) {
+    return token
+  }
+  /* eslint-disable dot-notation */
+  const providerToken = gitProvider === 'gitlab' ? process.env['GITLAB_TOKEN'] : process.env['GITHUB_TOKEN']
+  return process.env['DOCPRESS_TOKEN'] ?? providerToken
+  /* eslint-enable dot-notation */
+}
+
+/**
  * Schema for global options that combines CLI arguments and configuration files
  * Merges config sources with precedence: CLI options > config file > defaults
  */
@@ -165,7 +192,7 @@ export const globalOptsSchema = cliSchema
     try {
       const { config, vitepressConfig, token, ...rest } = data
 
-      log(`Debug: Schema transform input: ${JSON.stringify(data)}`, 'debug')
+      log(`Debug: Schema transform input: ${JSON.stringify(redactToken(data))}`, 'debug')
 
       // Load and validate configuration from file
       const configData = validateConfigData(prepareConfigData(loadConfigFile(config)))
@@ -190,7 +217,7 @@ export const globalOptsSchema = cliSchema
 
       log(`Debug: Final merged config: ${JSON.stringify(mergedConfig)}`, 'debug')
 
-      return validateFinalConfig({ ...mergedConfig, token })
+      return validateFinalConfig({ ...mergedConfig, token: resolveToken(token, mergedConfig.gitProvider) })
     } catch (error) {
       log(`   An error occurred while checking configuration.`, 'error')
       if (error instanceof Error) {

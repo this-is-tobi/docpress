@@ -6,6 +6,7 @@ import type { GlobalOpts } from '../schemas/global.js'
 import type { EnhancedRepository } from '../lib/fetch.js'
 import type { getInfos } from '../lib/git.js'
 import { DOCPRESS_DIR } from './const.js'
+import { log } from './logger.js'
 import { frontmatterRegex, internalMdLinkRegex, readmeDocsPathRegex, readmePathRegex, relativePathRegex, removeIdxRegex } from './regex.js'
 
 /**
@@ -14,15 +15,41 @@ import { frontmatterRegex, internalMdLinkRegex, readmeDocsPathRegex, readmePathR
  * sign-in page instead of returning 404 for missing resources
  *
  * @param url - URL to check
- * @returns HTTP status code (500 for network errors)
+ * @returns HTTP status code (500 for network/transport errors)
  */
 export async function checkHttpStatus(url: string): Promise<number> {
   try {
     const response = await fetch(url, { method: 'HEAD', redirect: 'manual' })
     return response.status
-  } catch (_error) {
+  } catch (error) {
+    log(`   Network error while checking '${url}': ${error instanceof Error ? error.message : String(error)}`, 'debug')
     return 500
   }
+}
+
+/**
+ * Reduces an arbitrary string to a safe single path segment: basename only,
+ * with no path separators or leading dots
+ *
+ * @param name - Raw name (repository name, username, login, ...)
+ * @returns A filesystem-safe segment
+ */
+export function sanitizeSegment(name: string): string {
+  const segment = name.split(/[/\\]/).pop() ?? ''
+  return segment.replace(/[^\w.-]/g, '_').replace(/^\.+/, '')
+}
+
+/**
+ * Returns a shallow copy of an options object with the `token` value masked
+ *
+ * @param obj - Options or config object that may contain a `token` field
+ * @returns A copy with `token` replaced by a placeholder
+ */
+export function redactToken<T extends { token?: unknown }>(obj: T): T {
+  if (!isObject(obj) || !('token' in obj)) {
+    return obj
+  }
+  return { ...obj, token: obj.token ? '***' : obj.token } as T
 }
 
 /**
@@ -95,7 +122,7 @@ export function createDir(directory: string, { clean }: { clean?: boolean } = { 
       mkdirSync(directory, { recursive: true })
     }
   } catch (err) {
-    console.error(err)
+    throw new Error(`Unable to create directory '${directory}': ${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -180,7 +207,7 @@ export function prettifyEnum(arr: readonly string[]) {
  * @returns User information object
  */
 export function getUserInfos(username: GlobalOpts['usernames'][number]) {
-  return JSON.parse(readFileSync(`${DOCPRESS_DIR}/user-${username}.json`).toString()) as Awaited<ReturnType<typeof getInfos>>['user']
+  return JSON.parse(readFileSync(`${DOCPRESS_DIR}/user-${sanitizeSegment(username)}.json`).toString()) as Awaited<ReturnType<typeof getInfos>>['user']
 }
 
 /**
@@ -190,11 +217,16 @@ export function getUserInfos(username: GlobalOpts['usernames'][number]) {
  * @returns Array of enhanced repository objects
  */
 export function getUserRepos(username: GlobalOpts['usernames'][number]) {
-  return JSON.parse(readFileSync(`${DOCPRESS_DIR}/repos-${username}.json`).toString()) as EnhancedRepository[]
+  return JSON.parse(readFileSync(`${DOCPRESS_DIR}/repos-${sanitizeSegment(username)}.json`).toString()) as EnhancedRepository[]
 }
 
 /**
- * Deep merges multiple objects
+ * Keys skipped during a merge to prevent prototype pollution
+ */
+const FORBIDDEN_MERGE_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+
+/**
+ * Deep merges multiple objects, cloning object values rather than sharing them by reference
  *
  * @param objects - Objects to merge
  * @returns Merged object
@@ -206,11 +238,17 @@ export function deepMerge<T extends Record<string, any> | null>(...objects: T[])
     }
 
     Object.keys(obj).forEach((key) => {
+      if (FORBIDDEN_MERGE_KEYS.has(key)) {
+        return
+      }
+
       const accValue = acc ? acc[key] : null
       const objValue = obj[key]
 
       if (isObject(accValue) && isObject(objValue)) {
         (acc as Record<string, any>)[key] = deepMerge(accValue, objValue)
+      } else if (isObject(objValue)) {
+        (acc as Record<string, any>)[key] = deepMerge({}, objValue)
       } else {
         (acc as Record<string, any>)[key] = objValue
       }
