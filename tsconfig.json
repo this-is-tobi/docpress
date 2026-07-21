@@ -1,21 +1,21 @@
 {
   "compilerOptions": {
-    "rootDirs": ["./src", "./public"],
-    "types": [
-      "node",
-      "vite/client",
-      "vitest", 
-      "vitest/globals"
-    ],
 
     // Module
     "incremental": true,
     "target": "ESNext",
     "jsx": "preserve",
     "lib": ["ESNext", "DOM"],
+    "rootDirs": ["./src", "./public"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
+    "types": [
+      "node",
+      "vite/client",
+      "vitest",
+      "vitest/globals"
+    ],
     "allowImportingTsExtensions": false,
     "allowJs": false,
 
@@ -25,32 +25,32 @@
     "alwaysStrict": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,
-    
+
     // Some stricter flags
     "noPropertyAccessFromIndexSignature": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "useUnknownInCatchVariables": false,
-    
+    "declaration": true,
+    "declarationDir": "./types",
+    "emitDeclarationOnly": true,
+
+    "noEmit": false,
     // Output
     "outDir": "./dist",
-    "declarationDir": "./types",
-    "noEmit": false,
-    "declaration": true,
-    "emitDeclarationOnly": true,
     "sourceMap": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
   "include": [
     "./src/**/*.ts",
     "./src/**/*.d.ts",
-    "./public/**/*.ts",
+    "./public/**/*.ts"
   ],
   "exclude": [
     "./src/**/*.spec.ts",
-    "./src/**/__mocks__",
+    "./src/**/__mocks__"
   ]
 }
