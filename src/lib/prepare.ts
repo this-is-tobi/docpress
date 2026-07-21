@@ -330,7 +330,7 @@ export function flattenTree(subtree: any, prefix = ''): string[] {
  * @param arr - Array of sidebar items to reorder
  * @returns Reordered array with 'Sources' as the last item
  */
-function moveSourcesLast(arr: (SidebarProject | Page)[]) {
+export function moveSourcesLast(arr: (SidebarProject | Page)[]) {
   if (!Array.isArray(arr)) {
     return arr
   }

@@ -23,6 +23,14 @@ export default defineConfig({
         '**/types.ts',
         'src/templates/**/*',
       ],
+      // Guard against silent coverage regressions; set below current levels to
+      // leave headroom for minor fluctuations without being brittle
+      thresholds: {
+        statements: 90,
+        branches: 80,
+        functions: 85,
+        lines: 90,
+      },
     },
     onConsoleLog: () => false,
     include: ['src/**/*.spec.ts'],

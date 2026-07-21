@@ -94,6 +94,7 @@ describe('suppressVueWarnings', () => {
   })
 
   it('should restore console.warn even if callback throws', async () => {
+    const beforeWarn = console.warn
     const error = new Error('Test error')
     const mockCallback = async () => {
       throw error
@@ -101,8 +102,7 @@ describe('suppressVueWarnings', () => {
 
     await expect(suppressVueWarnings(mockCallback)).rejects.toThrow(error)
 
-    // We can't easily test if console.warn was restored since we're mocking it,
-    // but we can verify that the callback was executed
+    expect(console.warn).toBe(beforeWarn)
   })
 })
 

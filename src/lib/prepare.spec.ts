@@ -1,4 +1,4 @@
-import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -12,9 +12,11 @@ import {
   flattenTree,
   generateFeatures,
   generateIndex,
+  generateSidebarItems,
   generateSidebarPages,
   generateSidebarProject,
   generateVitepressFiles,
+  moveSourcesLast,
   parseVitepressConfig,
   parseVitepressIndex,
   prepareDoc,
@@ -965,32 +967,20 @@ features:
 })
 
 describe('moveSourcesLast', () => {
-  // Define a reusable function to be used in all tests
-  function moveSourcesLastImpl(arr: any) {
-    if (!Array.isArray(arr)) {
-      return arr
-    }
-    const sourcesIdx = arr.findIndex(item => item.text === 'Sources')
-    if (sourcesIdx === -1) {
-      return arr
-    }
-    const copy = [...arr]
-    const [sources] = copy.splice(sourcesIdx, 1)
-    copy.push(sources)
-    return copy
-  }
-
-  it('should move Sources to the end of the array', () => {
+  it('should move Sources to the end of the array in place', () => {
     const items = [
       { text: 'Sources', link: '/sources' },
       { text: 'Item 1', link: '/item1' },
       { text: 'Item 2', link: '/item2' },
     ]
 
-    const result = moveSourcesLastImpl(items)
+    const result = moveSourcesLast(items)
 
-    expect(result.at(-1).text).toBe('Sources')
+    expect(result.at(-1)?.text).toBe('Sources')
     expect(result.length).toBe(3)
+    // The real function mutates its input, so the original reference is reordered too
+    expect(items.at(-1)?.text).toBe('Sources')
+    expect(result).toBe(items)
   })
 
   it('should return the original array if Sources is not present', () => {
@@ -999,30 +989,54 @@ describe('moveSourcesLast', () => {
       { text: 'Item 2', link: '/item2' },
     ]
 
-    const result = moveSourcesLastImpl(items)
+    const result = moveSourcesLast(items)
 
     expect(result).toEqual(items)
   })
 
   it('should handle non-array inputs', () => {
-    const notAnArray = { text: 'Not an array' }
+    const notAnArray = { text: 'Not an array' } as any
 
-    const result = moveSourcesLastImpl(notAnArray)
+    const result = moveSourcesLast(notAnArray)
 
     expect(result).toEqual(notAnArray)
   })
 })
 
 describe('generateSidebarItems', () => {
-  it('should generate sidebar items for files with dots in filenames', () => {
-    vi.mocked(readdirSync).mockReturnValue(['file.with.dots.md'] as any)
-    vi.mocked(getMdFiles).mockReturnValue(['/path/to/file.with.dots.md'])
+  const repository = {
+    name: 'test-repo',
+    docpress: { projectPath: '/path/to/test-repo' },
+  } as unknown as EnhancedRepository
 
-    // Call the exported function that uses generateSidebarItems internally
-    const pages = generateSidebarPages('test-repo', 'file.with.dots')
+  it('should build a page for each file, renaming readme to introduction', () => {
+    const tree = { $: ['01-readme.md', '02-guide.md'] }
 
-    // Verify we get a properly formatted link
-    expect(pages[0].link).toBe('/test-repo/file.with.dots')
-    expect(pages[0].text).toBe('File.with.dots')
+    const items = generateSidebarItems(repository, tree)
+
+    // readme.md is renamed on disk to introduction.md ...
+    expect(renameSync).toHaveBeenCalledWith('/path/to/test-repo/01-readme.md', '/path/to/test-repo/introduction.md')
+    // ... and the numeric prefix is stripped from the guide file
+    expect(renameSync).toHaveBeenCalledWith('/path/to/test-repo/02-guide.md', '/path/to/test-repo/guide.md')
+    expect(items).toEqual([
+      { text: 'Introduction', link: '/test-repo/introduction' },
+      { text: 'Guide', link: '/test-repo/guide' },
+    ])
+  })
+
+  it('should recurse into nested folders as collapsible sections', () => {
+    const tree = { advanced: { $: ['setup.md'] } }
+
+    const items = generateSidebarItems(repository, tree)
+
+    expect(items).toEqual([
+      {
+        text: 'Advanced',
+        collapsed: true,
+        items: [
+          { text: 'Setup', link: '/test-repo/advanced/setup' },
+        ],
+      },
+    ])
   })
 })

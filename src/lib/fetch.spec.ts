@@ -125,6 +125,31 @@ describe('isRepoFiltered', () => {
 
     expect(isRepoFiltered(repo, filter)).toBe(false)
   })
+
+  it('should filter out an enhanced repo whose docpress metadata has no includable files', () => {
+    const repo = {
+      name: 'repo1',
+      clone_url: 'https://github.com/testUser/repo1',
+      fork: false,
+      private: false,
+      docpress: { includes: [] },
+    } as unknown as EnhancedRepository
+
+    // The empty docpress.includes short-circuits to filtered regardless of the filter
+    expect(isRepoFiltered(repo)).toBe(true)
+  })
+
+  it('should keep an enhanced repo that has includable files', () => {
+    const repo = {
+      name: 'repo1',
+      clone_url: 'https://github.com/testUser/repo1',
+      fork: false,
+      private: false,
+      docpress: { includes: ['docs/*'] },
+    } as unknown as EnhancedRepository
+
+    expect(isRepoFiltered(repo)).toBe(false)
+  })
 })
 
 describe('getSparseCheckout', () => {
