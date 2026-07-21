@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.10.2](https://github.com/this-is-tobi/docpress/compare/v0.10.1...v0.10.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* **security:** harden inputs, redact token, guard prototype pollution ([c2732bb](https://github.com/this-is-tobi/docpress/commit/c2732bba0f17a0e81bc1bd4fbf5b1b8c2622e66a))
+* surface clone failures and harden fetch reliability ([ee450bf](https://github.com/this-is-tobi/docpress/commit/ee450bfc8b665e459a2a9596e64591bb7b018582))
+
+
+### Code Refactoring
+
+* **gitlab:** type API responses and drop unsafe casts ([edf1bf8](https://github.com/this-is-tobi/docpress/commit/edf1bf83965b8d4035ad4c5e02479a7ec4c18ae7))
+
+
+### Dependencies
+
+* add Makefile ([32a9f5b](https://github.com/this-is-tobi/docpress/commit/32a9f5bb8eff1a96854eff99efaa80ff55a0a557))
+
 ## [0.10.1](https://github.com/this-is-tobi/docpress/compare/v0.10.0...v0.10.1) (2026-07-15)
 
 
