@@ -52,7 +52,7 @@ Usage: docpress [options] [command]
 Build your doc website faster than light ⚡️⚡️⚡️
 
 Options:
-  -b, --branch <string>                Branch used to collect Git provider data. (default: "main")
+  -b, --branch <string>                Branch used to collect Git provider data. Defaults to each repository's own default branch when not set.
   -c, --extra-public-content <string>  List of comma separated additional files or directories to process Vitepress public folder.
   -C, --config <string>                Path to the docpress configuration file.
   -f, --forks                          Whether or not to create the dedicated fork page that aggregate external contributions.

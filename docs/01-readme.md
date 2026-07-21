@@ -43,7 +43,7 @@ Usage: docpress [options] [command]
 Build your doc website faster than light ⚡️⚡️⚡️
 
 Options:
-  -b, --branch <string>                Branch used to collect Git provider data. (default: "main")
+  -b, --branch <string>                Branch used to collect Git provider data. Defaults to each repository's own default branch when not set.
   -c, --extra-public-content <string>  List of comma separated additional files or directories to process Vitepress public folder.
   -C, --config <string>                Path to the docpress configuration file.
   -f, --forks                          Whether or not to create the dedicated fork page that aggregate external contributions.
@@ -51,6 +51,7 @@ Options:
                                        Values should be "github" or "gitlab".
                                        (default: "github")
   -h, --help                           display help for command
+  -l, --last-updated                   Whether or not to inject each page's last Git commit date as Vitepress "lastUpdated" frontmatter.
   -p, --extra-header-pages <string>    List of comma separated additional files or directories to process Vitepress header pages.
   -r, --repos-filter <string>          List of comma separated repositories to retrieve from Git provider. Default to all user's public repositories.
   -t, --extra-theme <string>           List of comma separated additional files or directories to use as Vitepress theme.

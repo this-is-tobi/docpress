@@ -8,7 +8,7 @@ Usage: docpress [options] [command]
 Build your doc website faster than light ⚡️⚡️⚡️
 
 Options:
-  -b, --branch <string>                Branch used to collect Git provider data. (default: "main")
+  -b, --branch <string>                Branch used to collect Git provider data. Defaults to each repository's own default branch when not set.
   -c, --extra-public-content <string>  List of comma separated additional files or directories to process Vitepress public folder.
   -C, --config <string>                Path to the docpress configuration file.
   -f, --forks                          Whether or not to create the dedicated fork page that aggregate external contributions.
@@ -210,7 +210,7 @@ Docpress can be configured with an external JSON configuration file specified by
 
 - `usernames`: List of comma separated Git provider usernames used to collect data (equivalent to the `-U` CLI option).
 - `reposFilter`: List of repositories to include or exclude (equivalent to the `-r` CLI option).
-- `branch`: Default branch from which documentation will be fetched (equivalent to `-b`).
+- `branch`: Branch from which documentation will be fetched (equivalent to `-b`). When omitted, each repository's own default branch is used, so repositories on `master`, `develop`, etc. are handled correctly.
 - `gitProvider`: Git provider used to retrieve data, `github` or `gitlab` (equivalent to `-g`).
 - `lastUpdated`: Whether or not to inject each page's last Git commit date as Vitepress `lastUpdated` frontmatter (equivalent to `-l`).
 - `extraHeaderPages`: Additional pages to include in the website header (equivalent to `-p`).
@@ -243,7 +243,9 @@ Example JSON configuration:
 }
 ```
 
-With multiple users it is needed to specify user prefix (with the format `<username>/<repo_name>`) :
+When collecting from a single user, each repository is served at the root of the site (e.g. `/<repo_name>/introduction`).
+
+When collecting from **multiple users**, generated pages are namespaced by username to avoid collisions between users that own a repository with the same name. Both the on-disk documentation folder and the site routes are prefixed with the username (e.g. `/<username>/<repo_name>/introduction`). Because of this, repository filters must also specify the user prefix (with the format `<username>/<repo_name>`) :
 
 ```json
 {
