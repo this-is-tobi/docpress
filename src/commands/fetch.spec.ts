@@ -73,6 +73,7 @@ describe('main', () => {
       token: mockOpts.token,
       branch: mockOpts.branch,
       gitProvider: mockOpts.gitProvider,
+      multiUser: false,
     })
   })
 
@@ -97,6 +98,7 @@ describe('main', () => {
       token: 'testToken',
       branch: 'main',
       gitProvider: 'github',
+      multiUser: true,
     })
 
     // Second call with user2 and only user2's repo
@@ -106,6 +108,7 @@ describe('main', () => {
       token: 'testToken',
       branch: 'main',
       gitProvider: 'github',
+      multiUser: true,
     })
   })
 
@@ -126,6 +129,7 @@ describe('main', () => {
       token: 'testToken',
       branch: 'main',
       gitProvider: 'github',
+      multiUser: true,
     })
     expect(fetchDoc).toHaveBeenCalledWith({
       username: 'user2',
@@ -133,6 +137,7 @@ describe('main', () => {
       token: 'testToken',
       branch: 'main',
       gitProvider: 'github',
+      multiUser: true,
     })
   })
 
@@ -170,7 +175,8 @@ describe('fetchOpts', () => {
     const lastUpdatedOption = fetchOpts.find(opt => opt.flags.includes('--last-updated'))
 
     expect(branchOption?.description).toBe(configSchema.shape.branch.description || '')
-    expect(branchOption?.defaultValue).toBe('main')
+    // No CLI default: an unset branch resolves per-repo to each repo's default branch
+    expect(branchOption?.defaultValue).toBeUndefined()
 
     expect(gitProviderOption?.description).toBe(configSchema.shape.gitProvider.description || '')
     expect(gitProviderOption?.defaultValue).toBe('github')

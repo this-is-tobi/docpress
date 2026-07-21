@@ -18,6 +18,8 @@ export type EnhancedRepository = Awaited<ReturnType<typeof getInfos>>['repos'][n
     projectPath: string
     raw_url: string
     replace_url: string
+    /** URL/path prefix ('' or '<username>/') used to namespace multi-user runs */
+    routePrefix: string
   }
 }
 
@@ -85,11 +87,15 @@ export async function checkDoc(urls: ProviderUrls) {
  * @param options.gitProvider - Git provider used to retrieve data
  * @param options.token - Git provider API token
  * @param options.lastUpdated - Whether or not to inject each page's last Git commit date as frontmatter
+ * @param options.multiUser - Whether the run spans multiple usernames; namespaces paths/routes by username to avoid collisions
  */
-export async function fetchDoc({ username, branch, reposFilter, gitProvider, token, lastUpdated }: FetchOptsUser) {
+export async function fetchDoc({ username, branch, reposFilter, gitProvider, token, lastUpdated, multiUser }: FetchOptsUser & { multiUser?: boolean }) {
   const getProviderInfos = gitProvider === 'gitlab' ? getGitlabInfos : getInfos
   const { user, repos, branch: resolvedBranch } = await getProviderInfos({ username, token, branch })
-  const { repos: enhancedRepos } = await generateInfos(user, repos, resolvedBranch, reposFilter, gitProvider)
+  // In multi-user runs, namespace on-disk paths and site routes by username so
+  // two users owning a same-named repository do not collide (data loss / merged routes)
+  const routePrefix = multiUser ? `${sanitizeSegment(username)}/` : ''
+  const { repos: enhancedRepos } = await generateInfos(user, repos, resolvedBranch, reposFilter, gitProvider, routePrefix)
   await getDoc(enhancedRepos, reposFilter, lastUpdated)
 }
 
@@ -101,13 +107,13 @@ export async function fetchDoc({ username, branch, reposFilter, gitProvider, tok
  * @param reposFilter - Optional filter for repositories
  * @returns Array of enhanced repositories with DocPress metadata
  */
-export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter'], gitProvider?: FetchOpts['gitProvider']) {
+export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter'], gitProvider?: FetchOpts['gitProvider'], routePrefix: string = '') {
   const enhancedRepos: EnhancedRepository[] = []
 
   await Promise.all(
     repos.map(async (repo) => {
       const computedBranch = branch ?? repo.default_branch ?? 'main'
-      const projectPath = resolve(DOCS_DIR, prettify(sanitizeSegment(repo.name), { removeDot: true }))
+      const projectPath = resolve(DOCS_DIR, `${routePrefix}${prettify(sanitizeSegment(repo.name), { removeDot: true })}`)
       const filtered = isRepoFiltered(repo, reposFilter)
       const urls = getProviderUrls(repo, computedBranch, gitProvider)
       let includes: string[] = []
@@ -125,6 +131,7 @@ export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getIn
           projectPath,
           raw_url: urls.raw_url,
           replace_url: urls.tree_url,
+          routePrefix,
         },
       })
     }),
@@ -168,10 +175,10 @@ export async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos
  * @param gitProvider - Git provider used to retrieve data
  * @returns Object containing user and enhanced repository information
  */
-export async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'], repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter'], gitProvider?: FetchOpts['gitProvider']) {
+export async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'], repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter'], gitProvider?: FetchOpts['gitProvider'], routePrefix: string = '') {
   writeFileSync(`${DOCPRESS_DIR}/user-${sanitizeSegment(user.login)}.json`, JSON.stringify(user, null, 2))
 
-  const enhancedRepos = await enhanceRepositories(repos, branch, reposFilter, gitProvider)
+  const enhancedRepos = await enhanceRepositories(repos, branch, reposFilter, gitProvider, routePrefix)
   writeFileSync(`${DOCPRESS_DIR}/repos-${sanitizeSegment(user.login)}.json`, JSON.stringify(enhancedRepos, null, 2))
 
   return { user, repos: enhancedRepos }

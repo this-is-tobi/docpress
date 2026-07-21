@@ -25,8 +25,8 @@ export const configSchema = z.object({
   // Fetch
   branch: z.string()
     .regex(safeRefRegex, safeRefMessage)
-    .default('main')
-    .describe('Branch used to collect Git provider data.'),
+    .optional()
+    .describe('Branch used to collect Git provider data. Defaults to each repository\'s own default branch when not set.'),
   gitProvider: z.enum(providers)
     .default('github')
     .describe(`Git provider used to retrieve data. Values should be ${prettifyEnum(providers)}.`),
@@ -188,7 +188,7 @@ function resolveToken(token: string | undefined, gitProvider: string | undefined
  */
 export const globalOptsSchema = cliSchema
   .partial()
-  .transform((data) => {
+  .transform((data, ctx) => {
     try {
       const { config, vitepressConfig, token, ...rest } = data
 
@@ -197,9 +197,10 @@ export const globalOptsSchema = cliSchema
       // Load and validate configuration from file
       const configData = validateConfigData(prepareConfigData(loadConfigFile(config)))
 
-      // Create final config
+      // Create final config. `branch` is intentionally NOT defaulted here: when
+      // the user does not pass --branch, it stays undefined so the fetch step
+      // can fall back to each repository's own default branch (see fetch.ts).
       const mergedConfig = {
-        branch: 'main',
         gitProvider: 'github',
         forks: false,
         lastUpdated: false,
@@ -219,15 +220,16 @@ export const globalOptsSchema = cliSchema
 
       return validateFinalConfig({ ...mergedConfig, token: resolveToken(token, mergedConfig.gitProvider) })
     } catch (error) {
-      log(`   An error occurred while checking configuration.`, 'error')
-      if (error instanceof Error) {
-        log(`     ${error.message}`, 'error')
-      } else {
-        log(`     ${JSON.stringify(error, null, 2)}`, 'error')
-      }
-      process.exit(1)
+      // Surface the failure as a validation issue instead of terminating the
+      // process from inside the schema. The caller (parseOptions) reports it and
+      // owns the single exit point, which keeps this schema pure and testable.
+      ctx.addIssue({
+        code: 'custom',
+        message: error instanceof Error ? error.message : JSON.stringify(error, null, 2),
+      })
+      return z.NEVER
     }
   })
 
-export type GlobalOpts = Required<Pick<z.infer<typeof globalOptsSchema>, 'branch' | 'gitProvider'>>
-  & Omit<z.infer<typeof globalOptsSchema>, 'branch' | 'gitProvider'>
+export type GlobalOpts = Required<Pick<z.infer<typeof globalOptsSchema>, 'gitProvider'>>
+  & Omit<z.infer<typeof globalOptsSchema>, 'gitProvider'>

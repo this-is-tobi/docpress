@@ -17,8 +17,7 @@ const cmdName = 'fetch'
  * Command line options specific to the fetch command
  */
 export const fetchOpts = [
-  createOption('-b, --branch <string>', configSchema.shape.branch.description)
-    .default(configSchema.shape.branch.def.defaultValue),
+  createOption('-b, --branch <string>', configSchema.shape.branch.description),
   createOption('-g, --git-provider <string>', configSchema.shape.gitProvider.description)
     .default(configSchema.shape.gitProvider.def.defaultValue),
   createOption('-l, --last-updated', configSchema.shape.lastUpdated.description),
@@ -52,7 +51,7 @@ export async function main(opts: FetchOpts) {
       ? reposFilter?.filter((rf: string) => rf.replace(/^!/, '').startsWith(`${username}/`)).map((rf: string) => rf.replace(`${username}/`, ''))
       : reposFilter
     try {
-      await fetchDoc({ username, branch, reposFilter: finalRF, gitProvider, token, lastUpdated })
+      await fetchDoc({ username, branch, reposFilter: finalRF, gitProvider, token, lastUpdated, multiUser: usernames.length > 1 })
     } catch (error) {
       failedUsers.push(username)
       log(`   Failed to fetch documentation for '${username}': ${error instanceof Error ? error.message : String(error)}`, 'error')
