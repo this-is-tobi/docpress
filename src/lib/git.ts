@@ -12,7 +12,7 @@ import type { EnhancedRepository } from './fetch.js'
 /**
  * Octokit logger that stays quiet on 404s, which are handled explicitly
  */
-const quietOctokitLog = {
+export const quietOctokitLog = {
   debug: () => {},
   info: () => {},
   warn: (message: string) => {
@@ -84,7 +84,7 @@ export async function getContributors({
     }
   } catch (error) {
     log(
-      `   Failed to get contributors infos for repository '${repository.name}'. Error : ${error.message}`,
+      `   Failed to get contributors infos for repository '${repository.name}'. Error : ${error instanceof Error ? error.message : String(error)}`,
       'warn',
     )
     return { source: repo.source, contributors: [] }
@@ -94,25 +94,61 @@ export async function getContributors({
 }
 
 /**
- * Injects each markdown file's last Git commit date as a "lastUpdated" frontmatter field
- * Reads the commit history straight from the local clone, so no Git provider API call is
- * needed and no rate limit is spent, regardless of how many files or repositories are processed
+ * Parses `git log --format=%cI --name-only` output into a map of file path to
+ * its most recent commit date
+ * The log is newest-first, so the first date seen for a given file is the latest one
+ *
+ * @param logOutput - Raw output of the git log command
+ * @returns Map of repository-relative file path to ISO commit date
+ */
+export function parseLastCommitDates(logOutput: string): Map<string, string> {
+  const dates = new Map<string, string>()
+  let currentDate: string | null = null
+
+  for (const rawLine of logOutput.split('\n')) {
+    const line = rawLine.trim()
+    if (!line) {
+      continue
+    }
+    if (/^\d{4}-\d{2}-\d{2}T/.test(line)) {
+      currentDate = line
+      continue
+    }
+    if (currentDate && !dates.has(line)) {
+      dates.set(line, currentDate)
+    }
+  }
+
+  return dates
+}
+
+/**
+ * Injects each markdown file's last Git commit date as a "lastUpdated" frontmatter field,
+ * reading the local clone's history in a single pass
  *
  * @param git - Simple-git instance scoped to the cloned repository, with history still intact
  * @param projectDir - Directory containing the cloned repository
  * @param name - Repository name, used for logging
  */
 export async function applyLastUpdated(git: SimpleGit, projectDir: string, name: string) {
-  for (const file of getMdFiles([projectDir])) {
-    const filePath = relative(projectDir, file)
+  const files = getMdFiles([projectDir])
+  if (!files.length) {
+    return
+  }
 
-    try {
-      const { latest } = await git.log({ file: filePath, maxCount: 1 })
-      if (latest?.date) {
-        addLastUpdatedFrontmatter(file, latest.date)
-      }
-    } catch (error) {
-      log(`   Unable to get last commit date for '${filePath}' in repository '${name}'. Error : ${error}`, 'warn')
+  let dates: Map<string, string>
+  try {
+    const logOutput = await git.raw(['log', '--format=%cI', '--name-only'])
+    dates = parseLastCommitDates(logOutput)
+  } catch (error) {
+    log(`   Unable to read commit history for repository '${name}'. Error : ${error instanceof Error ? error.message : String(error)}`, 'warn')
+    return
+  }
+
+  for (const file of files) {
+    const date = dates.get(relative(projectDir, file))
+    if (date) {
+      addLastUpdatedFrontmatter(file, date)
     }
   }
 }
@@ -126,8 +162,15 @@ export async function applyLastUpdated(git: SimpleGit, projectDir: string, name:
  * @param branch - Branch to clone
  * @param includes - Patterns to include in sparse checkout
  * @param lastUpdated - Whether or not to inject each page's last Git commit date as frontmatter
+ * @returns True when the repository was cloned successfully, false otherwise
  */
-export async function cloneRepo(name: string, url: string, projectDir: string, branch: string, includes: string[], lastUpdated?: boolean) {
+export async function cloneRepo(name: string, url: string, projectDir: string, branch: string, includes: string[], lastUpdated?: boolean): Promise<boolean> {
+  // Refuse values Git could parse as CLI options (argument injection)
+  if (url.startsWith('-') || branch.startsWith('-')) {
+    log(`   Refusing to clone '${name}': unsafe repository URL or branch name.`, 'error')
+    return false
+  }
+
   createDir(projectDir, { clean: true })
 
   try {
@@ -155,7 +198,9 @@ export async function cloneRepo(name: string, url: string, projectDir: string, b
       rmSync(resolve(projectDir, 'docs'), { recursive: true })
     }
     rmSync(resolve(projectDir, '.git'), { recursive: true })
+    return true
   } catch (error) {
-    log(`   Error when cloning repository: ${error}.`, 'error')
+    log(`   Error when cloning repository '${name}': ${error instanceof Error ? error.message : String(error)}.`, 'error')
+    return false
   }
 }
