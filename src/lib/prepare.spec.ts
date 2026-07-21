@@ -164,6 +164,17 @@ describe('generateFeatures', () => {
       },
     ])
   })
+
+  it('should prefix the feature link with the route prefix while keeping the title clean', () => {
+    const result = generateFeatures('my-repo', 'Description', undefined, 'alice/')
+    expect(result).toEqual([
+      {
+        title: 'My repo',
+        details: 'Description',
+        link: '/alice/my-repo/introduction',
+      },
+    ])
+  })
 })
 
 describe('generateSidebarProject', () => {
@@ -1035,6 +1046,27 @@ describe('generateSidebarItems', () => {
         collapsed: true,
         items: [
           { text: 'Setup', link: '/test-repo/advanced/setup' },
+        ],
+      },
+    ])
+  })
+
+  it('should namespace links with the repository route prefix, including nested folders', () => {
+    const namespaced = {
+      name: 'test-repo',
+      docpress: { projectPath: '/path/to/test-repo', routePrefix: 'alice/' },
+    } as unknown as EnhancedRepository
+    const tree = { $: ['01-readme.md'], advanced: { $: ['setup.md'] } }
+
+    const items = generateSidebarItems(namespaced, tree)
+
+    expect(items).toEqual([
+      { text: 'Introduction', link: '/alice/test-repo/introduction' },
+      {
+        text: 'Advanced',
+        collapsed: true,
+        items: [
+          { text: 'Setup', link: '/alice/test-repo/advanced/setup' },
         ],
       },
     ])

@@ -325,6 +325,44 @@ describe('enhanceRepositories', () => {
     expect(getResult('repo4')?.docpress.filtered).toBe(false)
     expect(getResult('repo5')?.docpress.filtered).toBe(true)
   })
+
+  it('should fall back to each repository\'s default branch when no branch is given', async () => {
+    const repos = [
+      { name: 'repo1', owner: { login: 'user1' }, default_branch: 'master', fork: false, private: false, size: 100, clone_url: 'https://github.com/user1/repo1' },
+      { name: 'repo2', owner: { login: 'user1' }, default_branch: 'develop', fork: false, private: false, size: 100, clone_url: 'https://github.com/user1/repo2' },
+    ] as Awaited<ReturnType<typeof getInfos>>['repos']
+
+    const result = await enhanceRepositories(repos, undefined)
+
+    expect(result.find(r => r.name === 'repo1')?.docpress.branch).toBe('master')
+    expect(result.find(r => r.name === 'repo2')?.docpress.branch).toBe('develop')
+  })
+
+  it('should let an explicit branch override each repository\'s default branch', async () => {
+    const repos = [
+      { name: 'repo1', owner: { login: 'user1' }, default_branch: 'master', fork: false, private: false, size: 100, clone_url: 'https://github.com/user1/repo1' },
+    ] as Awaited<ReturnType<typeof getInfos>>['repos']
+
+    const result = await enhanceRepositories(repos, 'stable')
+
+    expect(result[0]?.docpress.branch).toBe('stable')
+  })
+
+  it('should namespace project paths and route prefixes when a routePrefix is provided', async () => {
+    const repos = [
+      { name: 'shared', owner: { login: 'alice' }, default_branch: 'main', fork: false, private: false, size: 100, clone_url: 'https://github.com/alice/shared' },
+    ] as Awaited<ReturnType<typeof getInfos>>['repos']
+
+    const namespaced = await enhanceRepositories(repos, 'main', undefined, 'github', 'alice/')
+    const flat = await enhanceRepositories(repos, 'main', undefined, 'github')
+
+    expect(namespaced[0]?.docpress.routePrefix).toBe('alice/')
+    expect(namespaced[0]?.docpress.projectPath).toContain('/alice/shared')
+    // Single-user (empty prefix) keeps the flat, un-namespaced path
+    expect(flat[0]?.docpress.routePrefix).toBe('')
+    expect(flat[0]?.docpress.projectPath).not.toContain('/alice/')
+    expect(flat[0]?.docpress.projectPath).toContain('/shared')
+  })
 })
 
 describe('generateInfos', () => {

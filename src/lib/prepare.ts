@@ -198,11 +198,11 @@ export function generateIndex(features: Feature[], user: ReturnType<typeof getUs
  * @param features - Optional existing features to append to
  * @returns Array of feature objects for the homepage
  */
-export function generateFeatures(repoName: string, description: string, features?: Feature[]) {
+export function generateFeatures(repoName: string, description: string, features?: Feature[], routePrefix: string = '') {
   const content = {
     title: prettify(repoName, { mode: 'capitalize', replaceDash: true }),
     details: description,
-    link: `/${prettify(repoName, { removeDot: true })}/introduction`,
+    link: `/${routePrefix}${prettify(repoName, { removeDot: true })}/introduction`,
   }
 
   return features ? [...features, content] : [content]
@@ -265,7 +265,7 @@ export function generateSidebarItems(repository: EnhancedRepository, obj: any): 
             text: parse(filename).name === 'introduction'
               ? 'Introduction'
               : prettify(filename, { mode: 'capitalize', replaceDash: true, removeExt: true }),
-            link: `/${prettify(repository.name, { removeDot: true })}/${parse(filename).name}`,
+            link: `/${repository.docpress.routePrefix ?? ''}${prettify(repository.name, { removeDot: true })}/${parse(filename).name}`,
           } as Page
         })
       }
@@ -397,7 +397,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
     const sidebarItems = moveSourcesLast(generateSidebarItems(repository, projectTree))
 
     sidebar.push(generateSidebarProject(prettify(repository.name, { removeDot: true }), sidebarItems))
-    features.push(...generateFeatures(prettify(repository.name, { removeDot: true }), repository.description || ''))
+    features.push(...generateFeatures(prettify(repository.name, { removeDot: true }), repository.description || '', undefined, repository.docpress.routePrefix ?? ''))
   }
 
   log(`   Generate index content.`, 'info')

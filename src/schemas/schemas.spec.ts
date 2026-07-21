@@ -5,8 +5,9 @@ import { cliSchema, configSchema, globalOptsSchema } from './global.js'
 
 vi.mock('fs')
 
+// `branch` is intentionally absent: globalOptsSchema no longer defaults it, so
+// the fetch step can fall back to each repository's own default branch
 const defaultConfig = {
-  branch: 'main',
   token: undefined,
   gitProvider: 'github',
   forks: false,
@@ -42,11 +43,7 @@ describe('globalOptsSchema', () => {
     })
   })
 
-  it('should exit for an unreadable config path', () => {
-    const originalExit = process.exit
-    process.exit = vi.fn() as any
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
+  it('should raise a validation error for an unreadable config path', () => {
     const invalidData = {
       config: './invalid-config.json',
       usernames: 'user1',
@@ -56,11 +53,7 @@ describe('globalOptsSchema', () => {
       throw new Error('File not found')
     })
 
-    globalOptsSchema.parse(invalidData)
-    expect(process.exit).toHaveBeenCalledWith(1)
-
-    process.exit = originalExit
-    consoleErrorSpy.mockRestore()
+    expect(() => globalOptsSchema.parse(invalidData)).toThrow(/Cannot read config file/)
   })
 
   it('should handle optional config field correctly', () => {
@@ -95,7 +88,7 @@ describe('globalOptsSchema', () => {
     })
   })
 
-  it('should apply defaults for branch and gitProvider if not provided', () => {
+  it('should default gitProvider but leave branch unset for per-repo resolution', () => {
     const dataWithoutBranchAndGitProvider = {
       usernames: 'user1',
       reposFilter: 'repo1',
@@ -107,6 +100,8 @@ describe('globalOptsSchema', () => {
       usernames: ['user1'],
       reposFilter: ['repo1'],
     })
+    expect(result.gitProvider).toBe('github')
+    expect(result.branch).toBeUndefined()
   })
 
   it('should handle multiple usernames', () => {
@@ -144,15 +139,7 @@ describe('globalOptsSchema', () => {
     })
   })
 
-  it('should handle error when attempting to validate final config without usernames', () => {
-    // Mock the exit to avoid actually exiting the process
-    const originalExit = process.exit
-    process.exit = vi.fn() as any
-
-    // Mock console.error to avoid output during tests
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-
+  it('should raise a validation error when the final config has no usernames', () => {
     const invalidData = {
       config: './config-without-usernames.json',
     }
@@ -164,15 +151,7 @@ describe('globalOptsSchema', () => {
       // Missing usernames
     }))
 
-    // Since the function calls process.exit internally, it won't throw
-    // but we can check if exit was called with the right code
-    globalOptsSchema.parse(invalidData)
-    expect(process.exit).toHaveBeenCalledWith(1)
-
-    // Restore mocks
-    process.exit = originalExit
-    consoleErrorSpy.mockRestore()
-    logSpy.mockRestore()
+    expect(() => globalOptsSchema.parse(invalidData)).toThrow(/usernames field is required/)
   })
 
   it('should process string values correctly in config data preparation', () => {
@@ -344,11 +323,7 @@ describe('cliSchema', () => {
     expect(() => cliSchema.parse(invalidData)).toThrow()
   })
 
-  it('should exit for an unreadable vitepressConfig path', () => {
-    const originalExit = process.exit
-    process.exit = vi.fn() as any
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
+  it('should raise a validation error for an unreadable vitepressConfig path', () => {
     const invalidData = {
       usernames: 'user1',
       vitepressConfig: './invalid-config.json',
@@ -358,10 +333,6 @@ describe('cliSchema', () => {
       throw new Error('File not found')
     })
 
-    globalOptsSchema.parse(invalidData)
-    expect(process.exit).toHaveBeenCalledWith(1)
-
-    process.exit = originalExit
-    consoleErrorSpy.mockRestore()
+    expect(() => globalOptsSchema.parse(invalidData)).toThrow(/Cannot read config file/)
   })
 })
