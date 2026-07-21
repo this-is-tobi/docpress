@@ -142,8 +142,9 @@ if [ "$RUN_CLI_TESTS" == "true" ]; then
   printf "\n${red}${i}.${no_color} Launch cli tests\n"
   i=$(($i + 1))
 
-  # Pass a token when available to avoid unauthenticated API rate limits on shared runners
-  DOCPRESS_ARGS="-U this-is-tobi -r homelab ${GITHUB_TOKEN:+-T $GITHUB_TOKEN}"
+  # docpress reads GITHUB_TOKEN from the environment, so the token is never placed
+  # on the command line (where it would be visible via 'ps', history or CI logs)
+  DOCPRESS_ARGS="-U this-is-tobi -r homelab"
 
   bun run build \
     && bun pm pack --ignore-scripts \
@@ -192,12 +193,14 @@ if [ "$RUN_DOCKER_TESTS" == "true" ]; then
 
   checkDockerRunning
 
-  # Pass a token when available to avoid unauthenticated API rate limits on shared runners
-  DOCPRESS_ARGS="-U this-is-tobi -r homelab ${GITHUB_TOKEN:+-T $GITHUB_TOKEN}"
+  # docpress reads GITHUB_TOKEN from the environment, so the token is never placed
+  # on the command line (where it would be visible via 'ps', history or CI logs)
+  DOCPRESS_ARGS="-U this-is-tobi -r homelab"
 
   if [ -n "$DOCKER_IMAGE" ]; then
     mkdir -p /tmp/docpress/docker/docpress
-    docker run --name docpress --rm -v /tmp/docpress/docker/docpress:/app/docpress:rw --user root $DOCKER_IMAGE $DOCPRESS_ARGS
+    # Forward the token through the environment (-e) rather than as a CLI argument
+    docker run --name docpress --rm -v /tmp/docpress/docker/docpress:/app/docpress:rw --user root ${GITHUB_TOKEN:+-e GITHUB_TOKEN} $DOCKER_IMAGE $DOCPRESS_ARGS
   else
     bun run build:docker
     bun run start:docker $DOCPRESS_ARGS
