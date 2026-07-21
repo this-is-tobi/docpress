@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import { writeFileSync } from 'node:fs'
 import type { FetchOpts, FetchOptsUser } from '../schemas/fetch.js'
-import { checkHttpStatus, prettify } from '../utils/functions.js'
+import { checkHttpStatus, prettify, sanitizeSegment } from '../utils/functions.js'
 import { DOCPRESS_DIR, DOCS_DIR } from '../utils/const.js'
 import { log } from '../utils/logger.js'
 import { cloneRepo, getInfos } from './git.js'
@@ -62,9 +62,11 @@ export function getProviderUrls(repo: Awaited<ReturnType<typeof getInfos>>['repo
  * @returns Object containing HTTP status codes for different documentation paths
  */
 export async function checkDoc(urls: ProviderUrls) {
-  const rootReadmeStatus = await checkHttpStatus(`${urls.blob_url}/README.md`)
-  const docsFolderStatus = await checkHttpStatus(`${urls.tree_url}/docs`)
-  const docsReadmeStatus = await checkHttpStatus(`${urls.blob_url}/docs/01-readme.md`)
+  const [rootReadmeStatus, docsFolderStatus, docsReadmeStatus] = await Promise.all([
+    checkHttpStatus(`${urls.blob_url}/README.md`),
+    checkHttpStatus(`${urls.tree_url}/docs`),
+    checkHttpStatus(`${urls.blob_url}/docs/01-readme.md`),
+  ])
 
   return {
     rootReadmeStatus,
@@ -86,9 +88,9 @@ export async function checkDoc(urls: ProviderUrls) {
  */
 export async function fetchDoc({ username, branch, reposFilter, gitProvider, token, lastUpdated }: FetchOptsUser) {
   const getProviderInfos = gitProvider === 'gitlab' ? getGitlabInfos : getInfos
-  await getProviderInfos({ username, token, branch })
-    .then(async ({ user, repos, branch }) => generateInfos(user, repos, branch, reposFilter, gitProvider))
-    .then(async ({ repos }) => getDoc(repos, reposFilter, lastUpdated))
+  const { user, repos, branch: resolvedBranch } = await getProviderInfos({ username, token, branch })
+  const { repos: enhancedRepos } = await generateInfos(user, repos, resolvedBranch, reposFilter, gitProvider)
+  await getDoc(enhancedRepos, reposFilter, lastUpdated)
 }
 
 /**
@@ -105,13 +107,13 @@ export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getIn
   await Promise.all(
     repos.map(async (repo) => {
       const computedBranch = branch ?? repo.default_branch ?? 'main'
-      const projectPath = resolve(DOCS_DIR, prettify(repo.name, { removeDot: true }))
+      const projectPath = resolve(DOCS_DIR, prettify(sanitizeSegment(repo.name), { removeDot: true }))
       const filtered = isRepoFiltered(repo, reposFilter)
       const urls = getProviderUrls(repo, computedBranch, gitProvider)
       let includes: string[] = []
 
       if (!repo.fork && !repo.private && !filtered) {
-        includes = await getSparseCheckout(repo, computedBranch, gitProvider)
+        includes = await getSparseCheckout(repo, computedBranch, gitProvider, urls)
       }
 
       enhancedRepos.push({
@@ -137,10 +139,11 @@ export async function enhanceRepositories(repos: Awaited<ReturnType<typeof getIn
  * @param repo - Repository information
  * @param branch - Branch to check for documentation
  * @param gitProvider - Git provider used to retrieve data
+ * @param urls - Optional pre-computed provider URLs to avoid recomputing them
  * @returns Array of file patterns to include in sparse checkout
  */
-export async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos>>['repos'][number], branch: FetchOpts['branch'], gitProvider?: FetchOpts['gitProvider']) {
-  const docsStatus = await checkDoc(getProviderUrls(repo, branch, gitProvider))
+export async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos>>['repos'][number], branch: FetchOpts['branch'], gitProvider?: FetchOpts['gitProvider'], urls?: ProviderUrls) {
+  const docsStatus = await checkDoc(urls ?? getProviderUrls(repo, branch, gitProvider))
 
   const includes: string[] = []
   if (Object.values(docsStatus).every(status => status !== 200) || !repo.size) {
@@ -166,10 +169,10 @@ export async function getSparseCheckout(repo: Awaited<ReturnType<typeof getInfos
  * @returns Object containing user and enhanced repository information
  */
 export async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['user'], repos: Awaited<ReturnType<typeof getInfos>>['repos'], branch?: FetchOpts['branch'], reposFilter?: FetchOpts['reposFilter'], gitProvider?: FetchOpts['gitProvider']) {
-  writeFileSync(`${DOCPRESS_DIR}/user-${user.login}.json`, JSON.stringify(user, null, 2))
+  writeFileSync(`${DOCPRESS_DIR}/user-${sanitizeSegment(user.login)}.json`, JSON.stringify(user, null, 2))
 
   const enhancedRepos = await enhanceRepositories(repos, branch, reposFilter, gitProvider)
-  writeFileSync(`${DOCPRESS_DIR}/repos-${user.login}.json`, JSON.stringify(enhancedRepos, null, 2))
+  writeFileSync(`${DOCPRESS_DIR}/repos-${sanitizeSegment(user.login)}.json`, JSON.stringify(enhancedRepos, null, 2))
 
   return { user, repos: enhancedRepos }
 }
@@ -187,13 +190,19 @@ export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOp
     return
   }
 
-  await Promise.all(
+  const results = await Promise.all(
     repos
       .filter(repo => !isRepoFiltered(repo, reposFilter))
       .map(async (repo) => {
-        await cloneRepo(repo.name, repo.clone_url as string, repo.docpress.projectPath, repo.docpress.branch, repo.docpress.includes, lastUpdated)
+        const success = await cloneRepo(repo.name, repo.clone_url as string, repo.docpress.projectPath, repo.docpress.branch, repo.docpress.includes, lastUpdated)
+        return { name: repo.name, success }
       }),
   )
+
+  const failed = results.filter(({ success }) => !success).map(({ name }) => name)
+  if (failed.length) {
+    log(`   ${failed.length} repository(ies) failed to clone: ${failed.join(', ')}.`, 'warn')
+  }
 }
 
 /**
@@ -204,22 +213,21 @@ export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOp
  * @returns True if the repository should be filtered out, false otherwise
  */
 export function isRepoFiltered(repo: EnhancedRepository | Awaited<ReturnType<typeof getInfos>>['repos'][number], reposFilter?: FetchOpts['reposFilter']) {
+  if ('docpress' in repo && !repo.docpress.includes.length) {
+    return true
+  }
+
+  const inclusions = reposFilter?.filter((filter: string) => !filter.startsWith('!')) ?? []
   const hasOnlyExclusions = reposFilter?.every((filter: string) => filter.startsWith('!'))
   const isExcluded = reposFilter?.filter((filter: string) => filter.startsWith('!'))
     .some((filter: string) => repo.name === filter.substring(1))
+
   const isIncluded = !reposFilter
-    || reposFilter?.filter((filter: string) => !filter.startsWith('!')).includes(repo.name)
+    || inclusions.includes(repo.name)
     || (repo.fork && !isExcluded)
     || (hasOnlyExclusions && !isExcluded)
 
   const isFiltered = isExcluded || !isIncluded
 
-  if ('docpress' in repo && !repo.docpress.includes.length) {
-    return true
-  }
-
-  if (!!repo.clone_url && !repo.private && !isFiltered) {
-    return false
-  }
-  return true
+  return !(!!repo.clone_url && !repo.private && !isFiltered)
 }

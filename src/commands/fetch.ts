@@ -45,11 +45,21 @@ export async function main(opts: FetchOpts) {
   log(`\n-> Start fetching documentation files. This may take a moment, especially for larger repositories.`, 'info')
 
   createDir(DOCPRESS_DIR, { clean: true })
+  const failedUsers: string[] = []
   for (const username of usernames) {
     // With multiple users, filters are scoped as '<username>/<repo>' or '!<username>/<repo>'
     const finalRF = usernames.length > 1
       ? reposFilter?.filter((rf: string) => rf.replace(/^!/, '').startsWith(`${username}/`)).map((rf: string) => rf.replace(`${username}/`, ''))
       : reposFilter
-    await fetchDoc({ username, branch, reposFilter: finalRF, gitProvider, token, lastUpdated })
+    try {
+      await fetchDoc({ username, branch, reposFilter: finalRF, gitProvider, token, lastUpdated })
+    } catch (error) {
+      failedUsers.push(username)
+      log(`   Failed to fetch documentation for '${username}': ${error instanceof Error ? error.message : String(error)}`, 'error')
+    }
+  }
+
+  if (failedUsers.length === usernames.length) {
+    throw new Error(`Failed to fetch documentation for all requested username(s): ${failedUsers.join(', ')}.`)
   }
 }
