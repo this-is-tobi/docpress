@@ -4,7 +4,7 @@ import { simpleGit } from 'simple-git'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { addLastUpdatedFrontmatter, createDir, getMdFiles } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
-import { applyLastUpdated, cloneRepo, getContributors, getInfos } from './git.js'
+import { applyLastUpdated, cloneRepo, getContributors, getInfos, parseLastCommitDates, quietOctokitLog } from './git.js'
 import type { EnhancedRepository } from './fetch.js'
 
 vi.mock('@octokit/rest')
@@ -16,6 +16,30 @@ vi.mock('node:path', () => ({
 }))
 vi.mock('../utils/functions.js')
 vi.mock('../utils/logger.js')
+
+describe('quietOctokitLog', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should suppress 404 warnings and errors but forward the rest', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    quietOctokitLog.warn('boom 404 not found')
+    quietOctokitLog.error('boom 404 not found')
+    expect(warnSpy).not.toHaveBeenCalled()
+    expect(errorSpy).not.toHaveBeenCalled()
+
+    quietOctokitLog.warn('real warning')
+    quietOctokitLog.error('real error')
+    expect(warnSpy).toHaveBeenCalledWith('real warning')
+    expect(errorSpy).toHaveBeenCalledWith('real error')
+
+    warnSpy.mockRestore()
+    errorSpy.mockRestore()
+  })
+})
 
 describe('getInfos', () => {
   const mockUser = { login: 'testUser' }
@@ -147,12 +171,15 @@ describe('getContributors', () => {
         repos: {
           get: vi.fn()
             .mockResolvedValueOnce({ data: mockRepoData }),
-          listContributors: vi.fn()
-            .mockResolvedValueOnce(new Error('500 Server Error')),
+          listContributors: vi.fn(),
         },
-        paginate: {
-          iterator: vi.fn(),
-        },
+      },
+      // paginate lives at the top level of the Octokit client; make its iterator
+      // reject so the real catch branch (not a mock-shape TypeError) is exercised
+      paginate: {
+        iterator: vi.fn(() => {
+          throw new Error('500 Server Error')
+        }),
       },
     }
 
@@ -160,7 +187,7 @@ describe('getContributors', () => {
 
     const result = await getContributors({ repository: mockRepository, token: mockToken })
 
-    expect(log).toHaveBeenCalledWith(`   Failed to get contributors infos for repository '${mockRepository.name}'. Error : Cannot read properties of undefined (reading 'iterator')`, 'warn')
+    expect(log).toHaveBeenCalledWith(`   Failed to get contributors infos for repository '${mockRepository.name}'. Error : 500 Server Error`, 'warn')
     expect(result).toEqual({
       source: mockRepoData.source,
       contributors: [],
@@ -199,31 +226,59 @@ describe('applyLastUpdated', () => {
     vi.clearAllMocks()
   })
 
-  it('should inject the last commit date for each markdown file', async () => {
-    const mockLog = vi.fn()
-      .mockResolvedValueOnce({ latest: { date: '2024-05-01T12:00:00+00:00' } })
-      .mockResolvedValueOnce({ latest: null })
-    const mockGit = { log: mockLog }
+  it('should inject the latest commit date for each markdown file in a single pass', async () => {
+    // Only a.md appears in history (with two commits, newest first); b.md has none
+    const mockRaw = vi.fn().mockResolvedValue(
+      '2024-05-01T12:00:00+00:00\n\ndocs/a.md\n\n2024-01-01T12:00:00+00:00\n\ndocs/a.md\n',
+    )
+    const mockGit = { raw: mockRaw }
 
     ;(getMdFiles as any).mockReturnValue(['testDir/docs/a.md', 'testDir/docs/b.md'])
 
     await applyLastUpdated(mockGit as any, 'testDir', 'repo1')
 
-    expect(mockLog).toHaveBeenCalledWith({ file: 'docs/a.md', maxCount: 1 })
-    expect(mockLog).toHaveBeenCalledWith({ file: 'docs/b.md', maxCount: 1 })
+    expect(mockRaw).toHaveBeenCalledTimes(1)
+    expect(mockRaw).toHaveBeenCalledWith(['log', '--format=%cI', '--name-only'])
+    // Newest date wins for a.md; b.md is absent from history so it is skipped
     expect(addLastUpdatedFrontmatter).toHaveBeenCalledWith('testDir/docs/a.md', '2024-05-01T12:00:00+00:00')
     expect(addLastUpdatedFrontmatter).toHaveBeenCalledTimes(1)
   })
 
-  it('should warn and continue when git log fails for a file', async () => {
-    const mockGit = { log: vi.fn().mockRejectedValueOnce(new Error('boom')) }
+  it('should warn and continue when reading the git history fails', async () => {
+    const mockGit = { raw: vi.fn().mockRejectedValueOnce(new Error('boom')) }
 
     ;(getMdFiles as any).mockReturnValue(['testDir/docs/a.md'])
 
     await applyLastUpdated(mockGit as any, 'testDir', 'repo1')
 
-    expect(log).toHaveBeenCalledWith(expect.stringContaining(`Unable to get last commit date for 'docs/a.md' in repository 'repo1'`), 'warn')
+    expect(log).toHaveBeenCalledWith(expect.stringContaining(`Unable to read commit history for repository 'repo1'`), 'warn')
     expect(addLastUpdatedFrontmatter).not.toHaveBeenCalled()
+  })
+
+  it('should not read history when the repository has no markdown files', async () => {
+    const mockGit = { raw: vi.fn() }
+
+    ;(getMdFiles as any).mockReturnValue([])
+
+    await applyLastUpdated(mockGit as any, 'testDir', 'repo1')
+
+    expect(mockGit.raw).not.toHaveBeenCalled()
+    expect(addLastUpdatedFrontmatter).not.toHaveBeenCalled()
+  })
+})
+
+describe('parseLastCommitDates', () => {
+  it('should map each file to its newest commit date', () => {
+    const output = '2024-05-01T12:00:00+00:00\n\ndocs/a.md\ndocs/b.md\n\n2024-01-01T12:00:00+00:00\n\ndocs/a.md\n'
+    const dates = parseLastCommitDates(output)
+
+    expect(dates.get('docs/a.md')).toBe('2024-05-01T12:00:00+00:00')
+    expect(dates.get('docs/b.md')).toBe('2024-05-01T12:00:00+00:00')
+    expect(dates.size).toBe(2)
+  })
+
+  it('should return an empty map for empty output', () => {
+    expect(parseLastCommitDates('').size).toBe(0)
   })
 })
 
@@ -289,9 +344,20 @@ describe('cloneRepo', () => {
 
     ;(simpleGit as any).mockImplementation(() => mockGit)
 
-    await cloneRepo('repo1', 'https://github.com/testUser/repo.git', 'testDir', 'main', ['docs'])
+    const result = await cloneRepo('repo1', 'https://github.com/testUser/repo.git', 'testDir', 'main', ['docs'])
 
-    expect(log).toHaveBeenCalledWith(expect.stringContaining(`Error when cloning repository: ${gitError}`), 'error')
+    expect(result).toBe(false)
+    expect(log).toHaveBeenCalledWith(expect.stringContaining(`Error when cloning repository 'repo1': ${gitError.message}`), 'error')
+  })
+
+  it('should refuse to clone when the url or branch looks like a CLI option', async () => {
+    const optionInjectionResult = await cloneRepo('repo1', '--upload-pack=touch /tmp/pwned', 'testDir', 'main', ['docs'])
+    expect(optionInjectionResult).toBe(false)
+
+    const unsafeBranchResult = await cloneRepo('repo1', 'https://github.com/testUser/repo.git', 'testDir', '--upload-pack=x', ['docs'])
+    expect(unsafeBranchResult).toBe(false)
+
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Refusing to clone'), 'error')
   })
 
   it('should look up and inject last updated dates when lastUpdated is enabled', async () => {
@@ -300,7 +366,7 @@ describe('cloneRepo', () => {
       addConfig: vi.fn().mockReturnThis(),
       addRemote: vi.fn().mockReturnThis(),
       pull: vi.fn().mockReturnThis(),
-      log: vi.fn().mockResolvedValue({ latest: { date: '2024-05-01T12:00:00+00:00' } }),
+      raw: vi.fn().mockResolvedValue('2024-05-01T12:00:00+00:00\n\ndocs/file1.md\n'),
     }
 
     ;(simpleGit as any).mockImplementation(() => mockGit)
@@ -308,7 +374,7 @@ describe('cloneRepo', () => {
 
     await cloneRepo('repo1', 'https://github.com/testUser/repo.git', 'testDir', 'main', ['docs/file1.md'], true)
 
-    expect(mockGit.log).toHaveBeenCalledWith({ file: 'docs/file1.md', maxCount: 1 })
+    expect(mockGit.raw).toHaveBeenCalledWith(['log', '--format=%cI', '--name-only'])
     expect(addLastUpdatedFrontmatter).toHaveBeenCalledWith('testDir/docs/file1.md', '2024-05-01T12:00:00+00:00')
   })
 
@@ -318,13 +384,13 @@ describe('cloneRepo', () => {
       addConfig: vi.fn().mockReturnThis(),
       addRemote: vi.fn().mockReturnThis(),
       pull: vi.fn().mockReturnThis(),
-      log: vi.fn(),
+      raw: vi.fn(),
     }
 
     ;(simpleGit as any).mockImplementation(() => mockGit)
 
     await cloneRepo('repo1', 'https://github.com/testUser/repo.git', 'testDir', 'main', ['docs/file1.md'])
 
-    expect(mockGit.log).not.toHaveBeenCalled()
+    expect(mockGit.raw).not.toHaveBeenCalled()
   })
 })

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { rimrafSync } from 'rimraf'
-import { addLastUpdatedFrontmatter, checkHttpStatus, createDir, deepMerge, extractFiles, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, isObject, loadConfigFile, prettify, prettifyEnum, splitByComma } from './functions.js'
+import { addLastUpdatedFrontmatter, checkHttpStatus, createDir, deepMerge, extractFiles, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, isObject, loadConfigFile, prettify, prettifyEnum, redactToken, sanitizeSegment, splitByComma } from './functions.js'
 
 vi.mock('fs')
 vi.mock('rimraf')
@@ -128,16 +128,12 @@ describe('createDir', () => {
     expect(mkdirSync).not.toHaveBeenCalled() // Car le répertoire existe déjà
   })
 
-  it('should log an error if an exception is thrown', () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('should throw a wrapped error when directory creation fails', () => {
     vi.mocked(existsSync).mockImplementation(() => {
       throw new Error('Mocked error')
     })
 
-    createDir(testDir)
-
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.any(Error))
-    consoleErrorSpy.mockRestore()
+    expect(() => createDir(testDir)).toThrow(/Unable to create directory .*Mocked error/)
   })
 })
 
@@ -453,6 +449,23 @@ describe('deepMerge', () => {
     expect(result).toEqual({ a: [3, 4] })
   })
 
+  it('should not pollute the prototype from a malicious key', () => {
+    const malicious = JSON.parse('{ "__proto__": { "polluted": true } }')
+    const result = deepMerge({} as Record<string, unknown>, malicious)
+
+    expect(result).toEqual({})
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+  })
+
+  it('should not share nested object references with the source', () => {
+    const source = { nested: { value: 1 } }
+    const result = deepMerge({} as { nested?: { value: number } }, source)
+
+    result.nested!.value = 2
+    // Mutating the merged result must not reach back into the source object
+    expect(source.nested.value).toBe(1)
+  })
+
   it('should ignore null values', () => {
     const result = deepMerge(
       { a: { x: 1 }, b: 2 },
@@ -463,13 +476,46 @@ describe('deepMerge', () => {
   })
 })
 
+describe('sanitizeSegment', () => {
+  it('should keep a plain name unchanged', () => {
+    expect(sanitizeSegment('my-repo')).toBe('my-repo')
+  })
+
+  it('should collapse a traversal path to its basename', () => {
+    expect(sanitizeSegment('../../etc/passwd')).toBe('passwd')
+    expect(sanitizeSegment('a/b/c')).toBe('c')
+  })
+
+  it('should strip leading dots and unsafe characters', () => {
+    expect(sanitizeSegment('.hidden')).toBe('hidden')
+    expect(sanitizeSegment('weird name!$')).toBe('weird_name__')
+  })
+})
+
+describe('redactToken', () => {
+  it('should mask a present token', () => {
+    expect(redactToken({ usernames: ['a'], token: 'secret' })).toEqual({ usernames: ['a'], token: '***' })
+  })
+
+  it('should leave a falsy or absent token untouched', () => {
+    expect(redactToken({ token: undefined })).toEqual({ token: undefined })
+    expect(redactToken({ usernames: ['a'] })).toEqual({ usernames: ['a'] })
+  })
+
+  it('should not mutate the original object', () => {
+    const original = { token: 'secret' }
+    redactToken(original)
+    expect(original.token).toBe('secret')
+  })
+})
+
 describe('isObject', () => {
   it('should return true for an object', () => {
     expect(isObject({ key: 'value' })).toBe(true)
   })
 
-  it('should return false for null', () => {
-    expect(isObject(null)).oneOf([false, null])
+  it('should return a falsy value for null', () => {
+    expect(isObject(null)).toBeFalsy()
   })
 
   it('should return false for an array', () => {
