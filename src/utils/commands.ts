@@ -4,6 +4,7 @@ import type { GlobalOpts } from '../schemas/global.js'
 import { globalOptsSchema } from '../schemas/global.js'
 import type { FetchOpts } from '../schemas/fetch.js'
 import type { PrepareOpts } from '../schemas/prepare.js'
+import { redactToken } from './functions.js'
 import { log } from './logger.js'
 
 /**
@@ -21,8 +22,9 @@ interface Options {
 }
 
 /**
- * Parses and validates command options
- * Options are merged with precedence: CLI options > config file > defaults
+ * Validates raw command options against the global schema
+ * The merging with precedence CLI options > config file > defaults is performed by
+ * `globalOptsSchema` (see src/schemas/global.ts); this function only runs that schema
  *
  * @param cmd - The command name ('fetch', 'prepare' or 'global')
  * @param opts - Raw options from the command line
@@ -31,7 +33,7 @@ interface Options {
 export function parseOptions<T extends Cmd>(cmd: T, opts: Record<string, unknown>): Options[T] {
   log(`Initializing Docpress...`, 'info', 'blue')
   log(`\n\n-> Checking for required environment settings and configurations.`, 'info')
-  log(`   Debug info - opts: ${JSON.stringify(opts)}`, 'debug')
+  log(`   Debug info - opts: ${JSON.stringify(redactToken(opts))}`, 'debug')
   log(`   Debug info - cmd: ${cmd}`, 'debug')
 
   const res = globalOptsSchema.safeParse(opts)
