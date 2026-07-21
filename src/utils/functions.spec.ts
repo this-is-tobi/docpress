@@ -490,6 +490,12 @@ describe('sanitizeSegment', () => {
     expect(sanitizeSegment('.hidden')).toBe('hidden')
     expect(sanitizeSegment('weird name!$')).toBe('weird_name__')
   })
+
+  it('should never collapse to an empty segment', () => {
+    expect(sanitizeSegment('..')).toBe('_')
+    expect(sanitizeSegment('foo/')).toBe('_')
+    expect(sanitizeSegment('///')).toBe('_')
+  })
 })
 
 describe('redactToken', () => {
