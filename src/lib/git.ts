@@ -63,10 +63,18 @@ export async function getContributors({
 }) {
   log(`   Get contributors infos for repository '${repository.name}'.`, 'info')
   const octokit = new Octokit({ auth: token, log: quietOctokitLog })
-  const { data: repo } = await octokit.rest.repos.get({
-    owner: repository.owner.login,
-    repo: repository.name,
-  })
+  let repo
+  try {
+    repo = (await octokit.rest.repos.get({
+      owner: repository.owner.login,
+      repo: repository.name,
+    })).data
+  } catch (error) {
+    // A deleted / private / rate-limited upstream must not abort the whole
+    // prepare step: degrade to "no source" so this single fork is skipped.
+    log(`   Failed to get repository infos for '${repository.name}'. Error : ${error instanceof Error ? error.message : String(error)}`, 'warn')
+    return { source: undefined, contributors: [] }
+  }
   if (!repo.source?.owner?.login) {
     return { source: repo.source, contributors: [] }
   }
@@ -138,7 +146,9 @@ export async function applyLastUpdated(git: SimpleGit, projectDir: string, name:
 
   let dates: Map<string, string>
   try {
-    const logOutput = await git.raw(['log', '--format=%cI', '--name-only'])
+    // core.quotePath=false keeps non-ASCII paths unescaped so they match the
+    // relative() lookup below (default quoting would octal-escape them)
+    const logOutput = await git.raw(['-c', 'core.quotePath=false', 'log', '--format=%cI', '--name-only'])
     dates = parseLastCommitDates(logOutput)
   } catch (error) {
     log(`   Unable to read commit history for repository '${name}'. Error : ${error instanceof Error ? error.message : String(error)}`, 'warn')

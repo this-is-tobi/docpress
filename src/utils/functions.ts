@@ -36,7 +36,10 @@ export async function checkHttpStatus(url: string): Promise<number> {
  */
 export function sanitizeSegment(name: string): string {
   const segment = name.split(/[/\\]/).pop() ?? ''
-  return segment.replace(/[^\w.-]/g, '_').replace(/^\.+/, '')
+  const safe = segment.replace(/[^\w.-]/g, '_').replace(/^\.+/, '')
+  // Never return an empty segment: an empty path component would let callers
+  // that join it onto a base dir (and clean that dir) operate on the base itself
+  return safe || '_'
 }
 
 /**

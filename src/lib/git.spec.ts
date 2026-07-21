@@ -194,6 +194,27 @@ describe('getContributors', () => {
     })
   })
 
+  it('should degrade gracefully when the repository lookup itself fails', async () => {
+    const mockOctokit = {
+      rest: {
+        repos: {
+          get: vi.fn().mockRejectedValueOnce(new Error('404 Not Found')),
+          listContributors: vi.fn(),
+        },
+      },
+      paginate: { iterator: vi.fn() },
+    }
+
+    ;(Octokit as any).mockImplementation(function () { return mockOctokit })
+
+    const result = await getContributors({ repository: mockRepository, token: mockToken })
+
+    // A deleted/private upstream must not throw: it returns no source so the
+    // fork is skipped rather than aborting the whole prepare step
+    expect(log).toHaveBeenCalledWith(`   Failed to get repository infos for '${mockRepository.name}'. Error : 404 Not Found`, 'warn')
+    expect(result).toEqual({ source: undefined, contributors: [] })
+  })
+
   it('should return empty contributors if source owner login is undefined', async () => {
     const mockRepoData = { source: { owner: {} }, name: 'repo1' }
 
@@ -238,7 +259,7 @@ describe('applyLastUpdated', () => {
     await applyLastUpdated(mockGit as any, 'testDir', 'repo1')
 
     expect(mockRaw).toHaveBeenCalledTimes(1)
-    expect(mockRaw).toHaveBeenCalledWith(['log', '--format=%cI', '--name-only'])
+    expect(mockRaw).toHaveBeenCalledWith(['-c', 'core.quotePath=false', 'log', '--format=%cI', '--name-only'])
     // Newest date wins for a.md; b.md is absent from history so it is skipped
     expect(addLastUpdatedFrontmatter).toHaveBeenCalledWith('testDir/docs/a.md', '2024-05-01T12:00:00+00:00')
     expect(addLastUpdatedFrontmatter).toHaveBeenCalledTimes(1)
@@ -374,7 +395,7 @@ describe('cloneRepo', () => {
 
     await cloneRepo('repo1', 'https://github.com/testUser/repo.git', 'testDir', 'main', ['docs/file1.md'], true)
 
-    expect(mockGit.raw).toHaveBeenCalledWith(['log', '--format=%cI', '--name-only'])
+    expect(mockGit.raw).toHaveBeenCalledWith(['-c', 'core.quotePath=false', 'log', '--format=%cI', '--name-only'])
     expect(addLastUpdatedFrontmatter).toHaveBeenCalledWith('testDir/docs/file1.md', '2024-05-01T12:00:00+00:00')
   })
 
