@@ -533,7 +533,7 @@ export async function parseVitepressIndex(path: string): Promise<Index> {
  *
  * @param vitepressConfig - VitePress configuration object
  * @param index - Index page configuration
- * @returns The list of theme files that were generated
+ * @throws Error if no template theme files are found
  */
 export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeof defineConfig>>, index: Index) {
   const separator = '---\n'
@@ -543,8 +543,16 @@ export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeo
   writeFileSync(VITEPRESS_CONFIG, `export const config = ${JSON.stringify(vitepressConfig, null, 2)}\n\nexport default config\n`)
   log(`   Generate index file.`, 'info')
   writeFileSync(INDEX_FILE, separator + YAML.stringify(index))
+
+  // Fail here (not during the later Vitepress build) so the error points at the
+  // actual missing source instead of surfacing as an opaque Vite ENOENT
+  const themeFiles = extractFiles(TEMPLATE_THEME)
+  if (!themeFiles.length) {
+    throw new Error(`No template theme files found at '${TEMPLATE_THEME}'. The Vitepress build cannot succeed without them.`)
+  }
+
   log(`   Add Docpress theme files.`, 'info')
-  return extractFiles(TEMPLATE_THEME).forEach((path) => {
+  themeFiles.forEach((path) => {
     const relativePath = path.replace(`${TEMPLATE_THEME}/`, '')
     generateFile(path, resolve(VITEPRESS_THEME, relativePath))
   })
