@@ -17,6 +17,7 @@ Options:
                                        (default: "github")
   -h, --help                           display help for command
   -l, --last-updated                   Whether or not to inject each page's last Git commit date as Vitepress "lastUpdated" frontmatter.
+  --log-level <string>                 Verbosity of the CLI output. Values should be "error", "warn", "info", "trace" or "debug". Defaults to "info", or to the LOG_LEVEL environment variable when set.
   -p, --extra-header-pages <string>    List of comma separated additional files or directories to process Vitepress header pages.
   -r, --repos-filter <string>          List of comma separated repositories to retrieve from Git provider. Default to all user's public repositories.
   -t, --extra-theme <string>           List of comma separated additional files or directories to use as Vitepress theme.
@@ -209,6 +210,7 @@ If this option is used together with an extra theme (`-t` / `--extra-theme`), yo
 Docpress can be configured with an external JSON configuration file specified by the `-C` or `--config` option. This file allows you to set Docpress parameters to automate and customize the documentation fetching and generation process. Key options that can be configured include:
 
 - `usernames`: List of comma separated Git provider usernames used to collect data (equivalent to the `-U` CLI option).
+- `logLevel`: Verbosity of the CLI output, one of `error`, `warn`, `info`, `trace` or `debug` (equivalent to `--log-level`).
 - `reposFilter`: List of repositories to include or exclude (equivalent to the `-r` CLI option).
 - `branch`: Branch from which documentation will be fetched (equivalent to `-b`). When omitted, each repository's own default branch is used, so repositories on `master`, `develop`, etc. are handled correctly.
 - `gitProvider`: Git provider used to retrieve data, `github` or `gitlab` (equivalent to `-g`).
@@ -272,6 +274,22 @@ When collecting from **multiple users**, generated pages are namespaced by usern
 ## Git Provider Selection
 
 The `-g` or `--git-provider` option selects the platform used to collect data. Docpress supports `github` (default) and `gitlab` (gitlab.com). With `gitlab`, the given names can be usernames or group paths, and the fetched repositories are the public projects of that user or group.
+
+## Log Level Selection
+
+The `--log-level` option (or the `logLevel` config key) controls how much detail Docpress prints while it runs. Accepted values are `error`, `warn`, `info` (default), `trace` and `debug` — each level includes all the ones before it, so `debug` prints everything and `error` prints only failures.
+
+```sh
+npx @tobi-or-not/docpress -U <username> --log-level debug
+```
+
+Under the hood, each value maps to a numeric `LOG_LEVEL` environment variable (`error` = `10`, `warn` = `20`, `info` = `30`, `trace` = `40`, `debug` = `50`). Setting `LOG_LEVEL` directly still works and can be more convenient in environments where passing CLI flags is inconvenient (e.g. Docker or CI):
+
+```sh
+LOG_LEVEL=50 npx @tobi-or-not/docpress -U <username>
+```
+
+`--log-level` (or `logLevel` in the config file) takes precedence over the `LOG_LEVEL` environment variable when both are set.
 
 ## Git Provider Token Option
 

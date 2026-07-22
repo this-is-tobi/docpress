@@ -61,6 +61,7 @@ Options:
                                        (default: "github")
   -h, --help                           display help for command
   -l, --last-updated                   Whether or not to inject each page's last Git commit date as Vitepress "lastUpdated" frontmatter.
+  --log-level <string>                 Verbosity of the CLI output. Values should be "error", "warn", "info", "trace" or "debug". Defaults to "info", or to the LOG_LEVEL environment variable when set.
   -p, --extra-header-pages <string>    List of comma separated additional files or directories to process Vitepress header pages.
   -r, --repos-filter <string>          List of comma separated repositories to retrieve from Git provider. Default to all user's public repositories.
   -t, --extra-theme <string>           List of comma separated additional files or directories to use as Vitepress theme.
