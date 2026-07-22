@@ -1,4 +1,4 @@
-import chalk from 'chalk'
+import pc from 'picocolors'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { log } from './logger.js'
 
@@ -29,7 +29,7 @@ describe('log function', () => {
     it(`should log ${type} message when LOG_LEVEL is ${level} or higher`, () => {
       vi.stubEnv('LOG_LEVEL', level.toString())
       const message = `Test ${type} message`
-      const coloredMessage = chalk[color](message)
+      const coloredMessage = pc[color](message)
 
       log(message, type)
 
@@ -49,8 +49,8 @@ describe('log function', () => {
   it('should use custom color if provided', () => {
     vi.stubEnv('LOG_LEVEL', '30')
     const message = 'Test custom color message'
-    const customColor = 'cyan'
-    const coloredMessage = chalk[customColor](message)
+    const customColor = 'green'
+    const coloredMessage = pc[customColor](message)
 
     log(message, 'info', customColor)
 
@@ -60,7 +60,7 @@ describe('log function', () => {
   it('should default to info level if type is not provided', () => {
     vi.stubEnv('LOG_LEVEL', '30')
     const message = 'Test default info message'
-    const coloredMessage = chalk.white(message)
+    const coloredMessage = pc.white(message)
 
     log(message)
 

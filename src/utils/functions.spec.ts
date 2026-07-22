@@ -1,11 +1,9 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { rimrafSync } from 'rimraf'
 import { addLastUpdatedFrontmatter, checkHttpStatus, createDir, deepMerge, extractFiles, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, isObject, loadConfigFile, prettify, prettifyEnum, redactToken, sanitizeSegment, splitByComma } from './functions.js'
 
 vi.mock('fs')
-vi.mock('rimraf')
 
 describe('checkHttpStatus', () => {
   const testUrl = 'http://example.com'
@@ -116,15 +114,20 @@ describe('createDir', () => {
     createDir(testDir, { clean: false })
 
     expect(mkdirSync).not.toHaveBeenCalled()
-    expect(rimrafSync).not.toHaveBeenCalled()
+    expect(rmSync).not.toHaveBeenCalled()
   })
 
-  it('should clean the directory if it exists and clean is true', () => {
+  it('should empty the directory contents (not remove the dir) if it exists and clean is true', () => {
     vi.mocked(existsSync).mockReturnValue(true)
+    vi.mocked(readdirSync).mockReturnValue(['a.txt', 'sub'] as unknown as ReturnType<typeof readdirSync>)
 
     createDir(testDir, { clean: true })
 
-    expect(rimrafSync).toHaveBeenCalledWith(`${testDir}/*`, { glob: true })
+    // Each entry is removed individually; the directory itself is never removed
+    // (it may be a bind-mounted volume, which would fail with EBUSY)
+    expect(rmSync).toHaveBeenCalledWith(resolve(testDir, 'a.txt'), { recursive: true, force: true })
+    expect(rmSync).toHaveBeenCalledWith(resolve(testDir, 'sub'), { recursive: true, force: true })
+    expect(rmSync).not.toHaveBeenCalledWith(testDir, expect.anything())
     expect(mkdirSync).not.toHaveBeenCalled() // Car le répertoire existe déjà
   })
 

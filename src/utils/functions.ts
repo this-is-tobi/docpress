@@ -1,6 +1,5 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
-import { rimrafSync } from 'rimraf'
 import YAML from 'yaml'
 import type { GlobalOpts } from '../schemas/global.js'
 import type { EnhancedRepository } from '../lib/fetch.js'
@@ -119,7 +118,10 @@ export function prettify(s: string, opts: PrettifyOpts) {
 export function createDir(directory: string, { clean }: { clean?: boolean } = { clean: false }) {
   try {
     if (clean && existsSync(directory)) {
-      rimrafSync(`${directory}/*`, { glob: true })
+      // Empty the directory's contents rather than removing the directory itself: it may be a bind-mounted volume (e.g. Docker), and removing the mount point fails with EBUSY.
+      for (const entry of readdirSync(directory)) {
+        rmSync(resolve(directory, entry), { recursive: true, force: true })
+      }
     }
     if (!existsSync(directory)) {
       mkdirSync(directory, { recursive: true })
