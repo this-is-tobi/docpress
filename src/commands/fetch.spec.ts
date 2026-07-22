@@ -8,9 +8,14 @@ import { globalOpts } from './global.js'
 import { createDir } from '../utils/functions.js'
 
 vi.mock('../lib/fetch.js', () => ({ fetchDoc: vi.fn() }))
-vi.mock('../utils/logger.js', () => ({ log: vi.fn() }))
+vi.mock('../utils/logger.js', async importOriginal => ({
+  ...(await importOriginal()),
+  log: vi.fn(),
+}))
 vi.mock('../utils/functions.js', () => ({
   createDir: vi.fn(),
+  formatDuration: vi.fn(() => '0ms'),
+  formatError: vi.fn(error => (error instanceof Error ? error.message : String(error))),
   prettifyEnum: vi.fn(arr => arr.join('|')),
   splitByComma: vi.fn(str => str.split(',')),
 }))
@@ -165,6 +170,52 @@ describe('main', () => {
 
     expect(vi.mocked(createDir)).toHaveBeenCalledWith(expect.any(String), { clean: true })
     expect(fetchDoc).toHaveBeenCalled()
+  })
+
+  it('should log a success summary once every username succeeds', async () => {
+    const mockOpts = {
+      usernames: ['testUser'],
+      branch: 'main',
+      gitProvider: 'github' as const,
+    }
+
+    await main(mockOpts)
+
+    expect(log).toHaveBeenCalledWith('   Fetched documentation for 1/1 username(s) in 0ms.', 'success')
+  })
+
+  it('should continue with remaining usernames when one fails, and log a warn summary', async () => {
+    const mockOpts = {
+      usernames: ['goodUser', 'badUser'],
+      branch: 'main',
+      gitProvider: 'github' as const,
+    }
+
+    vi.mocked(fetchDoc)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('network error'))
+
+    await main(mockOpts)
+
+    expect(fetchDoc).toHaveBeenCalledTimes(2)
+    expect(log).toHaveBeenCalledWith(`   Failed to fetch documentation for 'badUser': network error`, 'error')
+    expect(log).toHaveBeenCalledWith('   Fetched documentation for 1/2 username(s) in 0ms.', 'warn')
+  })
+
+  it('should throw when every username fails', async () => {
+    const mockOpts = {
+      usernames: ['user1', 'user2'],
+      branch: 'main',
+      gitProvider: 'github' as const,
+    }
+
+    vi.mocked(fetchDoc)
+      .mockRejectedValueOnce(new Error('boom1'))
+      .mockRejectedValueOnce(new Error('boom2'))
+
+    await expect(main(mockOpts)).rejects.toThrow(
+      'Failed to fetch documentation for all requested username(s): user1, user2.',
+    )
   })
 })
 

@@ -5,7 +5,7 @@ import { addOptions, explicitOptions, parseOptions } from '../utils/commands.js'
 import { prepareDoc } from '../lib/prepare.js'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import { log } from '../utils/logger.js'
-import { createDir } from '../utils/functions.js'
+import { createDir, formatDuration, formatError } from '../utils/functions.js'
 import { VITEPRESS_CONFIG } from '../utils/const.js'
 import { globalOpts } from './global.js'
 
@@ -45,9 +45,23 @@ export const prepareCmd = addOptions(createCommand(cmdName), [...prepareOpts, ..
 export async function main(opts: PrepareOpts) {
   const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, token, usernames, websiteTitle, websiteTagline } = opts
   log(`\n-> Start transform files to prepare Vitepress build.`, 'info')
+  const start = Date.now()
 
   createDir(dirname(VITEPRESS_CONFIG), { clean: true })
+  const failedUsers: string[] = []
   for (const username of usernames) {
-    await prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, token, username, websiteTitle, websiteTagline })
+    try {
+      await prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, token, username, websiteTitle, websiteTagline })
+    } catch (error) {
+      failedUsers.push(username)
+      log(`   Failed to prepare documentation for '${username}': ${formatError(error)}`, 'error')
+    }
   }
+
+  if (failedUsers.length === usernames.length) {
+    throw new Error(`Failed to prepare documentation for all requested username(s): ${failedUsers.join(', ')}.`)
+  }
+
+  const succeeded = usernames.length - failedUsers.length
+  log(`   Prepared documentation for ${succeeded}/${usernames.length} username(s) in ${formatDuration(Date.now() - start)}.`, failedUsers.length ? 'warn' : 'success')
 }

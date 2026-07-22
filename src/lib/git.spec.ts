@@ -14,7 +14,15 @@ vi.mock('node:path', () => ({
   resolve: vi.fn((...args) => args.join('/')),
   relative: vi.fn((from: string, to: string) => to.replace(`${from}/`, '')),
 }))
-vi.mock('../utils/functions.js')
+vi.mock('../utils/functions.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    addLastUpdatedFrontmatter: vi.fn(),
+    createDir: vi.fn(),
+    getMdFiles: vi.fn(),
+  }
+})
 vi.mock('../utils/logger.js')
 
 describe('quietOctokitLog', () => {
@@ -23,21 +31,14 @@ describe('quietOctokitLog', () => {
   })
 
   it('should suppress 404 warnings and errors but forward the rest', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
     quietOctokitLog.warn('boom 404 not found')
     quietOctokitLog.error('boom 404 not found')
-    expect(warnSpy).not.toHaveBeenCalled()
-    expect(errorSpy).not.toHaveBeenCalled()
+    expect(log).not.toHaveBeenCalled()
 
     quietOctokitLog.warn('real warning')
     quietOctokitLog.error('real error')
-    expect(warnSpy).toHaveBeenCalledWith('real warning')
-    expect(errorSpy).toHaveBeenCalledWith('real error')
-
-    warnSpy.mockRestore()
-    errorSpy.mockRestore()
+    expect(log).toHaveBeenCalledWith('real warning', 'warn')
+    expect(log).toHaveBeenCalledWith('real error', 'error')
   })
 })
 

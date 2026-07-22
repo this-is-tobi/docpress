@@ -5,6 +5,7 @@ import { createCommand } from 'commander'
 import { addOptions } from '../utils/commands.js'
 import { DOCPRESS_DIR } from '../utils/const.js'
 import { log } from '../utils/logger.js'
+import { formatDuration, formatError } from '../utils/functions.js'
 import { globalOpts } from './global.js'
 
 /**
@@ -17,7 +18,8 @@ export async function suppressVueWarnings<T>(callback: () => Promise<T>): Promis
   // Store the original console.warn
   const originalWarn = console.warn
 
-  // Override console.warn to suppress specific Vue warnings
+  // Override console.warn to suppress specific Vue warnings, routing the rest
+  // through the shared logger so LOG_LEVEL gating and coloring stay consistent
   console.warn = function (...args) {
     if (
       args.length > 0
@@ -28,8 +30,7 @@ export async function suppressVueWarnings<T>(callback: () => Promise<T>): Promis
       // Skip this warning
       return
     }
-    // Pass other warnings to the original console.warn
-    originalWarn.apply(console, args)
+    log(args.map(String).join(' '), 'warn')
   }
 
   try {
@@ -61,6 +62,7 @@ export const buildCmd = addOptions(createCommand(cmdName), globalOpts)
  */
 export async function main() {
   log(`\n-> Start building Vitepress website.\n\n`, 'info')
+  const start = Date.now()
 
   try {
     // Build VitePress with Vue warnings suppressed
@@ -71,10 +73,11 @@ export async function main() {
         },
       })
     })
-
-    log(`\n\nDocpress build succeeded.`, 'success')
   } catch (error) {
-    log(`\n\nDocpress build failed : ${error}`, 'error')
-    process.exit(1)
+    // Re-thrown (not logged/exited here) so cli.ts's single top-level catch
+    // is the only place that reports a failure and sets the exit code.
+    throw new Error(`Docpress build failed: ${formatError(error)}`)
   }
+
+  log(`\n\nDocpress build succeeded in ${formatDuration(Date.now() - start)}.`, 'success')
 }

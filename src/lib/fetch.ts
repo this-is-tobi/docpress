@@ -193,7 +193,7 @@ export async function generateInfos(user: Awaited<ReturnType<typeof getInfos>>['
  */
 export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOpts['reposFilter'], lastUpdated?: boolean) {
   if (!repos) {
-    log(`   No repository respect docpress rules.`, 'warn')
+    log(`   No repositories to process.`, 'warn')
     return
   }
 
@@ -206,9 +206,17 @@ export async function getDoc(repos?: EnhancedRepository[], reposFilter?: FetchOp
       }),
   )
 
+  if (!results.length) {
+    log(`   No repository matched the current filters.`, 'warn')
+    return
+  }
+
   const failed = results.filter(({ success }) => !success).map(({ name }) => name)
+  const succeeded = results.length - failed.length
   if (failed.length) {
-    log(`   ${failed.length} repository(ies) failed to clone: ${failed.join(', ')}.`, 'warn')
+    log(`   Cloned ${succeeded}/${results.length} repository(ies), ${failed.length} failed: ${failed.join(', ')}.`, 'warn')
+  } else {
+    log(`   Cloned ${succeeded}/${results.length} repository(ies).`, 'success')
   }
 }
 

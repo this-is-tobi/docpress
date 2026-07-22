@@ -13,7 +13,8 @@ vi.mock('vitepress', () => ({
 vi.mock('vitepress-plugin-mermaid', () => ({
   withMermaid: vi.fn(),
 }))
-vi.mock('../utils/logger.js', () => ({
+vi.mock('../utils/logger.js', async importOriginal => ({
+  ...(await importOriginal()),
   log: vi.fn(),
 }))
 vi.mock('./global.js', () => ({
@@ -76,8 +77,8 @@ describe('suppressVueWarnings', () => {
 
     await suppressVueWarnings(mockCallback)
 
-    expect(console.warn).toHaveBeenCalledWith('Regular warning')
-    expect(console.warn).not.toHaveBeenCalledWith('[Vue warn]: Invalid watch source: something')
+    expect(log).toHaveBeenCalledWith('Regular warning', 'warn')
+    expect(log).not.toHaveBeenCalledWith('[Vue warn]: Invalid watch source: something', 'warn')
   })
 
   it('should suppress Vue warnings about open:false', async () => {
@@ -89,8 +90,8 @@ describe('suppressVueWarnings', () => {
 
     await suppressVueWarnings(mockCallback)
 
-    expect(console.warn).toHaveBeenCalledWith('Regular warning')
-    expect(console.warn).not.toHaveBeenCalledWith('[Vue warn]: Something with { open: false }')
+    expect(log).toHaveBeenCalledWith('Regular warning', 'warn')
+    expect(log).not.toHaveBeenCalledWith('[Vue warn]: Something with { open: false }', 'warn')
   })
 
   it('should restore console.warn even if callback throws', async () => {
@@ -120,7 +121,7 @@ describe('main', () => {
     expect(vitepressBuild).toHaveBeenCalledWith(DOCPRESS_DIR, expect.objectContaining({
       onAfterConfigResolve: expect.any(Function),
     }))
-    expect(log).toHaveBeenCalledWith(`\n\nDocpress build succeeded.`, 'success')
+    expect(log).toHaveBeenCalledWith(expect.stringMatching(/^\n\nDocpress build succeeded in .+\.$/), 'success')
   })
 
   it('should apply withMermaid via onAfterConfigResolve', async () => {
@@ -133,19 +134,20 @@ describe('main', () => {
     expect(withMermaid).toHaveBeenCalledWith({ markdown: {}, vite: {} })
   })
 
-  it('should log start and error messages when build fails', async () => {
+  it('should throw a contextualized error instead of logging/exiting itself', async () => {
     const error = new Error('Build failed')
     ;(vitepressBuild as any).mockRejectedValueOnce(error) // Simulate failed build
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any)
 
-    await main()
+    await expect(main()).rejects.toThrow('Docpress build failed: Build failed')
 
     expect(log).toHaveBeenCalledWith(`\n-> Start building Vitepress website.\n\n`, 'info')
     expect(vitepressBuild).toHaveBeenCalledWith(DOCPRESS_DIR, expect.objectContaining({
       onAfterConfigResolve: expect.any(Function),
     }))
-    expect(log).toHaveBeenCalledWith(`\n\nDocpress build failed : ${error}`, 'error')
-    expect(exitSpy).toHaveBeenCalledWith(1)
+    // Reporting and exiting are cli.ts's job now, not build.ts's
+    expect(log).not.toHaveBeenCalledWith(expect.stringContaining('failed'), 'error')
+    expect(exitSpy).not.toHaveBeenCalled()
     exitSpy.mockRestore()
   })
 })

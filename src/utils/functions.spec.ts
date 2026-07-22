@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { addLastUpdatedFrontmatter, checkHttpStatus, createDir, deepMerge, extractFiles, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, isObject, loadConfigFile, prettify, prettifyEnum, redactToken, sanitizeSegment, splitByComma } from './functions.js'
+import { addLastUpdatedFrontmatter, checkHttpStatus, createDir, deepMerge, extractFiles, formatDuration, formatError, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, isObject, loadConfigFile, prettify, prettifyEnum, redactToken, sanitizeSegment, splitByComma } from './functions.js'
 
 vi.mock('fs')
 
@@ -515,6 +515,33 @@ describe('redactToken', () => {
     const original = { token: 'secret' }
     redactToken(original)
     expect(original.token).toBe('secret')
+  })
+})
+
+describe('formatError', () => {
+  it('should return the message of an Error instance', () => {
+    expect(formatError(new Error('boom'))).toBe('boom')
+  })
+
+  it('should stringify a non-Error value', () => {
+    expect(formatError('plain string')).toBe('plain string')
+    expect(formatError({ code: 42 })).toBe('[object Object]')
+  })
+})
+
+describe('formatDuration', () => {
+  it('should format sub-second durations in milliseconds', () => {
+    expect(formatDuration(350)).toBe('350ms')
+  })
+
+  it('should format sub-minute durations in seconds with one decimal', () => {
+    expect(formatDuration(1200)).toBe('1.2s')
+    expect(formatDuration(59999)).toBe('60.0s')
+  })
+
+  it('should format minute-plus durations as "Xm 0Ys"', () => {
+    expect(formatDuration(65000)).toBe('1m 05s')
+    expect(formatDuration(600000)).toBe('10m 00s')
   })
 })
 
