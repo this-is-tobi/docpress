@@ -179,7 +179,10 @@ if [ "$RUN_CLI_TESTS" == "true" ]; then
     cd /tmp/docpress/cli/bun
     [ -f "./package.json" ] || bun init -y
     bun add $TGZ_PKG_NAME
-    ./node_modules/.bin/docpress $DOCPRESS_ARGS
+    # Invoke the installed bin through the bun runtime explicitly (bun ignores the
+    # node shebang here), so this scenario asserts bun *runs* the CLI - the npm/pnpm
+    # scenarios already cover the node-shebang path.
+    bun ./node_modules/.bin/docpress $DOCPRESS_ARGS
     cd - > /dev/null
     checkDocsResult /tmp/docpress/cli/bun/docpress
   fi
