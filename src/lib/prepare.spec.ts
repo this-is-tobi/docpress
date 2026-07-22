@@ -2,7 +2,7 @@ import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, renameSync,
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getMdFiles, getUserInfos, getUserRepos } from '../utils/functions.js'
+import { extractFiles, getMdFiles, getUserInfos, getUserRepos } from '../utils/functions.js'
 import {
   addContent,
   addExtraPages,
@@ -561,6 +561,15 @@ describe('generateVitepressFiles', () => {
       '/tmp/docpress/mock/docs/index.md',
       expect.stringContaining('layout: home'),
     )
+  })
+
+  it('should throw a clear error when no template theme files are found', () => {
+    vi.mocked(extractFiles).mockReturnValueOnce([])
+
+    expect(() => generateVitepressFiles(
+      { title: 'My Project' },
+      { layout: 'home', hero: { name: 'My Projects', tagline: 'Awesome projects' }, features: [] },
+    )).toThrow(/No template theme files found at '\/tmp\/docpress\/mock\/templates\/theme'/)
   })
 })
 
