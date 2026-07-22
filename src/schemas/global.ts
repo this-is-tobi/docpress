@@ -1,6 +1,7 @@
 import { z } from 'zod'
-import { loadConfigFile, prettifyEnum, redactToken, splitByComma } from '../utils/functions.js'
-import { log } from '../utils/logger.js'
+import { loadConfigFile, prettifyEnum, splitByComma } from '../utils/functions.js'
+import type { LogLevelName } from '../utils/logger.js'
+import { LOG_LEVEL_NAMES, logLevelValue } from '../utils/logger.js'
 
 /**
  * List of supported Git providers
@@ -22,6 +23,9 @@ export const configSchema = z.object({
   usernames: z.string()
     .array()
     .describe('List of comma separated Git provider usernames used to collect data.'),
+  logLevel: z.enum(LOG_LEVEL_NAMES)
+    .optional()
+    .describe(`Verbosity of the CLI output. Values should be ${prettifyEnum(LOG_LEVEL_NAMES)}. Defaults to "info", or to the LOG_LEVEL environment variable when set.`),
   // Fetch
   branch: z.string()
     .regex(safeRefRegex, safeRefMessage)
@@ -75,6 +79,9 @@ export const cliSchema = configSchema
     gitProvider: z.enum(providers)
       .optional()
       .describe(configSchema.shape.gitProvider.description || ''),
+    logLevel: z.enum(LOG_LEVEL_NAMES)
+      .optional()
+      .describe(configSchema.shape.logLevel.description || ''),
     forks: z.boolean()
       .optional()
       .describe(configSchema.shape.forks.description || ''),
@@ -183,6 +190,21 @@ function resolveToken(token: string | undefined, gitProvider: string | undefined
 }
 
 /**
+ * Applies an explicitly resolved log level (CLI flag > config file) as the
+ * LOG_LEVEL env var consumed by the logger. Left untouched when neither the CLI
+ * flag nor the config file set one, so an existing numeric LOG_LEVEL env var
+ * (or the logger's own default) keeps working exactly as before
+ *
+ * @param logLevel - Log level name explicitly provided via CLI flag or config file
+ */
+function resolveLogLevel(logLevel: LogLevelName | undefined): void {
+  if (logLevel) {
+    // eslint-disable-next-line dot-notation
+    process.env['LOG_LEVEL'] = String(logLevelValue(logLevel))
+  }
+}
+
+/**
  * Schema for global options that combines CLI arguments and configuration files
  * Merges config sources with precedence: CLI options > config file > defaults
  */
@@ -191,8 +213,6 @@ export const globalOptsSchema = cliSchema
   .transform((data, ctx) => {
     try {
       const { config, vitepressConfig, token, ...rest } = data
-
-      log(`Debug: Schema transform input: ${JSON.stringify(redactToken(data))}`, 'debug')
 
       // Load and validate configuration from file
       const configData = validateConfigData(prepareConfigData(loadConfigFile(config)))
@@ -216,7 +236,7 @@ export const globalOptsSchema = cliSchema
           : {}),
       }
 
-      log(`Debug: Final merged config: ${JSON.stringify(mergedConfig)}`, 'debug')
+      resolveLogLevel(mergedConfig.logLevel)
 
       return validateFinalConfig({ ...mergedConfig, token: resolveToken(token, mergedConfig.gitProvider) })
     } catch (error) {

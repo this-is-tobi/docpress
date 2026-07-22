@@ -6,6 +6,7 @@ import { cliSchema } from '../schemas/global.js'
  */
 export const globalOpts = [
   createOption('-C, --config <string>', cliSchema.shape.config.description),
+  createOption('--log-level <string>', cliSchema.shape.logLevel.description),
   createOption('-T, --token <string>', cliSchema.shape.token.description),
   createOption('-U, --usernames <string>', cliSchema.shape.usernames.description),
 ]

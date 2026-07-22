@@ -33,7 +33,6 @@ interface Options {
 export function parseOptions<T extends Cmd>(cmd: T, opts: Record<string, unknown>): Options[T] {
   log(`Initializing Docpress...`, 'info', 'blue')
   log(`\n\n-> Checking for required environment settings and configurations.`, 'info')
-  log(`   Debug info - opts: ${JSON.stringify(redactToken(opts))}`, 'debug')
   log(`   Debug info - cmd: ${cmd}`, 'debug')
 
   const res = globalOptsSchema.safeParse(opts)
@@ -41,6 +40,10 @@ export function parseOptions<T extends Cmd>(cmd: T, opts: Record<string, unknown
     log(`   An error occurred while checking configuration.\n     ${z.prettifyError(res.error)}`, 'error')
     process.exit(1)
   }
+  // Logged after validation (not the raw input) so this reflects the fully merged
+  // CLI/config/defaults result, and so a `--log-level debug` passed in this same
+  // invocation - only resolved inside the schema above - is already in effect.
+  log(`   Debug info - resolved options: ${JSON.stringify(redactToken(res.data))}`, 'debug')
   log('   Setup complete! Ready to process your documentation.', 'info')
   return res.data as Options[T]
 }
