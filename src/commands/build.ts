@@ -18,8 +18,14 @@ export async function suppressVueWarnings<T>(callback: () => Promise<T>): Promis
   // Store the original console.warn
   const originalWarn = console.warn
 
-  // Override console.warn to suppress specific Vue warnings, routing the rest
-  // through the shared logger so LOG_LEVEL gating and coloring stay consistent
+  // Override console.warn to suppress two specific, noisy Vue/Vitepress warnings
+  // and forward everything else, untouched, to the real console.warn.
+  //
+  // These must NOT be routed through log(): log() writes via console.warn, which
+  // is this very override, so forwarding a non-suppressed warning through it would
+  // recurse until the stack overflows and aborts the whole Vitepress build. Vite's
+  // "chunks are larger than 500 kB" warning is exactly such a case, which is why
+  // the build failed with "[vite:reporter] Maximum call stack size exceeded".
   console.warn = function (...args) {
     if (
       args.length > 0
@@ -30,7 +36,8 @@ export async function suppressVueWarnings<T>(callback: () => Promise<T>): Promis
       // Skip this warning
       return
     }
-    log(args.map(String).join(' '), 'warn')
+    // Pass other warnings straight to the original console.warn
+    originalWarn.apply(console, args)
   }
 
   try {
