@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.11.0](https://github.com/this-is-tobi/docpress/compare/v0.10.3...v0.11.0) (2026-07-22)
+
+
+### Features
+
+* **cli:** add --log-level flag with config/env precedence ([a78a669](https://github.com/this-is-tobi/docpress/commit/a78a6695866dcd79bbe143423502640e836f09d3))
+* **cli:** unify error handling and add timing/summary logging ([319fbb1](https://github.com/this-is-tobi/docpress/commit/319fbb1aaf2ca8ba196a09cff4c7f71c8f8b4086))
+
+
+### Bug Fixes
+
+* **build:** prevent console.warn recursion that crashed the Vitepress build ([0d83543](https://github.com/this-is-tobi/docpress/commit/0d835432875e1a5685159935461d293508be4cd1))
+* **dev:** set NODE_ENV=development for the dev script ([694e23b](https://github.com/this-is-tobi/docpress/commit/694e23b826f125fe04f56da01c6a05d8cb5fce81))
+* **prepare:** fail clearly when the Vitepress template theme is missing ([0592196](https://github.com/this-is-tobi/docpress/commit/059219653298dd026ff2d8367f311d691ac72096))
+
 ## [0.10.3](https://github.com/this-is-tobi/docpress/compare/v0.10.2...v0.10.3) (2026-07-22)
 
 
