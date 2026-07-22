@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getInfos, GITLAB_API_URL } from './gitlab.js'
 
-vi.mock('../utils/logger.js', () => ({ log: vi.fn() }))
+vi.mock('../utils/logger.js', async importOriginal => ({
+  ...(await importOriginal()),
+  log: vi.fn(),
+}))
 
 const mockGitlabUser = {
   id: 42,

@@ -5,7 +5,7 @@ import { simpleGit } from 'simple-git'
 import type { SimpleGit } from 'simple-git'
 import type { GlobalOpts } from '../schemas/global.js'
 import type { FetchOpts } from '../schemas/fetch.js'
-import { addLastUpdatedFrontmatter, createDir, getMdFiles } from '../utils/functions.js'
+import { addLastUpdatedFrontmatter, createDir, formatError, getMdFiles } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
 
@@ -16,10 +16,10 @@ export const quietOctokitLog = {
   debug: () => {},
   info: () => {},
   warn: (message: string) => {
-    if (!message.includes('404')) console.warn(message)
+    if (!message.includes('404')) log(message, 'warn')
   },
   error: (message: string) => {
-    if (!message.includes('404')) console.error(message)
+    if (!message.includes('404')) log(message, 'error')
   },
 }
 
@@ -72,7 +72,7 @@ export async function getContributors({
   } catch (error) {
     // A deleted / private / rate-limited upstream must not abort the whole
     // prepare step: degrade to "no source" so this single fork is skipped.
-    log(`   Failed to get repository infos for '${repository.name}'. Error : ${error instanceof Error ? error.message : String(error)}`, 'warn')
+    log(`   Failed to get repository infos for '${repository.name}'. Error : ${formatError(error)}`, 'warn')
     return { source: undefined, contributors: [] }
   }
   if (!repo.source?.owner?.login) {
@@ -92,7 +92,7 @@ export async function getContributors({
     }
   } catch (error) {
     log(
-      `   Failed to get contributors infos for repository '${repository.name}'. Error : ${error instanceof Error ? error.message : String(error)}`,
+      `   Failed to get contributors infos for repository '${repository.name}'. Error : ${formatError(error)}`,
       'warn',
     )
     return { source: repo.source, contributors: [] }
@@ -151,7 +151,7 @@ export async function applyLastUpdated(git: SimpleGit, projectDir: string, name:
     const logOutput = await git.raw(['-c', 'core.quotePath=false', 'log', '--format=%cI', '--name-only'])
     dates = parseLastCommitDates(logOutput)
   } catch (error) {
-    log(`   Unable to read commit history for repository '${name}'. Error : ${error instanceof Error ? error.message : String(error)}`, 'warn')
+    log(`   Unable to read commit history for repository '${name}'. Error : ${formatError(error)}`, 'warn')
     return
   }
 
@@ -210,7 +210,7 @@ export async function cloneRepo(name: string, url: string, projectDir: string, b
     rmSync(resolve(projectDir, '.git'), { recursive: true })
     return true
   } catch (error) {
-    log(`   Error when cloning repository '${name}': ${error instanceof Error ? error.message : String(error)}.`, 'error')
+    log(`   Error when cloning repository '${name}': ${formatError(error)}.`, 'error')
     return false
   }
 }

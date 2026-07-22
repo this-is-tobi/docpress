@@ -26,7 +26,10 @@ vi.mock('../lib/prepare.js', () => ({
   prepareDoc: vi.fn(),
 }))
 vi.mock('../lib/vitepress.js', () => ({ getVitepressConfig: vi.fn() }))
-vi.mock('../utils/logger.js', () => ({ log: vi.fn() }))
+vi.mock('../utils/logger.js', async importOriginal => ({
+  ...(await importOriginal()),
+  log: vi.fn(),
+}))
 vi.spyOn(prepareMod, 'main')
 
 const { prepareCmd, prepareOpts, main } = prepareMod
@@ -126,6 +129,38 @@ describe('main', () => {
   it('should forward the lastUpdated flag to prepareDoc', async () => {
     await main({ ...mockOpts, lastUpdated: true })
     expect(prepareDoc).toHaveBeenCalledWith(expect.objectContaining({ lastUpdated: true }))
+  })
+
+  it('should log a success summary once every username succeeds', async () => {
+    await main(mockOpts)
+    expect(log).toHaveBeenCalledWith(
+      expect.stringMatching(/^ {3}Prepared documentation for 1\/1 username\(s\) in .+\.$/),
+      'success',
+    )
+  })
+
+  it('should continue with remaining usernames when one fails, and log a warn summary', async () => {
+    vi.mocked(prepareDoc)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('render error'))
+
+    await main({ ...mockOpts, usernames: ['goodUser', 'badUser'] })
+
+    expect(log).toHaveBeenCalledWith(`   Failed to prepare documentation for 'badUser': render error`, 'error')
+    expect(log).toHaveBeenCalledWith(
+      expect.stringMatching(/^ {3}Prepared documentation for 1\/2 username\(s\) in .+\.$/),
+      'warn',
+    )
+  })
+
+  it('should throw when every username fails', async () => {
+    vi.mocked(prepareDoc)
+      .mockRejectedValueOnce(new Error('boom1'))
+      .mockRejectedValueOnce(new Error('boom2'))
+
+    await expect(main({ ...mockOpts, usernames: ['user1', 'user2'] })).rejects.toThrow(
+      'Failed to prepare documentation for all requested username(s): user1, user2.',
+    )
   })
 
   // it('should log the start message and call getUserInfos and getUserRepos', async () => {

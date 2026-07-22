@@ -1,5 +1,5 @@
 import { createCommand, createOption } from 'commander'
-import { createDir } from '../utils/functions.js'
+import { createDir, formatDuration, formatError } from '../utils/functions.js'
 import { DOCPRESS_DIR } from '../utils/const.js'
 import { log } from '../utils/logger.js'
 import { addOptions, explicitOptions, parseOptions } from '../utils/commands.js'
@@ -42,6 +42,7 @@ export const fetchCmd = addOptions(createCommand(cmdName), [...fetchOpts, ...glo
 export async function main(opts: FetchOpts) {
   const { usernames, reposFilter, token, branch, gitProvider, lastUpdated } = opts
   log(`\n-> Start fetching documentation files. This may take a moment, especially for larger repositories.`, 'info')
+  const start = Date.now()
 
   createDir(DOCPRESS_DIR, { clean: true })
   const failedUsers: string[] = []
@@ -54,11 +55,14 @@ export async function main(opts: FetchOpts) {
       await fetchDoc({ username, branch, reposFilter: finalRF, gitProvider, token, lastUpdated, multiUser: usernames.length > 1 })
     } catch (error) {
       failedUsers.push(username)
-      log(`   Failed to fetch documentation for '${username}': ${error instanceof Error ? error.message : String(error)}`, 'error')
+      log(`   Failed to fetch documentation for '${username}': ${formatError(error)}`, 'error')
     }
   }
 
   if (failedUsers.length === usernames.length) {
     throw new Error(`Failed to fetch documentation for all requested username(s): ${failedUsers.join(', ')}.`)
   }
+
+  const succeeded = usernames.length - failedUsers.length
+  log(`   Fetched documentation for ${succeeded}/${usernames.length} username(s) in ${formatDuration(Date.now() - start)}.`, failedUsers.length ? 'warn' : 'success')
 }

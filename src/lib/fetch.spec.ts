@@ -238,7 +238,7 @@ describe('getDoc', () => {
 
     await getDoc()
 
-    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('No repository respect docpress rules.'))
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('No repositories to process.'))
   })
 
   it('should clone repositories starting with a dot', async () => {
@@ -262,6 +262,62 @@ describe('getDoc', () => {
       repos[0].docpress.includes,
       undefined,
     )
+  })
+
+  it('should log a success summary when every repository clones successfully', async () => {
+    console.info = vi.fn()
+    vi.mocked(cloneRepo).mockResolvedValueOnce(true)
+
+    const repos = [
+      {
+        name: 'repo1',
+        clone_url: 'https://github.com/testUser/repo1',
+        fork: false,
+        private: false,
+        docpress: { projectPath: '/path/to/repo1', branch: 'main', includes: ['README.md'] },
+      },
+    ] as unknown as EnhancedRepository[]
+
+    await getDoc(repos, ['repo1'])
+
+    expect(console.info).toHaveBeenCalledWith(expect.stringContaining('Cloned 1/1 repository(ies).'))
+  })
+
+  it('should log a warn summary listing failed repositories', async () => {
+    console.warn = vi.fn()
+    vi.mocked(cloneRepo).mockResolvedValueOnce(false)
+
+    const repos = [
+      {
+        name: 'repo1',
+        clone_url: 'https://github.com/testUser/repo1',
+        fork: false,
+        private: false,
+        docpress: { projectPath: '/path/to/repo1', branch: 'main', includes: ['README.md'] },
+      },
+    ] as unknown as EnhancedRepository[]
+
+    await getDoc(repos, ['repo1'])
+
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Cloned 0/1 repository(ies), 1 failed: repo1.'))
+  })
+
+  it('should warn when no repository matches the current filters', async () => {
+    console.warn = vi.fn()
+
+    const repos = [
+      {
+        name: 'repo1',
+        clone_url: 'https://github.com/testUser/repo1',
+        fork: false,
+        private: false,
+        docpress: { projectPath: '/path/to/repo1', branch: 'main', includes: ['README.md'] },
+      },
+    ] as unknown as EnhancedRepository[]
+
+    await getDoc(repos, ['nonexistent-repo'])
+
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('No repository matched the current filters.'))
   })
 })
 

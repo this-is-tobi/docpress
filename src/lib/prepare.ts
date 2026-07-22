@@ -6,7 +6,7 @@ import type { defineConfig } from 'vitepress'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import { generateFile } from '../utils/templates.js'
 import type { GlobalOpts } from '../schemas/global.js'
-import { createDir, extractFiles, getMdFiles, getUserInfos, getUserRepos, isFile, prettify, replaceInternalMdLinks, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
+import { createDir, extractFiles, formatError, getMdFiles, getUserInfos, getUserRepos, isFile, prettify, replaceInternalMdLinks, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
 import { DOCPRESS_DIR, DOCS_DIR, FORKS_FILE, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
 import { log } from '../utils/logger.js'
 import type { EnhancedRepository } from './fetch.js'
@@ -512,7 +512,7 @@ export async function parseVitepressConfig(path: string): Promise<Partial<Return
     const { config } = await import(resolve(process.cwd(), path))
     return config ?? {}
   } catch (error) {
-    log(`   Unable to load existing Vitepress config '${path}', starting from an empty config. ${error instanceof Error ? error.message : ''}`, 'warn')
+    log(`   Unable to load existing Vitepress config '${path}', starting from an empty config. ${formatError(error)}`, 'warn')
     return {}
   }
 }

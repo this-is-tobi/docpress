@@ -32,7 +32,8 @@ vi.mock('./utils/commands.js', () => ({
   explicitOptions: vi.fn((_cmd, opts) => opts),
 }))
 
-vi.mock('./utils/logger.js', () => ({
+vi.mock('./utils/logger.js', async importOriginal => ({
+  ...(await importOriginal()),
   log: vi.fn(),
 }))
 

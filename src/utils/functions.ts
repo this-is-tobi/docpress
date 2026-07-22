@@ -21,7 +21,7 @@ export async function checkHttpStatus(url: string): Promise<number> {
     const response = await fetch(url, { method: 'HEAD', redirect: 'manual' })
     return response.status
   } catch (error) {
-    log(`   Network error while checking '${url}': ${error instanceof Error ? error.message : String(error)}`, 'debug')
+    log(`   Network error while checking '${url}': ${formatError(error)}`, 'debug')
     return 500
   }
 }
@@ -52,6 +52,35 @@ export function redactToken<T extends { token?: unknown }>(obj: T): T {
     return obj
   }
   return { ...obj, token: obj.token ? '***' : obj.token } as T
+}
+
+/**
+ * Extracts a human-readable message from a caught value
+ *
+ * @param error - The caught value (typically an Error, but not guaranteed)
+ * @returns The error's message, or its string representation when it isn't an Error
+ */
+export function formatError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+/**
+ * Formats a duration in milliseconds as a short human-readable string
+ *
+ * @param ms - Duration in milliseconds
+ * @returns Formatted duration (e.g. "350ms", "1.2s", "1m 05s")
+ */
+export function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    return `${Math.round(ms)}ms`
+  }
+  const totalSeconds = ms / 1000
+  if (totalSeconds < 60) {
+    return `${totalSeconds.toFixed(1)}s`
+  }
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = Math.round(totalSeconds % 60)
+  return `${minutes}m ${String(seconds).padStart(2, '0')}s`
 }
 
 /**
