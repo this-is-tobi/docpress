@@ -25,7 +25,7 @@
     "build:docker": "docker build --tag tobi-or-not/docpress --target prod .",
     "build:types": "tsc",
     "build:vite": "vite build",
-    "dev": "bun ./dev/docpress.ts",
+    "dev": "NODE_ENV=development bun ./dev/docpress.ts",
     "dev:clean": "node -e \"require('node:fs').rmSync('./docpress',{recursive:true,force:true})\" && bun run dev",
     "format": "eslint . --fix",
     "lint": "eslint .",
