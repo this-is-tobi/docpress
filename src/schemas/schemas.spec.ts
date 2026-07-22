@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Config, GlobalOpts } from './global.js'
 import { cliSchema, configSchema, globalOptsSchema } from './global.js'
 
@@ -102,6 +102,31 @@ describe('globalOptsSchema', () => {
     })
     expect(result.gitProvider).toBe('github')
     expect(result.branch).toBeUndefined()
+  })
+
+  describe('logLevel resolution', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs()
+    })
+
+    it('should apply an explicit logLevel to the LOG_LEVEL env var', () => {
+      vi.stubEnv('LOG_LEVEL', '10')
+
+      const result = globalOptsSchema.parse({ usernames: 'user1', logLevel: 'debug' })
+
+      expect(result.logLevel).toBe('debug')
+      // eslint-disable-next-line dot-notation
+      expect(process.env['LOG_LEVEL']).toBe('50')
+    })
+
+    it('should leave an existing LOG_LEVEL env var untouched when logLevel is not set', () => {
+      vi.stubEnv('LOG_LEVEL', '10')
+
+      globalOptsSchema.parse({ usernames: 'user1' })
+
+      // eslint-disable-next-line dot-notation
+      expect(process.env['LOG_LEVEL']).toBe('10')
+    })
   })
 
   it('should handle multiple usernames', () => {
@@ -267,6 +292,15 @@ describe('configSchema', () => {
     expect(() => configSchema.parse(invalidData)).toThrow()
   })
 
+  it('should throw an error if logLevel is not in the allowed enum values', () => {
+    const invalidData = {
+      usernames: ['user1'],
+      logLevel: 'verbose',
+    }
+
+    expect(() => configSchema.parse(invalidData)).toThrow()
+  })
+
   it('should allow empty arrays for optional list fields', () => {
     const dataWithEmptyArrays: Partial<Config> = {
       usernames: ['user1'],
@@ -318,6 +352,15 @@ describe('cliSchema', () => {
     const invalidData = {
       branch: 'develop',
       gitProvider: 'bitbucket',
+    }
+
+    expect(() => cliSchema.parse(invalidData)).toThrow()
+  })
+
+  it('should throw an error for invalid logLevel', () => {
+    const invalidData = {
+      usernames: 'user1',
+      logLevel: 'verbose',
     }
 
     expect(() => cliSchema.parse(invalidData)).toThrow()

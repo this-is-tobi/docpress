@@ -55,6 +55,28 @@ const colorMap: ColorMap = {
 }
 
 /**
+ * Log level names selectable via the --log-level flag / logLevel config key,
+ * kept in sync with the numeric scale in colorMap ('success' excluded: it is
+ * not an independently selectable verbosity level, only an info-level color)
+ */
+export const LOG_LEVEL_NAMES = ['error', 'warn', 'info', 'trace', 'debug'] as const
+
+/**
+ * A log level name selectable via the --log-level flag / logLevel config key
+ */
+export type LogLevelName = typeof LOG_LEVEL_NAMES[number]
+
+/**
+ * Resolves the numeric LOG_LEVEL value for a named log level
+ *
+ * @param name - Log level name
+ * @returns The numeric level consumed by LOG_LEVEL / colorMap
+ */
+export function logLevelValue(name: LogLevelName): number {
+  return colorMap[name].level
+}
+
+/**
  * Logs a message with color formatting based on type and level
  *
  * @param msg - Message to log

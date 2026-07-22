@@ -122,6 +122,20 @@ describe('parseOptions', () => {
     expect(result.usernames).toEqual(['config-user'])
   })
 
+  it('should resolve --log-level into the LOG_LEVEL env var before returning', () => {
+    // eslint-disable-next-line dot-notation
+    const originalLogLevel = process.env['LOG_LEVEL']
+
+    const result = parseOptions('global', { usernames: 'user1', logLevel: 'debug' })
+
+    expect(result.logLevel).toBe('debug')
+    // eslint-disable-next-line dot-notation
+    expect(process.env['LOG_LEVEL']).toBe('50')
+
+    // eslint-disable-next-line dot-notation
+    process.env['LOG_LEVEL'] = originalLogLevel
+  })
+
   it('should exit when the configuration file is invalid', () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never)
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
