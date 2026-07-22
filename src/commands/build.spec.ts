@@ -50,7 +50,7 @@ describe('buildCmd', () => {
 describe('suppressVueWarnings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Save original console.warn
+    // Stand in for the real console.warn so we can assert what gets forwarded
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
@@ -69,6 +69,7 @@ describe('suppressVueWarnings', () => {
   })
 
   it('should suppress Vue warnings about invalid watch source', async () => {
+    const warnSpy = vi.mocked(console.warn)
     const mockCallback = async () => {
       console.warn('[Vue warn]: Invalid watch source: something')
       console.warn('Regular warning')
@@ -77,11 +78,13 @@ describe('suppressVueWarnings', () => {
 
     await suppressVueWarnings(mockCallback)
 
-    expect(log).toHaveBeenCalledWith('Regular warning', 'warn')
-    expect(log).not.toHaveBeenCalledWith('[Vue warn]: Invalid watch source: something', 'warn')
+    // The regular warning is forwarded to the real console.warn, the targeted one is dropped
+    expect(warnSpy).toHaveBeenCalledWith('Regular warning')
+    expect(warnSpy).not.toHaveBeenCalledWith('[Vue warn]: Invalid watch source: something')
   })
 
   it('should suppress Vue warnings about open:false', async () => {
+    const warnSpy = vi.mocked(console.warn)
     const mockCallback = async () => {
       console.warn('[Vue warn]: Something with { open: false }')
       console.warn('Regular warning')
@@ -90,8 +93,29 @@ describe('suppressVueWarnings', () => {
 
     await suppressVueWarnings(mockCallback)
 
-    expect(log).toHaveBeenCalledWith('Regular warning', 'warn')
-    expect(log).not.toHaveBeenCalledWith('[Vue warn]: Something with { open: false }', 'warn')
+    expect(warnSpy).toHaveBeenCalledWith('Regular warning')
+    expect(warnSpy).not.toHaveBeenCalledWith('[Vue warn]: Something with { open: false }')
+  })
+
+  it('should forward non-suppressed warnings without recursing when the logger writes via console.warn', async () => {
+    const warnSpy = vi.mocked(console.warn)
+    const chunkWarning = '(!) Some chunks are larger than 500 kB after minification'
+    // The real logger writes warnings through console.warn - the very function this
+    // helper overrides. Forwarding a warning back through log() would recurse until
+    // the stack overflows and aborts the Vitepress build, so this guards against it.
+    vi.mocked(log).mockImplementation((msg: string) => { console.warn(msg) })
+
+    try {
+      const callback = async () => {
+        console.warn(chunkWarning)
+        return 'ok'
+      }
+
+      await expect(suppressVueWarnings(callback)).resolves.toBe('ok')
+      expect(warnSpy).toHaveBeenCalledWith(chunkWarning)
+    } finally {
+      vi.mocked(log).mockReset()
+    }
   })
 
   it('should restore console.warn even if callback throws', async () => {
