@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.3](https://github.com/this-is-tobi/docpress/compare/v0.10.2...v0.10.3) (2026-07-22)
+
+
+### Bug Fixes
+
+* harden fetch error handling and path sanitization ([f1c1c9f](https://github.com/this-is-tobi/docpress/commit/f1c1c9f9b652edf2a2d24fdff503210c35785440))
+* resolve branch per-repo and isolate multi-user output ([f9e794a](https://github.com/this-is-tobi/docpress/commit/f9e794a214955225641709cb79d62db077618e6b))
+* **security:** neutralise non-http(s) href schemes on the forks page ([a81aef4](https://github.com/this-is-tobi/docpress/commit/a81aef4d835c9a4704253401a24145cfc18f7f84))
+
 ## [0.10.2](https://github.com/this-is-tobi/docpress/compare/v0.10.1...v0.10.2) (2026-07-21)
 
 
