@@ -1,6 +1,5 @@
 /* eslint-disable dot-notation */
-import type { ColorName } from 'chalk'
-import chalk from 'chalk'
+import pc from 'picocolors'
 
 /**
  * Log message types
@@ -8,11 +7,27 @@ import chalk from 'chalk'
 type LogType = keyof Pick<Console, 'info' | 'warn' | 'error' | 'debug' | 'trace'> | 'success'
 
 /**
+ * Colors supported by the logger
+ */
+type Color = 'red' | 'yellow' | 'white' | 'green' | 'blue'
+
+/**
+ * Maps a supported color to its picocolors formatter
+ */
+const colorFns: Record<Color, (input: string) => string> = {
+  red: pc.red,
+  yellow: pc.yellow,
+  white: pc.white,
+  green: pc.green,
+  blue: pc.blue,
+}
+
+/**
  * Mapping of log types to colors and levels
  */
 type ColorMap = {
   [K in LogType]: {
-    color: ColorName
+    color: Color
     level: number
   }
 }
@@ -46,8 +61,8 @@ const colorMap: ColorMap = {
  * @param type - Type of log message (info, warn, error, debug, trace, success)
  * @param color - Optional specific color to use instead of the default for the type
  */
-export function log(msg: string, type: LogType = 'info', color?: ColorName) {
-  const computedMsg = color ? chalk[color](msg) : chalk[colorMap[type].color](msg)
+export function log(msg: string, type: LogType = 'info', color?: Color) {
+  const computedMsg = color ? colorFns[color](msg) : colorFns[colorMap[type].color](msg)
   const computedType = type === 'success' ? 'info' : type
 
   if (getLogLevel() >= colorMap[type].level) {
