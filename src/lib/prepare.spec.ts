@@ -1081,3 +1081,64 @@ describe('generateSidebarItems', () => {
     ])
   })
 })
+
+describe('generateSidebarItems nested file paths', () => {
+  const repository = {
+    name: 'test-repo',
+    docpress: { projectPath: '/path/to/test-repo' },
+  } as unknown as EnhancedRepository
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should rename an index-prefixed file inside a nested folder using the nested path', () => {
+    const tree = { advanced: { $: ['01-intro.md'] } }
+
+    generateSidebarItems(repository, tree)
+
+    expect(renameSync).toHaveBeenCalledWith(
+      '/path/to/test-repo/advanced/01-intro.md',
+      '/path/to/test-repo/advanced/intro.md',
+    )
+  })
+
+  it('should rename a readme inside a nested folder using the nested path', () => {
+    const tree = { advanced: { $: ['README.md'] } }
+
+    const items = generateSidebarItems(repository, tree)
+
+    expect(renameSync).toHaveBeenCalledWith(
+      '/path/to/test-repo/advanced/README.md',
+      '/path/to/test-repo/advanced/introduction.md',
+    )
+    expect(items).toEqual([
+      {
+        text: 'Advanced',
+        collapsed: true,
+        items: [
+          { text: 'Introduction', link: '/test-repo/advanced/introduction' },
+        ],
+      },
+    ])
+  })
+
+  it('should rename files in deeply nested folders using the full nested path', () => {
+    const tree = { guide: { advanced: { $: ['01-setup.md'] } } }
+
+    generateSidebarItems(repository, tree)
+
+    expect(renameSync).toHaveBeenCalledWith(
+      '/path/to/test-repo/guide/advanced/01-setup.md',
+      '/path/to/test-repo/guide/advanced/setup.md',
+    )
+  })
+
+  it('should leave already-normalised nested files untouched', () => {
+    const tree = { advanced: { $: ['setup.md'] } }
+
+    generateSidebarItems(repository, tree)
+
+    expect(renameSync).not.toHaveBeenCalled()
+  })
+})
