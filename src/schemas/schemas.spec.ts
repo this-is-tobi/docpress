@@ -445,3 +445,80 @@ describe('sidebar options', () => {
     expect(() => cliSchema.parse({ usernames: 'user1', sidebarCollapsed: 'maybe' })).toThrow()
   })
 })
+
+describe('token resolution', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('should prefer an explicitly provided token', () => {
+    vi.stubEnv('DOCPRESS_TOKEN', 'docpress-token')
+    vi.stubEnv('GITHUB_TOKEN', 'github-token')
+
+    expect(globalOptsSchema.parse({ usernames: 'user1', token: 'explicit-token' }).token)
+      .toBe('explicit-token')
+  })
+
+  it('should fall back to DOCPRESS_TOKEN before the provider token', () => {
+    vi.stubEnv('DOCPRESS_TOKEN', 'docpress-token')
+    vi.stubEnv('GITHUB_TOKEN', 'github-token')
+
+    expect(globalOptsSchema.parse({ usernames: 'user1' }).token).toBe('docpress-token')
+  })
+
+  it('should fall back to GITHUB_TOKEN for the github provider', () => {
+    vi.stubEnv('DOCPRESS_TOKEN', undefined)
+    vi.stubEnv('GITHUB_TOKEN', 'github-token')
+
+    expect(globalOptsSchema.parse({ usernames: 'user1', gitProvider: 'github' }).token)
+      .toBe('github-token')
+  })
+
+  it('should fall back to GITLAB_TOKEN for the gitlab provider', () => {
+    vi.stubEnv('DOCPRESS_TOKEN', undefined)
+    vi.stubEnv('GITLAB_TOKEN', 'gitlab-token')
+
+    expect(globalOptsSchema.parse({ usernames: 'user1', gitProvider: 'gitlab' }).token)
+      .toBe('gitlab-token')
+  })
+
+  it('should treat an empty DOCPRESS_TOKEN as unset and fall back to the provider token', () => {
+    // A CI secret that did not resolve arrives as an empty string
+    vi.stubEnv('DOCPRESS_TOKEN', '')
+    vi.stubEnv('GITHUB_TOKEN', 'github-token')
+
+    expect(globalOptsSchema.parse({ usernames: 'user1' }).token).toBe('github-token')
+  })
+
+  it('should leave the token undefined when every source is empty', () => {
+    vi.stubEnv('DOCPRESS_TOKEN', '')
+    vi.stubEnv('GITHUB_TOKEN', '')
+
+    expect(globalOptsSchema.parse({ usernames: 'user1' }).token).toBeUndefined()
+  })
+
+  it('should leave the token undefined when nothing provides one', () => {
+    vi.stubEnv('DOCPRESS_TOKEN', undefined)
+    vi.stubEnv('GITHUB_TOKEN', undefined)
+
+    expect(globalOptsSchema.parse({ usernames: 'user1' }).token).toBeUndefined()
+  })
+})
+
+describe('vitepressConfig merging', () => {
+  it('should let the vitepress config file win over the one inlined in the docpress config', () => {
+    vi.mocked(readFileSync)
+      .mockReturnValueOnce(JSON.stringify({
+        usernames: ['user1'],
+        vitepressConfig: { title: 'From docpress config', lang: 'fr' },
+      }))
+      .mockReturnValueOnce(JSON.stringify({ title: 'From vitepress config' }))
+
+    const result = globalOptsSchema.parse({
+      config: './config.json',
+      vitepressConfig: './vitepress.json',
+    })
+
+    expect(result.vitepressConfig).toEqual({ title: 'From vitepress config', lang: 'fr' })
+  })
+})
