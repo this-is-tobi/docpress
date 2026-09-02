@@ -63,6 +63,31 @@ describe('getVitepressConfig', () => {
     expect(result.themeConfig?.nav).toEqual(defaultNav)
   })
 
+  it('should pass a route-keyed sidebar through unchanged', () => {
+    const multiSidebar = { '/repo/': [{ text: 'Introduction', link: '/repo/introduction' }] }
+
+    const result = getVitepressConfig(multiSidebar, defaultNav)
+
+    expect(result.themeConfig?.sidebar).toEqual(multiSidebar)
+  })
+
+  it('should combine a route-keyed sidebar with route keys supplied in the vitepressConfig', () => {
+    const customConfig = {
+      themeConfig: { sidebar: { '/guide/': [{ text: 'Guide', link: '/guide/getting-started' }] } },
+    } as ReturnType<typeof defineConfig>
+
+    const result = getVitepressConfig(
+      { '/repo/': [{ text: 'Introduction', link: '/repo/introduction' }] },
+      defaultNav,
+      customConfig,
+    )
+
+    expect(result.themeConfig?.sidebar).toEqual({
+      '/guide/': [{ text: 'Guide', link: '/guide/getting-started' }],
+      '/repo/': [{ text: 'Introduction', link: '/repo/introduction' }],
+    })
+  })
+
   it('should retain default configuration for properties not in the vitepressConfig parameter', () => {
     const partialConfig = { lang: 'fr' }
     const result = getVitepressConfig(defaultSidebar, defaultNav, partialConfig)

@@ -27,6 +27,8 @@ describe('parseOptions', () => {
     expect(result).toEqual({
       branch: 'main',
       gitProvider: 'github',
+      sidebarMode: 'single',
+      sidebarCollapsed: true,
       forks: false,
       lastUpdated: false,
       reposFilter: ['repo1', 'repo2'],

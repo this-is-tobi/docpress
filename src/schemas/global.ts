@@ -9,6 +9,16 @@ import { LOG_LEVEL_NAMES, logLevelValue } from '../utils/logger.js'
 const providers = ['github', 'gitlab'] as const
 
 /**
+ * Supported sidebar shapes
+ */
+const sidebarModes = ['single', 'multi'] as const
+
+/**
+ * Accepted CLI values for the tri-state sidebar collapse setting
+ */
+const sidebarCollapsedValues = ['true', 'false', 'null'] as const
+
+/**
  * Allowed characters for a Git branch/ref name (must not start with "-")
  */
 const safeRefRegex = /^\w[\w./-]*$/
@@ -53,6 +63,12 @@ export const configSchema = z.object({
   lastUpdated: z.boolean()
     .default(false)
     .describe('Whether or not to inject each page\'s last Git commit date as Vitepress "lastUpdated" frontmatter.'),
+  sidebarMode: z.enum(sidebarModes)
+    .default('single')
+    .describe(`Shape of the generated sidebar. Values should be ${prettifyEnum(sidebarModes)}. "single" lists every repository in one sidebar, "multi" gives each repository its own sidebar.`),
+  sidebarCollapsed: z.union([z.boolean(), z.null()])
+    .default(true)
+    .describe('Collapse behaviour of generated sidebar groups. "true" collapses them by default, "false" expands them, "null" makes them non-collapsible.'),
   vitepressConfig: z.any()
     .optional()
     .describe('Path to the vitepress configuration file.'),
@@ -117,6 +133,13 @@ export const cliSchema = configSchema
     vitepressConfig: z.string()
       .optional()
       .describe(configSchema.shape.vitepressConfig.description || ''),
+    sidebarMode: z.enum(sidebarModes)
+      .optional()
+      .describe(configSchema.shape.sidebarMode.description || ''),
+    sidebarCollapsed: z.enum(sidebarCollapsedValues)
+      .transform(value => value === 'null' ? null : value === 'true')
+      .optional()
+      .describe(`${configSchema.shape.sidebarCollapsed.description} Values should be ${prettifyEnum(sidebarCollapsedValues)}.`),
   })
 
 export type Cli = z.infer<typeof cliSchema>
@@ -224,6 +247,8 @@ export const globalOptsSchema = cliSchema
         gitProvider: 'github',
         forks: false,
         lastUpdated: false,
+        sidebarMode: 'single',
+        sidebarCollapsed: true,
         ...configData,
         ...rest,
         ...(vitepressConfig

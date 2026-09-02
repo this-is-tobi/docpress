@@ -16,6 +16,7 @@ import {
   generateSidebarPages,
   generateSidebarProject,
   generateVitepressFiles,
+  mergeSidebars,
   moveSourcesLast,
   parseVitepressConfig,
   parseVitepressIndex,
@@ -71,6 +72,11 @@ vi.mock('./vitepress.js', () => ({
 // Virtual module consumed by the parseVitepressConfig test below,
 // declared here because vi.mock calls are hoisted to the top level anyway
 vi.mock('/mock/config.json', () => ({ config: { title: 'My Project' } }))
+
+// Stands in for the Vitepress config left behind by a previous username
+// iteration; tests assign `config` to drive the accumulation branch
+const previousConfigModule = vi.hoisted(() => ({ config: undefined as any }))
+vi.mock('/tmp/docpress/mock/.vitepress/config.js', () => previousConfigModule)
 
 const tempDir = resolve(__dirname, 'temp-test-dir')
 
@@ -984,6 +990,51 @@ features:
     expect(existsSync).toHaveBeenCalled()
     expect(readFile).toHaveBeenCalled()
   })
+
+  it('should build a route-keyed sidebar in multi mode', async () => {
+    await prepareDoc({ username: 'test-user', sidebarMode: 'multi' })
+
+    const [sidebar] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
+    expect(sidebar).toEqual({
+      '/repo1/': [{ text: 'Introduction', link: '/repo1/introduction' }],
+    })
+  })
+
+  it('should expand sidebar groups when sidebarCollapsed is false', async () => {
+    await prepareDoc({ username: 'test-user', sidebarCollapsed: false })
+
+    const [sidebar] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
+    expect((sidebar as any)[0]).toMatchObject({ text: 'Repo1', collapsed: false })
+  })
+
+  it('should drop the collapsed key when sidebarCollapsed is null', async () => {
+    await prepareDoc({ username: 'test-user', sidebarCollapsed: null })
+
+    const [sidebar] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
+    expect((sidebar as any)[0]).not.toHaveProperty('collapsed')
+  })
+
+  it('should merge a route-keyed sidebar left by a previous username', async () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    previousConfigModule.config = {
+      themeConfig: { sidebar: { '/previous-repo/': [{ text: 'Prev', link: '/previous-repo/prev' }] } },
+    }
+    vi.mocked(readFile).mockResolvedValue(Buffer.from(`
+layout: home
+hero:
+  name: Existing
+features: []
+`) as any)
+
+    await prepareDoc({ username: 'test-user', sidebarMode: 'multi' })
+
+    const [sidebar] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
+    expect(sidebar).toEqual({
+      '/previous-repo/': [{ text: 'Prev', link: '/previous-repo/prev' }],
+      '/repo1/': [{ text: 'Introduction', link: '/repo1/introduction' }],
+    })
+    previousConfigModule.config = undefined
+  })
 })
 
 describe('moveSourcesLast', () => {
@@ -1140,5 +1191,211 @@ describe('generateSidebarItems nested file paths', () => {
     generateSidebarItems(repository, tree)
 
     expect(renameSync).not.toHaveBeenCalled()
+  })
+})
+
+describe('sidebar collapse behaviour', () => {
+  const repository = {
+    name: 'test-repo',
+    docpress: { projectPath: '/path/to/test-repo' },
+  } as unknown as EnhancedRepository
+  const tree = { advanced: { $: ['setup.md'] } }
+
+  it('should collapse project groups by default', () => {
+    expect(generateSidebarProject('my-repo', [])).toEqual({
+      text: 'My repo',
+      collapsed: true,
+      items: [],
+    })
+  })
+
+  it('should expand project groups when collapsed is false', () => {
+    expect(generateSidebarProject('my-repo', [], false)).toEqual({
+      text: 'My repo',
+      collapsed: false,
+      items: [],
+    })
+  })
+
+  it('should omit the collapsed key on project groups when collapsed is null', () => {
+    const result = generateSidebarProject('my-repo', [], null)
+
+    expect(result).toEqual({ text: 'My repo', items: [] })
+    expect(result).not.toHaveProperty('collapsed')
+  })
+
+  it('should expand nested folder groups when collapsed is false', () => {
+    expect(generateSidebarItems(repository, tree, false)).toEqual([
+      {
+        text: 'Advanced',
+        collapsed: false,
+        items: [{ text: 'Setup', link: '/test-repo/advanced/setup' }],
+      },
+    ])
+  })
+
+  it('should omit the collapsed key on nested folder groups when collapsed is null', () => {
+    const [group] = generateSidebarItems(repository, tree, null)
+
+    expect(group).toEqual({
+      text: 'Advanced',
+      items: [{ text: 'Setup', link: '/test-repo/advanced/setup' }],
+    })
+    expect(group).not.toHaveProperty('collapsed')
+  })
+
+  it('should apply the collapse setting to deeply nested folder groups', () => {
+    const deepTree = { guide: { advanced: { $: ['setup.md'] } } }
+
+    expect(generateSidebarItems(repository, deepTree, false)).toEqual([
+      {
+        text: 'Guide',
+        collapsed: false,
+        items: [
+          {
+            text: 'Advanced',
+            collapsed: false,
+            items: [{ text: 'Setup', link: '/test-repo/guide/advanced/setup' }],
+          },
+        ],
+      },
+    ])
+  })
+})
+
+describe('transformDoc sidebar options', () => {
+  const repositories = [
+    {
+      name: 'my-repo',
+      description: 'Repo description',
+      html_url: 'https://example.com/repo',
+      owner: { login: 'user' },
+      docpress: { projectPath: '/mock/path', branch: 'main' },
+    },
+  ] as ReturnType<typeof getUserRepos>
+  const user = { name: 'John Doe', login: 'johndoe', bio: 'Developer' } as ReturnType<typeof getUserInfos>
+  const websiteInfos = { title: undefined, tagline: undefined }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(statSync).mockReturnValue({ isFile: () => true } as any)
+    vi.mocked(getMdFiles).mockReturnValue(['/path/to/01-readme.md', '/path/to/02-file1.md'])
+    vi.mocked(readdirSync).mockReturnValue(['01-readme.md', '02-file1.md'] as any)
+  })
+
+  it('should produce a flat array of project groups in single mode by default', () => {
+    const result = transformDoc(repositories, user, websiteInfos)
+
+    expect(Array.isArray(result.sidebar)).toBe(true)
+    expect(result.sidebar).toEqual([
+      {
+        text: 'My repo',
+        collapsed: true,
+        items: [
+          { text: 'Introduction', link: '/my-repo/introduction' },
+          { text: 'File1', link: '/my-repo/file1' },
+          { text: 'Sources', link: '/my-repo/sources' },
+        ],
+      },
+    ])
+  })
+
+  it('should key the sidebar by repository route in multi mode', () => {
+    const result = transformDoc(repositories, user, websiteInfos, { mode: 'multi' })
+
+    expect(result.sidebar).toEqual({
+      '/my-repo/': [
+        { text: 'Introduction', link: '/my-repo/introduction' },
+        { text: 'File1', link: '/my-repo/file1' },
+        { text: 'Sources', link: '/my-repo/sources' },
+      ],
+    })
+  })
+
+  it('should namespace multi mode sidebar keys with the repository route prefix', () => {
+    const namespaced = [{
+      ...repositories[0],
+      docpress: { ...repositories[0].docpress, routePrefix: 'alice/' },
+    }] as ReturnType<typeof getUserRepos>
+
+    const result = transformDoc(namespaced, user, websiteInfos, { mode: 'multi' })
+
+    expect(Object.keys(result.sidebar)).toEqual(['/alice/my-repo/'])
+  })
+
+  it('should give each repository its own key in multi mode', () => {
+    const twoRepos = [
+      repositories[0],
+      { ...repositories[0], name: 'other-repo' },
+    ] as ReturnType<typeof getUserRepos>
+
+    const result = transformDoc(twoRepos, user, websiteInfos, { mode: 'multi' })
+
+    expect(Object.keys(result.sidebar)).toEqual(['/my-repo/', '/other-repo/'])
+  })
+
+  it('should apply the collapse setting to project groups in single mode', () => {
+    const result = transformDoc(repositories, user, websiteInfos, { collapsed: false })
+
+    expect((result.sidebar as any)[0].collapsed).toBe(false)
+  })
+
+  it('should still build index features in multi mode', () => {
+    const result = transformDoc(repositories, user, websiteInfos, { mode: 'multi' })
+
+    expect(result.index.features).toEqual([
+      { title: 'My repo', details: 'Repo description', link: '/my-repo/introduction' },
+    ])
+  })
+})
+
+describe('mergeSidebars', () => {
+  it('should concatenate and sort two flat sidebars by group text', () => {
+    const previous = [{ text: 'Zeta', collapsed: true, items: [] }]
+    const current = [{ text: 'Alpha', collapsed: true, items: [] }]
+
+    expect(mergeSidebars(previous, current)).toEqual([
+      { text: 'Alpha', collapsed: true, items: [] },
+      { text: 'Zeta', collapsed: true, items: [] },
+    ])
+  })
+
+  it('should tolerate sidebar groups without a text property when sorting', () => {
+    const previous = [{ items: [] }] as any
+    const current = [{ text: 'Alpha', items: [] }] as any
+
+    expect(() => mergeSidebars(previous, current)).not.toThrow()
+  })
+
+  it('should merge two route-keyed sidebars and sort the keys', () => {
+    const previous = { '/zeta/': [{ text: 'Z', link: '/zeta/z' }] }
+    const current = { '/alpha/': [{ text: 'A', link: '/alpha/a' }] }
+
+    expect(Object.keys(mergeSidebars(previous, current))).toEqual(['/alpha/', '/zeta/'])
+  })
+
+  it('should let the current run win when both sidebars share a route key', () => {
+    const previous = { '/repo/': [{ text: 'Old', link: '/repo/old' }] }
+    const current = { '/repo/': [{ text: 'New', link: '/repo/new' }] }
+
+    expect(mergeSidebars(previous, current)).toEqual({
+      '/repo/': [{ text: 'New', link: '/repo/new' }],
+    })
+  })
+
+  it('should return the current sidebar when there is no previous one', () => {
+    const current = [{ text: 'Alpha', collapsed: true, items: [] }]
+
+    expect(mergeSidebars(undefined, current)).toEqual(current)
+  })
+
+  it('should file a flat sidebar under the root key when merging into a route-keyed one', () => {
+    const previous = { '/alpha/': [{ text: 'A', link: '/alpha/a' }] }
+    const current = [{ text: 'Zeta', collapsed: true, items: [] }]
+
+    expect(mergeSidebars(previous, current)).toEqual({
+      '/': [{ text: 'Zeta', collapsed: true, items: [] }],
+      '/alpha/': [{ text: 'A', link: '/alpha/a' }],
+    })
   })
 })
