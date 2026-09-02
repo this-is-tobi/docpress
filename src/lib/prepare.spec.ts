@@ -1185,6 +1185,14 @@ describe('generateSidebarItems nested file paths', () => {
     )
   })
 
+  it('should ignore a file list that is not an array', () => {
+    expect(generateSidebarItems(repository, { $: 'not-an-array' })).toEqual([])
+  })
+
+  it('should ignore tree leaves that are neither files nor folders', () => {
+    expect(generateSidebarItems(repository, { stray: 'value' })).toEqual([])
+  })
+
   it('should leave already-normalised nested files untouched', () => {
     const tree = { advanced: { $: ['setup.md'] } }
 

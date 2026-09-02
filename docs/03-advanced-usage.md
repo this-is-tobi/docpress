@@ -20,6 +20,8 @@ Options:
   --log-level <string>                 Verbosity of the CLI output. Values should be "error", "warn", "info", "trace" or "debug". Defaults to "info", or to the LOG_LEVEL environment variable when set.
   -p, --extra-header-pages <string>    List of comma separated additional files or directories to process Vitepress header pages.
   -r, --repos-filter <string>          List of comma separated repositories to retrieve from Git provider. Default to all user's public repositories.
+  --sidebar-collapsed <string>         Collapse behaviour of generated sidebar groups. "true" collapses them by default, "false" expands them, "null" makes them non-collapsible.
+  --sidebar-mode <string>              Shape of the generated sidebar. Values should be "single" or "multi". "single" lists every repository in one sidebar, "multi" gives each repository its own sidebar.
   -t, --extra-theme <string>           List of comma separated additional files or directories to use as Vitepress theme.
   -T, --token <string>                 Git provider token used to collect data.
   -U, --usernames <string>             List of comma separated Git provider usernames used to collect data.
@@ -205,6 +207,56 @@ This page acts as a dynamic portfolio of contributions, making it an excellent r
 
 If this option is used together with an extra theme (`-t` / `--extra-theme`), you can override the default fork page presentation by providing your own `ForkPage.vue` layout in your custom theme. Docpress registers the theme files first, so a `fork-page` layout supplied through `--extra-theme` takes precedence over the built-in one.
 
+## Sidebar Generation
+
+Docpress builds the Vitepress sidebar from the documentation tree it downloads: one entry per repository, with subfolders of `docs/` turned into nested groups. Two options control the result.
+
+### Sidebar Mode
+
+The `--sidebar-mode` option (or `sidebarMode` in the configuration file) chooses the sidebar shape:
+
+- `single` (default): every repository is listed in a single sidebar, shown on every page of the site.
+- `multi`: each repository gets [its own sidebar](https://vitepress.dev/reference/default-theme-sidebar#multiple-sidebars), keyed by its route, so a project page only lists that project's pages.
+
+In `multi` mode the generated keys follow the site routes, which means they include the username prefix when collecting from several users:
+
+```json
+{
+  "/repo1/": [{ "text": "Introduction", "link": "/repo1/introduction" }],
+  "/repo2/": [{ "text": "Introduction", "link": "/repo2/introduction" }]
+}
+```
+
+Vitepress selects the sidebar whose key is the longest matching prefix of the current route. Pages that fall outside every key — the home page, the forks page and extra header pages — are rendered without a sidebar.
+
+### Sidebar Collapse
+
+The `--sidebar-collapsed` option (or `sidebarCollapsed` in the configuration file) exposes the three Vitepress collapse states for generated groups:
+
+| Value | Result |
+| --- | --- |
+| `true` (default) | Groups are collapsible and collapsed on load. |
+| `false` | Groups are collapsible and expanded on load. |
+| `null` | Groups are plain sections and cannot be collapsed. |
+
+The configuration file takes the JSON values `true`, `false` and `null`. The CLI takes them as strings, for example `--sidebar-collapsed null`.
+
+### Combining With A Custom Sidebar
+
+A sidebar supplied through the Vitepress configuration file is combined with the generated one when both use the route-keyed form, which lets you add hand-written sections alongside generated repositories:
+
+```json
+{
+  "themeConfig": {
+    "sidebar": {
+      "/guide/": [{ "text": "Getting started", "link": "/guide/getting-started" }]
+    }
+  }
+}
+```
+
+Used with `--sidebar-mode multi`, the site keeps the `/guide/` sidebar and gains one key per repository. A sidebar supplied as a flat array is replaced by the generated one.
+
 ## Docpress Configuration
 
 Docpress can be configured with an external JSON configuration file specified by the `-C` or `--config` option. This file allows you to set Docpress parameters to automate and customize the documentation fetching and generation process. Key options that can be configured include:
@@ -219,6 +271,8 @@ Docpress can be configured with an external JSON configuration file specified by
 - `extraPublicContent`: Additional content for the Vitepress public folder (equivalent to `-c`).
 - `extraTheme`: Files or folders to customize the Vitepress theme (equivalent to `-t`).
 - `forks`: Whether or not to create the forks page documentation (equivalent to `-f`).
+- `sidebarMode`: Shape of the generated sidebar, `single` or `multi` (equivalent to `--sidebar-mode`). See [Sidebar Generation](#sidebar-generation).
+- `sidebarCollapsed`: Collapse behaviour of generated sidebar groups, `true`, `false` or `null` (equivalent to `--sidebar-collapsed`).
 - `vitepressConfig`: Inline Vitepress configuration object merged into the generated site config.
 
 Example JSON configuration:
@@ -232,6 +286,8 @@ Example JSON configuration:
   "extraPublicContent": ["./extras-public", "favicon.ico", "logo.png"],
   "extraTheme": ["./extras-theme/styles", "./extras-theme/components", "./more.css"],
   "forks": false,
+  "sidebarMode": "multi",
+  "sidebarCollapsed": false,
   "vitepressConfig": {
     "title": "My Project Documentation",
     "description": "A site generated by Docpress",
