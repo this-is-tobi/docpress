@@ -196,7 +196,8 @@ function validateFinalConfig(mergedConfig: any) {
 
 /**
  * Resolves the API token, with precedence: explicit token > DOCPRESS_TOKEN >
- * provider-specific env var (GITHUB_TOKEN / GITLAB_TOKEN)
+ * provider-specific env var (GITHUB_TOKEN / GITLAB_TOKEN). Empty values count as
+ * unset at every step
  *
  * @param token - Token explicitly provided via CLI flag or config file
  * @param gitProvider - Git provider used to pick the provider-specific env var
@@ -208,7 +209,9 @@ function resolveToken(token: string | undefined, gitProvider: string | undefined
   }
   /* eslint-disable dot-notation */
   const providerToken = gitProvider === 'gitlab' ? process.env['GITLAB_TOKEN'] : process.env['GITHUB_TOKEN']
-  return process.env['DOCPRESS_TOKEN'] ?? providerToken
+  // Empty values are treated as unset: a CI secret that did not resolve arrives as
+  // an empty string, which must not shadow the next source or pass as a token
+  return process.env['DOCPRESS_TOKEN'] || providerToken || undefined
   /* eslint-enable dot-notation */
 }
 
