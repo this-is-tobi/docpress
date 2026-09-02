@@ -274,7 +274,13 @@ export function generateSidebarItems(repository: EnhancedRepository, obj: any): 
       return [{
         text: prettify(key, { mode: 'capitalize', replaceDash: true }),
         collapsed: true,
-        items: generateSidebarItems({ ...repository, name: `${repository.name}/${key}` }, value),
+        items: generateSidebarItems({
+          ...repository,
+          name: `${repository.name}/${key}`,
+          // Descend into the subfolder so file renames target the nested file and
+          // not a same-named file at the repository root
+          docpress: { ...repository.docpress, projectPath: resolve(repository.docpress.projectPath, key) },
+        }, value),
       } as SidebarProject]
     }
 
