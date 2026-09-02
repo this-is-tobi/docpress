@@ -131,6 +131,13 @@ describe('main', () => {
     expect(prepareDoc).toHaveBeenCalledWith(expect.objectContaining({ lastUpdated: true }))
   })
 
+  it('should forward the sidebar options to prepareDoc', async () => {
+    await main({ ...mockOpts, sidebarMode: 'multi', sidebarCollapsed: null })
+    expect(prepareDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ sidebarMode: 'multi', sidebarCollapsed: null }),
+    )
+  })
+
   it('should log a success summary once every username succeeds', async () => {
     await main(mockOpts)
     expect(log).toHaveBeenCalledWith(
@@ -218,5 +225,13 @@ describe('prepareOpts', () => {
 
     expect(extraThemeOption?.description).toBe(configSchema.shape.extraTheme.description)
     expect(extraHeaderPagesOption?.description).toBe(configSchema.shape.extraHeaderPages.description)
+  })
+
+  it('should expose the sidebar options', () => {
+    const sidebarModeOption = prepareOpts.find(opt => opt.flags.includes('--sidebar-mode'))
+    const sidebarCollapsedOption = prepareOpts.find(opt => opt.flags.includes('--sidebar-collapsed'))
+
+    expect(sidebarModeOption?.description).toBe(configSchema.shape.sidebarMode.description)
+    expect(sidebarCollapsedOption?.description).toBe(configSchema.shape.sidebarCollapsed.description)
   })
 })

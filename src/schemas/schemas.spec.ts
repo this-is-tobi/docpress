@@ -12,6 +12,8 @@ const defaultConfig = {
   gitProvider: 'github',
   forks: false,
   lastUpdated: false,
+  sidebarMode: 'single',
+  sidebarCollapsed: true,
 }
 
 describe('globalOptsSchema', () => {
@@ -250,6 +252,8 @@ describe('configSchema', () => {
       websiteTitle: 'Awesome website',
       websiteTagline: 'Awesome tagline',
       vitepressConfig: './vitepress.config.json',
+      sidebarMode: 'single',
+      sidebarCollapsed: true,
     }
     const { token: _token, ...dataWithoutToken } = validCombinedData
 
@@ -377,5 +381,67 @@ describe('cliSchema', () => {
     })
 
     expect(() => globalOptsSchema.parse(invalidData)).toThrow(/Cannot read config file/)
+  })
+})
+
+describe('sidebar options', () => {
+  it('should default to a single sidebar with collapsed groups', () => {
+    const result = globalOptsSchema.parse({ usernames: 'user1' })
+
+    expect(result.sidebarMode).toBe('single')
+    expect(result.sidebarCollapsed).toBe(true)
+  })
+
+  it('should read the sidebar mode from the config file', () => {
+    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+      usernames: ['user1'],
+      sidebarMode: 'multi',
+    }))
+
+    const result = globalOptsSchema.parse({ config: './config.json' })
+
+    expect(result.sidebarMode).toBe('multi')
+  })
+
+  it('should read a null sidebarCollapsed from the config file to disable collapsing', () => {
+    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+      usernames: ['user1'],
+      sidebarCollapsed: null,
+    }))
+
+    const result = globalOptsSchema.parse({ config: './config.json' })
+
+    expect(result.sidebarCollapsed).toBeNull()
+  })
+
+  it('should let the CLI sidebar mode override the config file', () => {
+    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+      usernames: ['user1'],
+      sidebarMode: 'multi',
+    }))
+
+    const result = globalOptsSchema.parse({ config: './config.json', sidebarMode: 'single' })
+
+    expect(result.sidebarMode).toBe('single')
+  })
+
+  it('should reject an unknown sidebar mode', () => {
+    expect(() => configSchema.partial().parse({ sidebarMode: 'nested' })).toThrow()
+  })
+
+  it('should coerce the CLI sidebarCollapsed "false" string to a boolean', () => {
+    const result = cliSchema.parse({ usernames: 'user1', sidebarCollapsed: 'false' })
+
+    expect(result.sidebarCollapsed).toBe(false)
+  })
+
+  it('should coerce the CLI sidebarCollapsed "null" string to null', () => {
+    const result = cliSchema.parse({ usernames: 'user1', sidebarCollapsed: 'null' })
+
+    expect(result.sidebarCollapsed).toBeNull()
+  })
+
+  it('should reject an unknown CLI sidebarCollapsed value', () => {
+    expect(() => cliSchema.parse({ usernames: 'user1', sidebarCollapsed: 'maybe' })).toThrow()
   })
 })

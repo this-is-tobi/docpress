@@ -2,7 +2,7 @@ import { basename, dirname, parse, resolve } from 'node:path'
 import { appendFileSync, cpSync, existsSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import YAML from 'yaml'
-import type { defineConfig } from 'vitepress'
+import type { DefaultTheme, defineConfig } from 'vitepress'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import { generateFile } from '../utils/templates.js'
 import type { GlobalOpts } from '../schemas/global.js'
@@ -27,8 +27,41 @@ export interface Page {
  */
 export interface SidebarProject {
   text: string
-  collapsed: boolean
+  collapsed?: boolean
   items: (Page | SidebarProject)[]
+}
+
+/**
+ * Collapse behaviour applied to generated sidebar groups, mirroring Vitepress
+ * semantics: `true` collapses groups by default, `false` expands them and
+ * `null` makes them plain, non-collapsible sections
+ */
+export type SidebarCollapsed = boolean | null
+
+/**
+ * Shape of the generated sidebar: `single` emits one flat list holding every
+ * repository, `multi` emits one sidebar per repository keyed by its route so
+ * each project only shows its own pages
+ */
+export type SidebarMode = 'single' | 'multi'
+
+/**
+ * Options driving sidebar generation
+ */
+export interface SidebarOpts {
+  mode?: SidebarMode
+  collapsed?: SidebarCollapsed
+}
+
+/**
+ * Builds the Vitepress `collapsed` property for a sidebar group, omitting it
+ * entirely when groups should not be collapsible
+ *
+ * @param collapsed - Configured collapse behaviour
+ * @returns An object holding the `collapsed` key, or an empty object
+ */
+function collapsedProp(collapsed: SidebarCollapsed) {
+  return collapsed === null ? {} : { collapsed }
 }
 
 /**
@@ -64,12 +97,14 @@ export interface Index {
  * @param options.forks - Flag to include forked repositories
  * @param options.gitProvider - Git provider used to retrieve data
  * @param options.lastUpdated - Flag to display each page's last Git commit date, computed by the fetch step
+ * @param options.sidebarMode - Shape of the generated sidebar, one flat list or one sidebar per repository
+ * @param options.sidebarCollapsed - Collapse behaviour applied to generated sidebar groups
  * @param options.token - Git provider token for API access
  * @param options.username - Git provider username to fetch repositories for
  * @param options.websiteTitle - Custom title for the documentation website
  * @param options.websiteTagline - Custom tagline for the documentation website
  */
-export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
+export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, sidebarMode, sidebarCollapsed, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
   // The forks page relies on matching contributors by login, which the GitLab API does not expose
   const forksEnabled = forks && gitProvider !== 'gitlab'
   if (forks && !forksEnabled) {
@@ -90,17 +125,14 @@ export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTh
     }, { internals: [], forks: [] })
 
   const websiteInfos = { title: websiteTitle, tagline: websiteTagline }
-  const { index, sidebar } = transformDoc(repositories.internals, user, websiteInfos)
+  const { index, sidebar } = transformDoc(repositories.internals, user, websiteInfos, { mode: sidebarMode, collapsed: sidebarCollapsed })
 
   let finalSB
   let finalIndex
   if (existsSync(INDEX_FILE) && existsSync(VITEPRESS_CONFIG)) {
     const actualConfig = await parseVitepressConfig(VITEPRESS_CONFIG)
     const actualIndex = await parseVitepressIndex(INDEX_FILE)
-    finalSB = [
-      ...(actualConfig.themeConfig?.sidebar as SidebarProject[] ?? []),
-      ...sidebar,
-    ].sort((a, b) => a.text.localeCompare(b.text))
+    finalSB = mergeSidebars(actualConfig.themeConfig?.sidebar, sidebar)
     finalIndex = {
       ...index,
       features: [
@@ -213,12 +245,13 @@ export function generateFeatures(repoName: string, description: string, features
  *
  * @param repoName - Name of the repository
  * @param sidebarPages - Array of sidebar pages to include in this project
+ * @param collapsed - Collapse behaviour applied to the generated group
  * @returns A sidebar project configuration object
  */
-export function generateSidebarProject(repoName: string, sidebarPages: (SidebarProject | Page)[]) {
+export function generateSidebarProject(repoName: string, sidebarPages: (SidebarProject | Page)[], collapsed: SidebarCollapsed = true) {
   return {
     text: prettify(repoName, { mode: 'capitalize', replaceDash: true }),
-    collapsed: true,
+    ...collapsedProp(collapsed),
     items: sidebarPages,
   }
 }
@@ -245,9 +278,10 @@ export function generateSidebarPages(repoName: string, fileName: string, sidebar
  *
  * @param repository - Repository information
  * @param obj - Object representing the file tree structure
+ * @param collapsed - Collapse behaviour applied to generated folder groups
  * @returns Array of sidebar items (projects and pages)
  */
-export function generateSidebarItems(repository: EnhancedRepository, obj: any): (SidebarProject | Page)[] {
+export function generateSidebarItems(repository: EnhancedRepository, obj: any, collapsed: SidebarCollapsed = true): (SidebarProject | Page)[] {
   return Object.entries(obj).flatMap(([key, value]): (SidebarProject | Page)[] => {
     if (key === '$') {
       if (Array.isArray(value)) {
@@ -273,14 +307,14 @@ export function generateSidebarItems(repository: EnhancedRepository, obj: any): 
     } else if (typeof value === 'object') {
       return [{
         text: prettify(key, { mode: 'capitalize', replaceDash: true }),
-        collapsed: true,
+        ...collapsedProp(collapsed),
         items: generateSidebarItems({
           ...repository,
           name: `${repository.name}/${key}`,
           // Descend into the subfolder so file renames target the nested file and
           // not a same-named file at the repository root
           docpress: { ...repository.docpress, projectPath: resolve(repository.docpress.projectPath, key) },
-        }, value),
+        }, value, collapsed),
       } as SidebarProject]
     }
 
@@ -350,16 +384,58 @@ export function moveSourcesLast(arr: (SidebarProject | Page)[]) {
 }
 
 /**
+ * Merges a previously generated sidebar with the one built by the current run,
+ * used to accumulate repositories across usernames
+ *
+ * Flat sidebars are concatenated and sorted by group text, route-keyed sidebars
+ * are merged by key with the current run winning. When the two shapes disagree,
+ * the flat side is filed under the root key so nothing is silently dropped
+ *
+ * @param previous - Sidebar read back from the config written by a previous run
+ * @param current - Sidebar generated by the current run
+ * @returns The merged sidebar
+ */
+export function mergeSidebars(previous: DefaultTheme.Sidebar | undefined, current: DefaultTheme.Sidebar): DefaultTheme.Sidebar {
+  if (!previous) {
+    return current
+  }
+  if (Array.isArray(previous) && Array.isArray(current)) {
+    return [...previous, ...current]
+      .toSorted((a, b) => (a.text ?? '').localeCompare(b.text ?? ''))
+  }
+  const toMulti = (sidebar: DefaultTheme.Sidebar): DefaultTheme.SidebarMulti =>
+    Array.isArray(sidebar) ? { '/': sidebar } : sidebar
+
+  return sortSidebarRoutes({ ...toMulti(previous), ...toMulti(current) })
+}
+
+/**
+ * Sorts the route keys of a multi sidebar so generated configurations stay
+ * stable between runs regardless of repository processing order
+ *
+ * @param sidebarByRoute - Multi sidebar keyed by repository route
+ * @returns The same sidebar with alphabetically ordered route keys
+ */
+export function sortSidebarRoutes(sidebarByRoute: DefaultTheme.SidebarMulti): DefaultTheme.SidebarMulti {
+  return Object.fromEntries(
+    Object.entries(sidebarByRoute).toSorted(([routeA], [routeB]) => routeA.localeCompare(routeB)),
+  )
+}
+
+/**
  * Transforms repository data into documentation structure
  *
  * @param repositories - Array of enhanced repositories
  * @param user - User information retrieved from GitHub
  * @param websiteInfos - Custom title and tagline information
+ * @param sidebarOpts - Options driving sidebar shape and collapse behaviour
  * @returns Object containing sidebar and index page configurations
  */
-export function transformDoc(repositories: EnhancedRepository[], user: ReturnType<typeof getUserInfos>, websiteInfos: WebsiteInfos) {
+export function transformDoc(repositories: EnhancedRepository[], user: ReturnType<typeof getUserInfos>, websiteInfos: WebsiteInfos, sidebarOpts: SidebarOpts = {}) {
+  const { mode = 'single', collapsed = true } = sidebarOpts
   const features: Feature[] = []
   const sidebar: SidebarProject[] = []
+  const sidebarByRoute: DefaultTheme.SidebarMulti = {}
 
   for (const repository of repositories) {
     log(`   Replace urls for repository '${repository.name}'.`, 'info')
@@ -400,16 +476,24 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
     }
 
     const projectTree = buildTree(projectFiles)
-    const sidebarItems = moveSourcesLast(generateSidebarItems(repository, projectTree))
+    const sidebarItems = moveSourcesLast(generateSidebarItems(repository, projectTree, collapsed))
 
-    sidebar.push(generateSidebarProject(prettify(repository.name, { removeDot: true }), sidebarItems))
+    if (mode === 'multi') {
+      // Vitepress picks the sidebar whose key is the longest prefix of the current
+      // route, so keying on the repository route scopes it to that project alone
+      sidebarByRoute[`/${repository.docpress.routePrefix ?? ''}${prettify(repository.name, { removeDot: true })}/`] = sidebarItems
+    } else {
+      sidebar.push(generateSidebarProject(prettify(repository.name, { removeDot: true }), sidebarItems, collapsed))
+    }
     features.push(...generateFeatures(prettify(repository.name, { removeDot: true }), repository.description || '', undefined, repository.docpress.routePrefix ?? ''))
   }
 
   log(`   Generate index content.`, 'info')
   const index = generateIndex(features.toSorted((a, b) => a.title.localeCompare(b.title)), user, websiteInfos)
   return {
-    sidebar: sidebar.toSorted((a, b) => a.text.localeCompare(b.text)),
+    sidebar: mode === 'multi'
+      ? sortSidebarRoutes(sidebarByRoute)
+      : sidebar.toSorted((a, b) => a.text.localeCompare(b.text)),
     index,
   }
 }

@@ -22,6 +22,8 @@ export const prepareOpts = [
   createOption('-f, --forks', configSchema.shape.forks.description),
   createOption('-p, --extra-header-pages <string>', configSchema.shape.extraHeaderPages.description),
   createOption('-t, --extra-theme <string>', configSchema.shape.extraTheme.description),
+  createOption('--sidebar-mode <string>', configSchema.shape.sidebarMode.description),
+  createOption('--sidebar-collapsed <string>', configSchema.shape.sidebarCollapsed.description),
   createOption('-v, --vitepress-config <string>', configSchema.shape.vitepressConfig.description),
   createOption('--website-title <string>', configSchema.shape.websiteTitle.description),
   createOption('--website-tagline <string>', configSchema.shape.websiteTagline.description),
@@ -43,7 +45,7 @@ export const prepareCmd = addOptions(createCommand(cmdName), [...prepareOpts, ..
  * @param opts - Validated prepare options
  */
 export async function main(opts: PrepareOpts) {
-  const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, token, usernames, websiteTitle, websiteTagline } = opts
+  const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, sidebarMode, sidebarCollapsed, token, usernames, websiteTitle, websiteTagline } = opts
   log(`\n-> Start transform files to prepare Vitepress build.`, 'info')
   const start = Date.now()
 
@@ -51,7 +53,7 @@ export async function main(opts: PrepareOpts) {
   const failedUsers: string[] = []
   for (const username of usernames) {
     try {
-      await prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, token, username, websiteTitle, websiteTagline })
+      await prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, sidebarMode, sidebarCollapsed, token, username, websiteTitle, websiteTagline })
     } catch (error) {
       failedUsers.push(username)
       log(`   Failed to prepare documentation for '${username}': ${formatError(error)}`, 'error')
