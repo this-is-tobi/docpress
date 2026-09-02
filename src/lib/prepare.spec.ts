@@ -9,6 +9,7 @@ import {
   addForkPage,
   addSources,
   buildTree,
+  findHiddenSidebarPaths,
   flattenTree,
   generateFeatures,
   generateIndex,
@@ -27,6 +28,7 @@ import {
 import type { EnhancedRepository } from './fetch.js'
 import type { getInfos } from './git.js'
 import { getVitepressConfig } from './vitepress.js'
+import { log } from '../utils/logger.js'
 
 vi.mock('node:fs')
 vi.mock('node:fs/promises')
@@ -67,6 +69,10 @@ vi.mock('./git.js', async importOriginal => ({
 
 vi.mock('./vitepress.js', () => ({
   getVitepressConfig: vi.fn(() => ({ themeConfig: { sidebar: [] } })),
+}))
+vi.mock('../utils/logger.js', async importOriginal => ({
+  ...(await importOriginal<typeof import('../utils/logger.js')>()),
+  log: vi.fn(),
 }))
 
 // Virtual module consumed by the parseVitepressConfig test below,
@@ -501,6 +507,18 @@ describe('parseVitepressConfig', () => {
   it('should parse Vitepress configuration from JSON file', async () => {
     const config = await parseVitepressConfig('/mock/config.json')
     expect(config).toEqual({ title: 'My Project' })
+  })
+})
+
+describe('parseVitepressConfig failures', () => {
+  it('should fall back to an empty config when the file cannot be loaded', async () => {
+    const config = await parseVitepressConfig('/definitely/missing-config.js')
+
+    expect(config).toEqual({})
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining('Unable to load existing Vitepress config'),
+      'warn',
+    )
   })
 })
 
@@ -991,6 +1009,26 @@ features:
     expect(readFile).toHaveBeenCalled()
   })
 
+  it('should warn and skip the forks page on the gitlab provider', async () => {
+    await prepareDoc({ username: 'test-user', forks: true, gitProvider: 'gitlab' })
+
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining(`not supported with the 'gitlab' provider`),
+      'warn',
+    )
+    const [, nav] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
+    expect(nav).toEqual([])
+  })
+
+  it('should not duplicate the forks entry supplied as an extra header page', async () => {
+    vi.mocked(getMdFiles).mockReturnValue(['/path/to/forks.md'])
+
+    await prepareDoc({ username: 'test-user', forks: true, extraHeaderPages: ['/path/to/forks.md'] })
+
+    const [, nav] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
+    expect(nav).toEqual([{ text: 'Forks', link: '/forks' }])
+  })
+
   it('should build a route-keyed sidebar in multi mode', async () => {
     await prepareDoc({ username: 'test-user', sidebarMode: 'multi' })
 
@@ -1368,11 +1406,21 @@ describe('mergeSidebars', () => {
     ])
   })
 
-  it('should tolerate sidebar groups without a text property when sorting', () => {
-    const previous = [{ items: [] }] as any
-    const current = [{ text: 'Alpha', items: [] }] as any
+  it('should sort sidebar groups missing a text property ahead of named ones', () => {
+    const previous = [{ text: 'Alpha', items: [] }] as any
+    const current = [{ items: [] }] as any
 
-    expect(() => mergeSidebars(previous, current)).not.toThrow()
+    expect(mergeSidebars(previous, current)).toEqual([
+      { items: [] },
+      { text: 'Alpha', items: [] },
+    ])
+  })
+
+  it('should sort groups that both lack a text property without throwing', () => {
+    const previous = [{ items: [] }] as any
+    const current = [{ items: [] }] as any
+
+    expect(mergeSidebars(previous, current)).toEqual([{ items: [] }, { items: [] }])
   })
 
   it('should merge two route-keyed sidebars and sort the keys', () => {
@@ -1405,5 +1453,200 @@ describe('mergeSidebars', () => {
       '/': [{ text: 'Zeta', collapsed: true, items: [] }],
       '/alpha/': [{ text: 'A', link: '/alpha/a' }],
     })
+  })
+})
+
+describe('findHiddenSidebarPaths', () => {
+  // Builds A > B > C ... > Page, one group per name
+  const nest = (names: string[]): any[] => names.length
+    ? [{ text: names[0], collapsed: true, items: nest(names.slice(1)) }]
+    : [{ text: 'Page', link: '/page' }]
+
+  it('should report a group whose children Vitepress will not render', () => {
+    // Single mode: the repository group sits at depth 0, so its items start at depth 1
+    expect(findHiddenSidebarPaths(nest(['A', 'B', 'C', 'D', 'E']), 1)).toEqual(['A/B/C/D/E'])
+  })
+
+  it('should allow one more level when items start at the root depth', () => {
+    // Multi mode has no repository wrapper, so the same tree fits
+    expect(findHiddenSidebarPaths(nest(['A', 'B', 'C', 'D', 'E']), 0)).toEqual([])
+  })
+
+  it('should report nothing for a shallow tree', () => {
+    expect(findHiddenSidebarPaths(nest(['A', 'B']), 1)).toEqual([])
+  })
+
+  it('should ignore groups that have no children', () => {
+    expect(findHiddenSidebarPaths([{ text: 'Empty', collapsed: true, items: [] }], 9)).toEqual([])
+  })
+
+  it('should report every offending branch', () => {
+    const items = [
+      ...nest(['A', 'B', 'C', 'D', 'E']),
+      ...nest(['X', 'Y', 'Z', 'W', 'V']),
+    ]
+
+    expect(findHiddenSidebarPaths(items, 1)).toEqual(['A/B/C/D/E', 'X/Y/Z/W/V'])
+  })
+})
+
+describe('transformDoc sidebar depth warning', () => {
+  const repositories = [
+    {
+      name: 'my-repo',
+      description: 'Repo description',
+      html_url: 'https://example.com/repo',
+      owner: { login: 'user' },
+      docpress: { projectPath: '/mock/path', branch: 'main' },
+    },
+  ] as ReturnType<typeof getUserRepos>
+  const user = { name: 'John Doe', login: 'johndoe', bio: 'Developer' } as ReturnType<typeof getUserInfos>
+  const websiteInfos = { title: undefined, tagline: undefined }
+  const deepFile = 'a/b/c/d/e/deep.md'
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(statSync).mockReturnValue({ isFile: () => true } as any)
+    vi.mocked(getMdFiles).mockReturnValue([`/path/to/${deepFile}`])
+    vi.mocked(readdirSync).mockReturnValue([deepFile] as any)
+  })
+
+  it('should warn when a repository nests deeper than Vitepress renders', () => {
+    transformDoc(repositories, user, websiteInfos)
+
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining(`'my-repo'`),
+      'warn',
+    )
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining('A/B/C/D/E'),
+      'warn',
+    )
+  })
+
+  it('should not warn for the same tree in multi mode', () => {
+    transformDoc(repositories, user, websiteInfos, { mode: 'multi' })
+
+    expect(log).not.toHaveBeenCalledWith(
+      expect.stringContaining('will not appear'),
+      'warn',
+    )
+  })
+})
+
+describe('generateIndex fallbacks', () => {
+  const features = [{ title: 'Feature 1', details: 'Details 1', link: '/feature1' }]
+  const websiteInfos = { title: undefined, tagline: undefined }
+
+  it('should fall back to the login when the user has no name', () => {
+    const user = { login: 'johndoe', bio: 'Coder' } as ReturnType<typeof getUserInfos>
+
+    expect(generateIndex(features, user, websiteInfos).hero).toEqual({
+      name: 'johndoe\'s projects',
+      tagline: 'Coder',
+    })
+  })
+
+  it('should fall back to a default tagline when the user has no bio', () => {
+    const user = { name: 'John Doe', login: 'johndoe' } as ReturnType<typeof getUserInfos>
+
+    expect(generateIndex(features, user, websiteInfos).hero).toEqual({
+      name: 'John Doe\'s projects',
+      tagline: 'Robots are everywhere 🤖',
+    })
+  })
+})
+
+describe('accumulating generators', () => {
+  it('should append to an existing feature list', () => {
+    const existing = [{ title: 'First', details: 'Details', link: '/first' }]
+
+    expect(generateFeatures('my-repo', 'Description', existing)).toEqual([
+      ...existing,
+      { title: 'My repo', details: 'Description', link: '/my-repo/introduction' },
+    ])
+  })
+
+  it('should append to an existing sidebar page list', () => {
+    const existing = [{ text: 'First', link: '/my-repo/first' }]
+
+    expect(generateSidebarPages('my-repo', 'second', existing)).toEqual([
+      ...existing,
+      { text: 'Second', link: '/my-repo/second' },
+    ])
+  })
+})
+
+describe('addContent input shapes', () => {
+  it('should accept a single path and work without a callback', () => {
+    vi.clearAllMocks()
+
+    addContent('/path/to/file1.md', '/mock/dir')
+
+    expect(cpSync).toHaveBeenCalled()
+  })
+})
+
+describe('processForks contribution counting', () => {
+  it('should drop repositories the user has not contributed to', async () => {
+    vi.clearAllMocks()
+
+    // getContributors is mocked to report contributions for 'test-user' only
+    await processForks([{ name: 'fork-repo' }] as unknown as EnhancedRepository[], 'someone-else')
+
+    const written = vi.mocked(writeFileSync).mock.calls.at(-1)?.[1] as string
+    expect(written).not.toContain('fork-repo')
+  })
+})
+
+describe('repository edge cases', () => {
+  const user = { name: 'John Doe', login: 'johndoe', bio: 'Developer' } as ReturnType<typeof getUserInfos>
+  const websiteInfos = { title: undefined, tagline: undefined }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(statSync).mockReturnValue({ isFile: () => true } as any)
+    vi.mocked(getMdFiles).mockReturnValue(['/path/to/readme.md'])
+    vi.mocked(readdirSync).mockReturnValue(['readme.md'] as any)
+  })
+
+  it('should fall back to an empty description when the repository has none', () => {
+    const repositories = [
+      {
+        name: 'my-repo',
+        description: null,
+        html_url: 'https://example.com/repo',
+        owner: { login: 'user' },
+        docpress: { projectPath: '/mock/path', branch: 'main' },
+      },
+    ] as unknown as ReturnType<typeof getUserRepos>
+
+    const result = transformDoc(repositories, user, websiteInfos)
+
+    expect(result.index.features).toEqual([
+      { title: 'My repo', details: '', link: '/my-repo/introduction' },
+    ])
+  })
+
+  it('should skip a non-fork repository that has no documentation to include', async () => {
+    vi.mocked(getUserInfos).mockReturnValue(user)
+    vi.mocked(getUserRepos).mockReturnValue([
+      {
+        name: 'empty-repo',
+        description: 'No docs here',
+        html_url: 'https://github.com/test-user/empty-repo',
+        owner: { login: 'test-user' },
+        clone_url: 'https://github.com/test-user/empty-repo.git',
+        private: false,
+        fork: false,
+        docpress: { projectPath: '/tmp/path', branch: 'main', filtered: false, includes: [] },
+      },
+    ] as ReturnType<typeof getUserRepos>)
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    await prepareDoc({ username: 'test-user' })
+
+    const [sidebar] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
+    expect(sidebar).toEqual([])
   })
 })

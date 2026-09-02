@@ -229,6 +229,23 @@ In `multi` mode the generated keys follow the site routes, which means they incl
 
 Vitepress selects the sidebar whose key is the longest matching prefix of the current route. Pages that fall outside every key — the home page, the forks page and extra header pages — are rendered without a sidebar.
 
+### Nesting Depth
+
+Vitepress renders six levels of sidebar items and silently drops anything deeper. Because `single` mode wraps every repository in its own group, it spends one level on that wrapper:
+
+| Mode | Nested `docs/` subfolders that still render |
+| --- | --- |
+| `single` | up to 4 |
+| `multi` | up to 5 |
+
+Docpress inspects the generated sidebar and warns when a repository nests deeper than Vitepress will display, naming the groups whose pages will be missing:
+
+```txt
+   Sidebar for repository 'my-repo' nests deeper than Vitepress renders, pages under 'A/B/C/D/E' will not appear in the sidebar.
+```
+
+The pages are still built and remain reachable by URL, only their sidebar entries are dropped. Flattening the folder tree, or switching to `multi` mode to reclaim a level, restores them.
+
 ### Sidebar Collapse
 
 The `--sidebar-collapsed` option (or `sidebarCollapsed` in the configuration file) exposes the three Vitepress collapse states for generated groups:

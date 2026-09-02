@@ -384,6 +384,34 @@ export function moveSourcesLast(arr: (SidebarProject | Page)[]) {
 }
 
 /**
+ * Deepest sidebar level Vitepress renders. Its `VPSidebarGroup` mounts top level
+ * items at depth 0 and `VPSidebarItem` only recurses while `depth < 5`, so the
+ * children of a group sitting at this depth are silently dropped
+ */
+const MAX_SIDEBAR_DEPTH = 5
+
+/**
+ * Finds sidebar groups nested so deeply that Vitepress will not render their
+ * children, so the caller can warn instead of silently losing navigation
+ *
+ * @param items - Sidebar items to inspect
+ * @param depth - Depth at which those items are rendered
+ * @param trail - Group texts walked so far, used to build a readable path
+ * @returns Paths of the groups whose children will not be displayed
+ */
+export function findHiddenSidebarPaths(items: (SidebarProject | Page)[], depth: number, trail: string[] = []): string[] {
+  return items.flatMap((item) => {
+    if (!('items' in item) || !item.items?.length) {
+      return []
+    }
+    const path = [...trail, item.text]
+    return depth >= MAX_SIDEBAR_DEPTH
+      ? [path.join('/')]
+      : findHiddenSidebarPaths(item.items, depth + 1, path)
+  })
+}
+
+/**
  * Merges a previously generated sidebar with the one built by the current run,
  * used to accumulate repositories across usernames
  *
@@ -477,6 +505,12 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
 
     const projectTree = buildTree(projectFiles)
     const sidebarItems = moveSourcesLast(generateSidebarItems(repository, projectTree, collapsed))
+
+    // Single mode wraps each repository in its own group, which costs one level
+    const hidden = findHiddenSidebarPaths(sidebarItems, mode === 'multi' ? 0 : 1)
+    if (hidden.length) {
+      log(`   Sidebar for repository '${repository.name}' nests deeper than Vitepress renders, pages under ${hidden.map(path => `'${path}'`).join(', ')} will not appear in the sidebar.`, 'warn')
+    }
 
     if (mode === 'multi') {
       // Vitepress picks the sidebar whose key is the longest prefix of the current
