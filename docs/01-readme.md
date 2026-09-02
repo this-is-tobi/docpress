@@ -54,6 +54,8 @@ Options:
   -l, --last-updated                   Whether or not to inject each page's last Git commit date as Vitepress "lastUpdated" frontmatter.
   -p, --extra-header-pages <string>    List of comma separated additional files or directories to process Vitepress header pages.
   -r, --repos-filter <string>          List of comma separated repositories to retrieve from Git provider. Default to all user's public repositories.
+  --sidebar-collapsed <string>         Collapse behaviour of generated sidebar groups. "true" collapses them by default, "false" expands them, "null" makes them non-collapsible.
+  --sidebar-mode <string>              Shape of the generated sidebar. Values should be "single" or "multi". "single" lists every repository in one sidebar, "multi" gives each repository its own sidebar.
   -t, --extra-theme <string>           List of comma separated additional files or directories to use as Vitepress theme.
   -T, --token <string>                 Git provider token used to collect data.
   -U, --usernames <string>             List of comma separated Git provider usernames used to collect data.
