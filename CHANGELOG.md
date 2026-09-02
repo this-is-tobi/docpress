@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.12.0](https://github.com/this-is-tobi/docpress/compare/v0.11.0...v0.12.0) (2026-09-02)
+
+
+### Features
+
+* **sidebar:** add sidebarMode and sidebarCollapsed options ([710a83e](https://github.com/this-is-tobi/docpress/commit/710a83ec2aa125828ee3f71de3dd347cc66434db))
+* **sidebar:** warn when nesting exceeds what vitepress renders ([c92aa49](https://github.com/this-is-tobi/docpress/commit/c92aa49b264c80e63212f663af9d59b472f0a1b2))
+
+
+### Bug Fixes
+
+* **ci:** call the split clean-cache and clean-images workflows ([eba8db4](https://github.com/this-is-tobi/docpress/commit/eba8db4f635f806c363d5d30e4524d7f898db3d7))
+* **config:** treat empty token environment variables as unset ([00fbc11](https://github.com/this-is-tobi/docpress/commit/00fbc11b04d02d0f0c12031290d1b33f5e9d8e95))
+* **prepare:** resolve nested doc files against their own folder ([1a504cd](https://github.com/this-is-tobi/docpress/commit/1a504cd0812a857d8c0cf18913de3d73e2cd700a))
+
 ## [0.11.0](https://github.com/this-is-tobi/docpress/compare/v0.10.3...v0.11.0) (2026-07-22)
 
 
