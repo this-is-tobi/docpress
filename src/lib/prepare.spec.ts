@@ -1149,6 +1149,34 @@ describe('generateSidebarItems', () => {
     ])
   })
 
+  it('should strip the ordering prefix from a folder, on disk and in the label and route', () => {
+    const tree = { '02-advanced': { $: ['01-setup.md'] } }
+
+    const items = generateSidebarItems(repository, tree)
+
+    // The folder is renamed like any file, because the route is built from its
+    // name: a group labelled 'Advanced' whose pages lived under '02-advanced'
+    // would link into a path that does not exist
+    expect(renameSync).toHaveBeenCalledWith('/path/to/test-repo/02-advanced', '/path/to/test-repo/advanced')
+    expect(items).toEqual([
+      {
+        text: 'Advanced',
+        collapsed: true,
+        items: [
+          { text: 'Setup', link: '/test-repo/advanced/setup' },
+        ],
+      },
+    ])
+  })
+
+  it('should leave an unprefixed folder untouched rather than renaming it to itself', () => {
+    const tree = { advanced: { $: ['setup.md'] } }
+
+    generateSidebarItems(repository, tree)
+
+    expect(renameSync).not.toHaveBeenCalledWith('/path/to/test-repo/advanced', '/path/to/test-repo/advanced')
+  })
+
   it('should namespace links with the repository route prefix, including nested folders', () => {
     const namespaced = {
       name: 'test-repo',
