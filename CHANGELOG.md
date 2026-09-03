@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.1](https://github.com/this-is-tobi/docpress/compare/v0.12.0...v0.12.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* **sidebar:** strip the ordering prefix from folders, as is already done for files ([0b652df](https://github.com/this-is-tobi/docpress/commit/0b652dfb1f2282038b717ea18976214f1f4d5ca6))
+
 ## [0.12.0](https://github.com/this-is-tobi/docpress/compare/v0.11.0...v0.12.0) (2026-09-02)
 
 
