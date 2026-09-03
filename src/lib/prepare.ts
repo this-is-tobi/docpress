@@ -305,15 +305,29 @@ export function generateSidebarItems(repository: EnhancedRepository, obj: any, c
       }
       return []
     } else if (typeof value === 'object') {
+      // Folders carry the ordering prefix for the same reason files do, and it is
+      // stripped the same way. Without this a folder is ordered alphabetically and
+      // nothing can change that, so a project whose sections have a reading order —
+      // install before configure before reference — cannot express it at all, while
+      // the files inside those sections can. The prefix also has to leave the path,
+      // not just the label: the route is built from the folder name, so a group
+      // reading 'Guide' whose pages live under '01-guide' would link into nothing.
+      const folder = prettify(key, { removeIdx: true })
+      const source = resolve(repository.docpress.projectPath, key)
+      const renamed = resolve(repository.docpress.projectPath, folder)
+      if (folder !== key) {
+        renameSync(source, renamed)
+      }
+
       return [{
-        text: prettify(key, { mode: 'capitalize', replaceDash: true }),
+        text: prettify(folder, { mode: 'capitalize', replaceDash: true }),
         ...collapsedProp(collapsed),
         items: generateSidebarItems({
           ...repository,
-          name: `${repository.name}/${key}`,
+          name: `${repository.name}/${folder}`,
           // Descend into the subfolder so file renames target the nested file and
           // not a same-named file at the repository root
-          docpress: { ...repository.docpress, projectPath: resolve(repository.docpress.projectPath, key) },
+          docpress: { ...repository.docpress, projectPath: renamed },
         }, value, collapsed),
       } as SidebarProject]
     }

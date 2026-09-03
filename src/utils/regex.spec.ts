@@ -75,6 +75,38 @@ describe('file Path Replacements', () => {
       expect(writeFileSync).toHaveBeenCalledWith(file, '[Nested](sub/dir/page.md#anchor)', 'utf8')
     })
 
+    it('should strip index prefixes from directory segments as well as the file', () => {
+      const file = 'installation.md'
+      const content = 'See the [boundary](../03-boundary/02-mcp.md#gate) chapter.'
+
+      ;(readFileSync as any).mockReturnValue(content)
+
+      replaceInternalMdLinks(file)
+
+      // Folders are renamed on disk exactly as files are, so a link crossing one
+      // has to follow the rename on both halves or it resolves to nothing
+      expect(writeFileSync).toHaveBeenCalledWith(
+        file,
+        'See the [boundary](../boundary/mcp.md#gate) chapter.',
+        'utf8',
+      )
+    })
+
+    it('should leave dot and parent segments alone while stripping named ones', () => {
+      const file = 'installation.md'
+      const content = '[Up](../../01-guide/02-setup.md) and [Here](./04-tools/01-cli.md)'
+
+      ;(readFileSync as any).mockReturnValue(content)
+
+      replaceInternalMdLinks(file)
+
+      expect(writeFileSync).toHaveBeenCalledWith(
+        file,
+        '[Up](../../guide/setup.md) and [Here](./tools/cli.md)',
+        'utf8',
+      )
+    })
+
     it('should not modify external, absolute or anchor links', () => {
       const file = 'installation.md'
       const content = '[Ext](https://example.com/01-page.md) [Abs](/01-page.md) [Anchor](#section) [Mail](mailto:a@b.c)'

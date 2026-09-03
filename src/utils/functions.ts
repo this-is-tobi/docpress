@@ -371,10 +371,32 @@ export function addLastUpdatedFrontmatter(file: string, date: string) {
 }
 
 /**
+ * Strips the ordering prefix from every named segment of a relative link's directory
+ * Folders are renamed during sidebar generation exactly as files are, so a link that
+ * crosses one has to follow the rename on both halves of the path — rewriting only
+ * the filename would leave `../01-guide/setup.md` pointing at a folder that is now
+ * `guide`, which resolves at publish time and fails for the reader rather than the build
+ *
+ * @param dir - Directory portion of a relative link, or undefined when the link has none
+ * @returns The directory with ordering prefixes removed, `.` and `..` left alone
+ */
+function prettifyLinkDir(dir?: string): string {
+  if (!dir) {
+    return ''
+  }
+  return dir
+    .split('/')
+    .map(segment => segment === '' || segment === '.' || segment === '..'
+      ? segment
+      : prettify(segment, { removeIdx: true }))
+    .join('/')
+}
+
+/**
  * Rewrites relative markdown links to match the renamed target files
- * Files are renamed during sidebar generation (index prefix stripped, name lowercased,
- * readme becoming introduction), so in-page links must follow the same convention
- * to avoid pointing to files that no longer exist
+ * Files and folders are renamed during sidebar generation (index prefix stripped, name
+ * lowercased, readme becoming introduction), so in-page links must follow the same
+ * convention to avoid pointing to files that no longer exist
  *
  * @param file - Path to the markdown file to process
  */
@@ -385,7 +407,7 @@ export function replaceInternalMdLinks(file: string) {
     if (filename === 'readme.md') {
       filename = 'introduction.md'
     }
-    return `[${text}](${dir ?? ''}${filename}${anchor ?? ''})`
+    return `[${text}](${prettifyLinkDir(dir)}${filename}${anchor ?? ''})`
   })
   writeFileSync(file, updatedContent, 'utf8')
 }
