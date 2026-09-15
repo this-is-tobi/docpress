@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.2](https://github.com/this-is-tobi/docpress/compare/v0.12.1...v0.12.2) (2026-09-15)
+
+
+### Bug Fixes
+
+* **cli:** use --disable-warning in bin shebang for bun 1.4 compatibility ([251de93](https://github.com/this-is-tobi/docpress/commit/251de937729247d9ba0fcb89d9dd497efb17fcc0))
+
 ## [0.12.1](https://github.com/this-is-tobi/docpress/compare/v0.12.0...v0.12.1) (2026-09-03)
 
 
