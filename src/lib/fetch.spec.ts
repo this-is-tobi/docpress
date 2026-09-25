@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { checkHttpStatus } from '../utils/functions'
+import { checkHttpStatus } from '../utils/functions.js'
 import type { FetchOptsUser } from '../schemas/fetch.js'
 import type { EnhancedRepository } from './fetch.js'
 import {
@@ -13,7 +13,7 @@ import {
   getSparseCheckout,
   isRepoFiltered,
 } from './fetch.js'
-import { cloneRepo, getInfos } from './git'
+import { cloneRepo, getInfos } from './git.js'
 import { getInfos as getGitlabInfos } from './gitlab.js'
 
 vi.mock('node:fs', () => ({ writeFileSync: vi.fn() }))
@@ -442,7 +442,9 @@ describe('fetchDoc', () => {
     username: 'testUser',
     branch: 'main',
     reposFilter: ['repo1', 'repo2'],
+    gitProvider: 'github',
     token: 'fake-token',
+    lastUpdated: false,
   }
 
   const mockUser = { login: 'testUser' }
