@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.4](https://github.com/this-is-tobi/docpress/compare/v0.12.3...v0.12.4) (2026-09-25)
+
+
+### Code Refactoring
+
+* **schemas:** type the resolved global options ([0270305](https://github.com/this-is-tobi/docpress/commit/027030536f4580b7c20f669131f801bca886c373))
+
 ## [0.12.3](https://github.com/this-is-tobi/docpress/compare/v0.12.2...v0.12.3) (2026-09-25)
 
 
