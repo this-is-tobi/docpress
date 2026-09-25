@@ -78,6 +78,10 @@ const mockOpts: PrepareOpts = {
   vitepressConfig: mockVitepressConfig,
   branch: 'main',
   gitProvider: 'github',
+  forks: false,
+  lastUpdated: false,
+  sidebarMode: 'single',
+  sidebarCollapsed: true,
 }
 
 describe('prepareCmd', () => {

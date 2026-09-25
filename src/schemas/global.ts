@@ -145,6 +145,16 @@ export const cliSchema = configSchema
 export type Cli = z.infer<typeof cliSchema>
 
 /**
+ * Settings that always hold a value once CLI options, config file and defaults are merged
+ */
+type ResolvedKeys = 'usernames' | 'gitProvider' | 'forks' | 'lastUpdated' | 'sidebarMode' | 'sidebarCollapsed'
+
+/**
+ * Options resolved from CLI arguments, configuration file and defaults
+ */
+export type ResolvedOpts = Omit<Partial<Config>, ResolvedKeys> & Pick<Config, ResolvedKeys> & { token?: string }
+
+/**
  * Prepares configuration data by converting string values to arrays when needed
  *
  * @param configData - Raw configuration data to process
@@ -186,7 +196,7 @@ function validateConfigData(configData: any) {
  * @returns The validated configuration if it passes validation
  * @throws Error if required fields are missing
  */
-function validateFinalConfig(mergedConfig: any) {
+function validateFinalConfig(mergedConfig: any): ResolvedOpts {
   if (!mergedConfig.usernames?.length) {
     throw new Error('The usernames field is required')
   }
@@ -279,5 +289,4 @@ export const globalOptsSchema = cliSchema
     }
   })
 
-export type GlobalOpts = Required<Pick<z.infer<typeof globalOptsSchema>, 'gitProvider'>>
-  & Omit<z.infer<typeof globalOptsSchema>, 'gitProvider'>
+export type GlobalOpts = z.output<typeof globalOptsSchema>
