@@ -38,7 +38,7 @@ Follow these steps to set up the development environment and start working with 
 
 ## Testing
 
-Docpress uses [Vitest](https://vitest.dev/) for unit tests. Before opening a pull request, make sure the suite and the linter pass:
+Docpress uses [Vitest](https://vitest.dev/) for unit tests. Before opening a pull request, make sure the suite, the type check and the linter pass:
 
 ```sh
 # Run the unit test suite
@@ -46,6 +46,9 @@ bun run test
 
 # Run the suite with a coverage report (coverage thresholds are enforced)
 bun run test:cov
+
+# Type-check sources and test files (the build only covers sources)
+bun run typecheck
 
 # Lint the codebase (use `bun run format` to auto-fix)
 bun run lint
