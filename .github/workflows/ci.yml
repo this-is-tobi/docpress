@@ -45,6 +45,7 @@ jobs:
       PACKAGE_MANAGER: bun
       COVERAGE: true
       COVERAGE_REPORTER: lcov
+      TEST_PRECOMMAND: bun run typecheck
       TEST_COMMAND: bun run test:cov
 
   tests-cli:
