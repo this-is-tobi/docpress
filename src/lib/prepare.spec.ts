@@ -1681,7 +1681,7 @@ describe('repository edge cases', () => {
         fork: false,
         docpress: { projectPath: '/tmp/path', branch: 'main', filtered: false, includes: [] },
       },
-    ] as ReturnType<typeof getUserRepos>)
+    ] as unknown as ReturnType<typeof getUserRepos>)
     vi.mocked(existsSync).mockReturnValue(false)
 
     await prepareDoc({ username: 'test-user' })
