@@ -457,7 +457,7 @@ describe('deepMerge', () => {
     const result = deepMerge({} as Record<string, unknown>, malicious)
 
     expect(result).toEqual({})
-    expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+    expect(Reflect.get({}, 'polluted')).toBeUndefined()
   })
 
   it('should not share nested object references with the source', () => {
@@ -508,7 +508,7 @@ describe('redactToken', () => {
 
   it('should leave a falsy or absent token untouched', () => {
     expect(redactToken({ token: undefined })).toEqual({ token: undefined })
-    expect(redactToken({ usernames: ['a'] })).toEqual({ usernames: ['a'] })
+    expect(redactToken<{ usernames: string[], token?: string }>({ usernames: ['a'] })).toEqual({ usernames: ['a'] })
   })
 
   it('should not mutate the original object', () => {

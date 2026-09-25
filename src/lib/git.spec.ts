@@ -15,7 +15,7 @@ vi.mock('node:path', () => ({
   relative: vi.fn((from: string, to: string) => to.replace(`${from}/`, '')),
 }))
 vi.mock('../utils/functions.js', async (importOriginal) => {
-  const actual = await importOriginal()
+  const actual = await importOriginal<typeof import('../utils/functions.js')>()
   return {
     ...actual,
     addLastUpdatedFrontmatter: vi.fn(),
