@@ -1,16 +1,16 @@
-import { basename, dirname, parse, resolve } from 'node:path'
-import { appendFileSync, cpSync, existsSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
-import YAML from 'yaml'
 import type { DefaultTheme, defineConfig } from 'vitepress'
-import type { PrepareOpts } from '../schemas/prepare.js'
-import { generateFile } from '../utils/templates.js'
 import type { GlobalOpts } from '../schemas/global.js'
-import { createDir, extractFiles, formatError, getMdFiles, getUserInfos, getUserRepos, isFile, prettify, replaceInternalMdLinks, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
-import { DOCPRESS_DIR, DOCS_DIR, FORKS_FILE, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
-import { log } from '../utils/logger.js'
+import type { PrepareOpts } from '../schemas/prepare.js'
 import type { EnhancedRepository } from './fetch.js'
 import type { getInfos } from './git.js'
+import { appendFileSync, cpSync, existsSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { basename, dirname, parse, resolve } from 'node:path'
+import YAML from 'yaml'
+import { DOCPRESS_DIR, DOCS_DIR, FORKS_FILE, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
+import { createDir, extractFiles, formatError, getMdFiles, getUserInfos, getUserRepos, isFile, prettify, replaceInternalMdLinks, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
+import { log } from '../utils/logger.js'
+import { generateFile } from '../utils/templates.js'
 import { getContributors } from './git.js'
 import { getVitepressConfig } from './vitepress.js'
 
@@ -667,6 +667,26 @@ export async function parseVitepressIndex(path: string): Promise<Index> {
 }
 
 /**
+ * Tail of the generated VitePress config. `config` stays plain JSON so a later run can
+ * re-import it, while the default export adds what JSON cannot hold.
+ *
+ * Vue compiles every page as a template: VitePress keeps fenced blocks out of it with
+ * `v-pre`, but not inline code, so a `${{ always() }}` from a GitHub Actions doc is
+ * evaluated as an expression and breaks the build.
+ */
+const VITEPRESS_CONFIG_EXPORT = `
+function escapeInlineCode(md) {
+  const render = md.renderer.rules.code_inline
+  md.renderer.rules.code_inline = (tokens, idx, options, env, self) => {
+    tokens[idx].attrSet('v-pre', '')
+    return render(tokens, idx, options, env, self)
+  }
+}
+
+export default { ...config, markdown: { ...config.markdown, config: escapeInlineCode } }
+`
+
+/**
  * Generates VitePress configuration and index files
  *
  * @param vitepressConfig - VitePress configuration object
@@ -678,7 +698,7 @@ export function generateVitepressFiles(vitepressConfig: Partial<ReturnType<typeo
   createDir(dirname(VITEPRESS_CONFIG))
 
   log(`   Generate Vitepress config.`, 'info')
-  writeFileSync(VITEPRESS_CONFIG, `export const config = ${JSON.stringify(vitepressConfig, null, 2)}\n\nexport default config\n`)
+  writeFileSync(VITEPRESS_CONFIG, `export const config = ${JSON.stringify(vitepressConfig, null, 2)}\n${VITEPRESS_CONFIG_EXPORT}`)
   log(`   Generate index file.`, 'info')
   writeFileSync(INDEX_FILE, separator + YAML.stringify(index))
 
