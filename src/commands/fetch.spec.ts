@@ -64,6 +64,7 @@ describe('main', () => {
       token: 'testToken',
       branch: 'main',
       gitProvider: 'github' as const,
+      lastUpdated: false,
     }
 
     await main(mockOpts)
@@ -78,6 +79,7 @@ describe('main', () => {
       token: mockOpts.token,
       branch: mockOpts.branch,
       gitProvider: mockOpts.gitProvider,
+      lastUpdated: false,
       multiUser: false,
     })
   })
@@ -89,6 +91,7 @@ describe('main', () => {
       token: 'testToken',
       branch: 'main',
       gitProvider: 'github' as const,
+      lastUpdated: false,
     }
 
     await main(mockOpts)
@@ -103,6 +106,7 @@ describe('main', () => {
       token: 'testToken',
       branch: 'main',
       gitProvider: 'github',
+      lastUpdated: false,
       multiUser: true,
     })
 
@@ -113,6 +117,7 @@ describe('main', () => {
       token: 'testToken',
       branch: 'main',
       gitProvider: 'github',
+      lastUpdated: false,
       multiUser: true,
     })
   })
@@ -124,6 +129,7 @@ describe('main', () => {
       token: 'testToken',
       branch: 'main',
       gitProvider: 'github' as const,
+      lastUpdated: false,
     }
 
     await main(mockOpts)
@@ -134,6 +140,7 @@ describe('main', () => {
       token: 'testToken',
       branch: 'main',
       gitProvider: 'github',
+      lastUpdated: false,
       multiUser: true,
     })
     expect(fetchDoc).toHaveBeenCalledWith({
@@ -142,6 +149,7 @@ describe('main', () => {
       token: 'testToken',
       branch: 'main',
       gitProvider: 'github',
+      lastUpdated: false,
       multiUser: true,
     })
   })
@@ -164,6 +172,7 @@ describe('main', () => {
       usernames: ['testUser'],
       branch: 'main',
       gitProvider: 'github' as const,
+      lastUpdated: false,
     }
 
     await main(mockOpts)
@@ -177,6 +186,7 @@ describe('main', () => {
       usernames: ['testUser'],
       branch: 'main',
       gitProvider: 'github' as const,
+      lastUpdated: false,
     }
 
     await main(mockOpts)
@@ -189,6 +199,7 @@ describe('main', () => {
       usernames: ['goodUser', 'badUser'],
       branch: 'main',
       gitProvider: 'github' as const,
+      lastUpdated: false,
     }
 
     vi.mocked(fetchDoc)
@@ -207,6 +218,7 @@ describe('main', () => {
       usernames: ['user1', 'user2'],
       branch: 'main',
       gitProvider: 'github' as const,
+      lastUpdated: false,
     }
 
     vi.mocked(fetchDoc)

@@ -816,6 +816,15 @@ describe('flattenTree', () => {
   })
 })
 
+// Values the options schema always resolves, whatever the CLI or config file set
+const resolvedDefaults = {
+  gitProvider: 'github',
+  forks: false,
+  lastUpdated: false,
+  sidebarMode: 'single',
+  sidebarCollapsed: true,
+} as const
+
 describe('prepareDoc', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -894,6 +903,7 @@ describe('prepareDoc', () => {
 
   it('should prepare documentation with basic options', async () => {
     await prepareDoc({
+      ...resolvedDefaults,
       username: 'test-user',
       websiteTitle: 'Test Website',
       websiteTagline: 'Test Tagline',
@@ -913,6 +923,7 @@ describe('prepareDoc', () => {
 
   it('should include forks when forks option is true', async () => {
     await prepareDoc({
+      ...resolvedDefaults,
       username: 'test-user',
       forks: true,
       token: 'test-token',
@@ -926,6 +937,7 @@ describe('prepareDoc', () => {
 
   it('should default vitepressConfig.lastUpdated to true when the lastUpdated option is enabled', async () => {
     await prepareDoc({
+      ...resolvedDefaults,
       username: 'test-user',
       lastUpdated: true,
     })
@@ -939,6 +951,7 @@ describe('prepareDoc', () => {
 
   it('should not override an explicit vitepressConfig.lastUpdated value', async () => {
     await prepareDoc({
+      ...resolvedDefaults,
       username: 'test-user',
       lastUpdated: true,
       vitepressConfig: { lastUpdated: false } as any,
@@ -953,6 +966,7 @@ describe('prepareDoc', () => {
 
   it('should leave vitepressConfig untouched when the lastUpdated option is disabled', async () => {
     await prepareDoc({
+      ...resolvedDefaults,
       username: 'test-user',
     })
 
@@ -963,6 +977,7 @@ describe('prepareDoc', () => {
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/extra-page.md'])
 
     await prepareDoc({
+      ...resolvedDefaults,
       username: 'test-user',
       extraHeaderPages: ['/path/to/extra-page.md'],
     })
@@ -972,6 +987,7 @@ describe('prepareDoc', () => {
 
   it('should handle extra public content', async () => {
     await prepareDoc({
+      ...resolvedDefaults,
       username: 'test-user',
       extraPublicContent: ['/path/to/public-content'],
     })
@@ -982,6 +998,7 @@ describe('prepareDoc', () => {
 
   it('should handle extra theme files', async () => {
     await prepareDoc({
+      ...resolvedDefaults,
       username: 'test-user',
       extraTheme: ['/path/to/theme-files'],
     })
@@ -1009,6 +1026,7 @@ features:
 
     try {
       await prepareDoc({
+        ...resolvedDefaults,
         username: 'test-user',
       })
     } catch (_) {
@@ -1022,7 +1040,7 @@ features:
   })
 
   it('should warn and skip the forks page on the gitlab provider', async () => {
-    await prepareDoc({ username: 'test-user', forks: true, gitProvider: 'gitlab' })
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user', forks: true, gitProvider: 'gitlab' })
 
     expect(log).toHaveBeenCalledWith(
       expect.stringContaining(`not supported with the 'gitlab' provider`),
@@ -1035,14 +1053,14 @@ features:
   it('should not duplicate the forks entry supplied as an extra header page', async () => {
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/forks.md'])
 
-    await prepareDoc({ username: 'test-user', forks: true, extraHeaderPages: ['/path/to/forks.md'] })
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user', forks: true, extraHeaderPages: ['/path/to/forks.md'] })
 
     const [, nav] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
     expect(nav).toEqual([{ text: 'Forks', link: '/forks' }])
   })
 
   it('should build a route-keyed sidebar in multi mode', async () => {
-    await prepareDoc({ username: 'test-user', sidebarMode: 'multi' })
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user', sidebarMode: 'multi' })
 
     const [sidebar] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
     expect(sidebar).toEqual({
@@ -1051,14 +1069,14 @@ features:
   })
 
   it('should expand sidebar groups when sidebarCollapsed is false', async () => {
-    await prepareDoc({ username: 'test-user', sidebarCollapsed: false })
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user', sidebarCollapsed: false })
 
     const [sidebar] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
     expect((sidebar as any)[0]).toMatchObject({ text: 'Repo1', collapsed: false })
   })
 
   it('should drop the collapsed key when sidebarCollapsed is null', async () => {
-    await prepareDoc({ username: 'test-user', sidebarCollapsed: null })
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user', sidebarCollapsed: null })
 
     const [sidebar] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
     expect((sidebar as any)[0]).not.toHaveProperty('collapsed')
@@ -1076,7 +1094,7 @@ hero:
 features: []
 `) as any)
 
-    await prepareDoc({ username: 'test-user', sidebarMode: 'multi' })
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user', sidebarMode: 'multi' })
 
     const [sidebar] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
     expect(sidebar).toEqual({
@@ -1684,7 +1702,7 @@ describe('repository edge cases', () => {
     ] as unknown as ReturnType<typeof getUserRepos>)
     vi.mocked(existsSync).mockReturnValue(false)
 
-    await prepareDoc({ username: 'test-user' })
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user' })
 
     const [sidebar] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
     expect(sidebar).toEqual([])
