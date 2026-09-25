@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.3](https://github.com/this-is-tobi/docpress/compare/v0.12.2...v0.12.3) (2026-09-25)
+
+
+### Bug Fixes
+
+* **prepare:** keep inline code out of Vue template compilation ([f20fd08](https://github.com/this-is-tobi/docpress/commit/f20fd08493d68518031426c63e43695dda889aac))
+
 ## [0.12.2](https://github.com/this-is-tobi/docpress/compare/v0.12.1...v0.12.2) (2026-09-15)
 
 
