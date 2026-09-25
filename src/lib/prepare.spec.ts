@@ -1,8 +1,11 @@
+import type { EnhancedRepository } from './fetch.js'
+import type { getInfos } from './git.js'
 import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { extractFiles, getMdFiles, getUserInfos, getUserRepos } from '../utils/functions.js'
+import { log } from '../utils/logger.js'
 import {
   addContent,
   addExtraPages,
@@ -25,10 +28,7 @@ import {
   processForks,
   transformDoc,
 } from './prepare.js'
-import type { EnhancedRepository } from './fetch.js'
-import type { getInfos } from './git.js'
 import { getVitepressConfig } from './vitepress.js'
-import { log } from '../utils/logger.js'
 
 vi.mock('node:fs')
 vi.mock('node:fs/promises')
@@ -579,12 +579,24 @@ describe('generateVitepressFiles', () => {
 
     expect(writeFileSync).toHaveBeenCalledWith(
       '/tmp/docpress/mock/.vitepress/config.js',
-      expect.stringContaining('export default config'),
+      expect.stringContaining('export const config = {'),
     )
     expect(writeFileSync).toHaveBeenCalledWith(
       '/tmp/docpress/mock/docs/index.md',
       expect.stringContaining('layout: home'),
     )
+  })
+
+  it('should keep inline code out of Vue template compilation', () => {
+    generateVitepressFiles(
+      { title: 'My Project' },
+      { layout: 'home', hero: { name: 'My Projects', tagline: 'Awesome projects' }, features: [] },
+    )
+
+    const content = vi.mocked(writeFileSync).mock.calls.find(([path]) => path === '/tmp/docpress/mock/.vitepress/config.js')?.[1]
+    expect(content).toContain(`export const config = {\n  "title": "My Project"\n}`)
+    expect(content).toContain(`tokens[idx].attrSet('v-pre', '')`)
+    expect(content).toContain('export default { ...config, markdown: { ...config.markdown, config: escapeInlineCode } }')
   })
 
   it('should throw a clear error when no template theme files are found', () => {
