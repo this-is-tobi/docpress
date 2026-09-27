@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.13.0](https://github.com/this-is-tobi/docpress/compare/v0.12.3...v0.13.0) (2026-09-27)
+
+
+### Features
+
+* **sidebar:** keep the spelling of listed acronyms in generated labels ([4ffd4fe](https://github.com/this-is-tobi/docpress/commit/4ffd4fe7b229289bb28669370c39db8cc616ec0a))
+
+
+### Bug Fixes
+
+* **config:** report each invalid config file value once, at its own path ([1cf1750](https://github.com/this-is-tobi/docpress/commit/1cf17506daffb4ba92218b98dc31f1c8982b002c))
+
+
+### Code Refactoring
+
+* **schemas:** type the resolved global options ([0270305](https://github.com/this-is-tobi/docpress/commit/027030536f4580b7c20f669131f801bca886c373))
+
 ## [0.12.3](https://github.com/this-is-tobi/docpress/compare/v0.12.2...v0.12.3) (2026-09-25)
 
 
