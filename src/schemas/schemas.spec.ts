@@ -254,6 +254,7 @@ describe('configSchema', () => {
       vitepressConfig: './vitepress.config.json',
       sidebarMode: 'single',
       sidebarCollapsed: true,
+      acronyms: ['CLI', 'API'],
     }
     const { token: _token, ...dataWithoutToken } = validCombinedData
 
@@ -274,6 +275,7 @@ describe('configSchema', () => {
       extraHeaderPages: [],
       extraPublicContent: [],
       extraTheme: [],
+      acronyms: [],
       websiteTitle: '',
       websiteTagline: '',
     }
@@ -312,6 +314,7 @@ describe('configSchema', () => {
       extraHeaderPages: [],
       extraPublicContent: [],
       extraTheme: [],
+      acronyms: [],
       websiteTitle: '',
       websiteTagline: '',
     }
@@ -443,6 +446,41 @@ describe('sidebar options', () => {
 
   it('should reject an unknown CLI sidebarCollapsed value', () => {
     expect(() => cliSchema.parse({ usernames: 'user1', sidebarCollapsed: 'maybe' })).toThrow()
+  })
+})
+
+describe('acronyms option', () => {
+  it('should leave acronyms unset by default', () => {
+    const result = globalOptsSchema.parse({ usernames: 'user1' })
+
+    expect(result.acronyms).toBeUndefined()
+  })
+
+  it('should read the acronyms from the config file, a single string included', () => {
+    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+      usernames: ['user1'],
+      acronyms: 'CLI',
+    }))
+
+    const result = globalOptsSchema.parse({ config: './config.json' })
+
+    expect(result.acronyms).toEqual(['CLI'])
+  })
+
+  it('should split the CLI acronyms on commas', () => {
+    const result = cliSchema.parse({ usernames: 'user1', acronyms: 'CLI,MCP' })
+
+    expect(result.acronyms).toEqual(['CLI', 'MCP'])
+  })
+
+  it('should reject a config file acronym holding a space or a dash, which a label word never does', () => {
+    expect(() => configSchema.partial().parse({ acronyms: ['GitHub Actions'] })).toThrow(/single word/)
+    expect(() => configSchema.partial().parse({ acronyms: ['e-mail'] })).toThrow(/single word/)
+  })
+
+  it('should reject a CLI acronym holding a space or left empty', () => {
+    expect(() => cliSchema.parse({ usernames: 'user1', acronyms: 'CLI, MCP' })).toThrow(/single word/)
+    expect(() => cliSchema.parse({ usernames: 'user1', acronyms: 'CLI,,MCP' })).toThrow(/single word/)
   })
 })
 

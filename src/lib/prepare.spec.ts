@@ -1075,6 +1075,13 @@ features:
     expect((sidebar as any)[0]).toMatchObject({ text: 'Repo1', collapsed: false })
   })
 
+  it('should pass the acronyms on to the generated labels', async () => {
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user', acronyms: ['REPO1'] })
+
+    const [sidebar] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
+    expect((sidebar as any)[0]).toMatchObject({ text: 'REPO1' })
+  })
+
   it('should drop the collapsed key when sidebarCollapsed is null', async () => {
     await prepareDoc({ ...resolvedDefaults, username: 'test-user', sidebarCollapsed: null })
 
@@ -1174,6 +1181,30 @@ describe('generateSidebarItems', () => {
         collapsed: true,
         items: [
           { text: 'Setup', link: '/test-repo/advanced/setup' },
+        ],
+      },
+    ])
+  })
+
+  it('should keep the spelling of listed acronyms in file and folder labels, not in routes', () => {
+    const tree = { '20-using': { $: ['10-cli.md', '20-tui.md'] }, 'ai-clients': { $: ['setup.md'] } }
+
+    const items = generateSidebarItems(repository, tree, true, ['CLI', 'TUI', 'AI'])
+
+    expect(items).toEqual([
+      {
+        text: 'Using',
+        collapsed: true,
+        items: [
+          { text: 'CLI', link: '/test-repo/using/cli' },
+          { text: 'TUI', link: '/test-repo/using/tui' },
+        ],
+      },
+      {
+        text: 'AI clients',
+        collapsed: true,
+        items: [
+          { text: 'Setup', link: '/test-repo/ai-clients/setup' },
         ],
       },
     ])
@@ -1449,6 +1480,28 @@ describe('transformDoc sidebar options', () => {
 
     expect(result.index.features).toEqual([
       { title: 'My repo', details: 'Repo description', link: '/my-repo/introduction' },
+    ])
+  })
+
+  it('should spell acronyms the same in the project group, its pages and its home page card', () => {
+    const cliRepo = [{ ...repositories[0], name: 'my-cli' }] as ReturnType<typeof getUserRepos>
+    vi.mocked(readdirSync).mockReturnValue(['01-readme.md', '02-cli-reference.md'] as any)
+
+    const result = transformDoc(cliRepo, user, websiteInfos, { acronyms: ['CLI'] })
+
+    expect(result.sidebar).toEqual([
+      {
+        text: 'My CLI',
+        collapsed: true,
+        items: [
+          { text: 'Introduction', link: '/my-cli/introduction' },
+          { text: 'CLI reference', link: '/my-cli/cli-reference' },
+          { text: 'Sources', link: '/my-cli/sources' },
+        ],
+      },
+    ])
+    expect(result.index.features).toEqual([
+      { title: 'My CLI', details: 'Repo description', link: '/my-cli/introduction' },
     ])
   })
 })

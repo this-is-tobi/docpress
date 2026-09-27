@@ -142,6 +142,11 @@ describe('main', () => {
     )
   })
 
+  it('should forward the acronyms to prepareDoc', async () => {
+    await main({ ...mockOpts, acronyms: ['CLI', 'MCP'] })
+    expect(prepareDoc).toHaveBeenCalledWith(expect.objectContaining({ acronyms: ['CLI', 'MCP'] }))
+  })
+
   it('should log a success summary once every username succeeds', async () => {
     await main(mockOpts)
     expect(log).toHaveBeenCalledWith(
@@ -237,5 +242,11 @@ describe('prepareOpts', () => {
 
     expect(sidebarModeOption?.description).toBe(configSchema.shape.sidebarMode.description)
     expect(sidebarCollapsedOption?.description).toBe(configSchema.shape.sidebarCollapsed.description)
+  })
+
+  it('should expose the acronyms option', () => {
+    const acronymsOption = prepareOpts.find(opt => opt.flags.includes('--acronyms'))
+
+    expect(acronymsOption?.description).toBe(configSchema.shape.acronyms.description)
   })
 })

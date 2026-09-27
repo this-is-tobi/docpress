@@ -91,6 +91,26 @@ describe('prettify', () => {
     const result = prettify('.github.workflows.test', { removeDot: true })
     expect(result).toBe('github-workflows-test')
   })
+
+  it('should keep the listed spelling of a word that capitalize would lowercase', () => {
+    const result = prettify('ai-clients', { mode: 'capitalize', replaceDash: true, acronyms: ['AI'] })
+    expect(result).toBe('AI clients')
+  })
+
+  it('should match a listed word whatever case the label and the list use', () => {
+    const result = prettify('using-the-cli', { mode: 'capitalize', replaceDash: true, acronyms: ['CLI', 'using'] })
+    expect(result).toBe('using the CLI')
+  })
+
+  it('should only replace whole words, never part of one', () => {
+    const result = prettify('email-setup', { mode: 'capitalize', replaceDash: true, acronyms: ['AI', 'SET'] })
+    expect(result).toBe('Email setup')
+  })
+
+  it('should leave the label unchanged when the list is empty', () => {
+    const result = prettify('cli', { mode: 'capitalize', acronyms: [] })
+    expect(result).toBe('Cli')
+  })
 })
 
 describe('createDir', () => {

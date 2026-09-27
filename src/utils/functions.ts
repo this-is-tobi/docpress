@@ -92,6 +92,27 @@ interface PrettifyOpts {
   removeIdx?: boolean
   removeDot?: boolean
   removeExt?: boolean
+  acronyms?: string[]
+}
+
+/**
+ * Gives every word of a label that matches an entry, ignoring case, the entry's
+ * own spelling
+ *
+ * Runs after the case mode because `capitalize` lowercases everything past the
+ * first letter, which is right for prose ('Getting started') and wrong for the
+ * words a project always spells one way: a `cli` page reads 'Cli' and an
+ * `ai-clients` folder 'Ai clients'. Matching whole words only keeps 'AI' out of
+ * 'email', and the entry wins over the first-letter capital, so a name written
+ * in lowercase on purpose can be listed too
+ *
+ * @param s - Label to adjust, words separated by single spaces
+ * @param acronyms - Words to spell exactly as given
+ * @returns The label with each listed word respelled
+ */
+function keepAcronyms(s: string, acronyms: string[]) {
+  const spellings = new Map(acronyms.map(acronym => [acronym.toLowerCase(), acronym]))
+  return s.split(' ').map(word => spellings.get(word.toLowerCase()) ?? word).join(' ')
 }
 
 /**
@@ -132,6 +153,10 @@ export function prettify(s: string, opts: PrettifyOpts) {
     u = (u || s).toLowerCase()
   } else if (opts?.mode === 'uppercase') {
     u = (u || s).toUpperCase()
+  }
+
+  if (opts?.acronyms?.length) {
+    u = keepAcronyms(u || s, opts.acronyms)
   }
 
   return u || s
