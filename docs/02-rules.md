@@ -12,6 +12,7 @@ To ensure that the program functions correctly, please follow these conventions:
 - If a `docs/` folder is present, all files within it will be sorted and renamed by removing any prefix numbers. This ensures that files appear cleanly in the generated website. For example, `docs/01-get-started.md` will be renamed to `get-started.md`.
 - The `docs/` folder tree will be preserved and in the case where markdown files were find in subfolders, subfolders names will be used to generate a nested sidebar structure.
 - Renaming applies at every level of the tree, so `docs/guide/01-get-started.md` is renamed to `guide/get-started.md` and a `docs/guide/README.md` becomes the `guide/introduction.md` page.
+- Sidebar labels come from the renamed files and folders, with dashes turned into spaces and only the first letter capitalized, so `get-started.md` reads `Get started` and `cli.md` reads `Cli`. Words that must keep their own spelling, such as `CLI`, are listed with the [acronyms option](./03-advanced-usage.md#acronyms-in-labels).
 
 ## Handling the root readme file
 
