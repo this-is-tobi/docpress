@@ -18,6 +18,7 @@ const cmdName = 'prepare'
  * Command line options specific to the prepare command
  */
 export const prepareOpts = [
+  createOption('--acronyms <string>', configSchema.shape.acronyms.description),
   createOption('-c, --extra-public-content <string>', configSchema.shape.extraPublicContent.description),
   createOption('-f, --forks', configSchema.shape.forks.description),
   createOption('-p, --extra-header-pages <string>', configSchema.shape.extraHeaderPages.description),
@@ -45,7 +46,7 @@ export const prepareCmd = addOptions(createCommand(cmdName), [...prepareOpts, ..
  * @param opts - Validated prepare options
  */
 export async function main(opts: PrepareOpts) {
-  const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, sidebarMode, sidebarCollapsed, token, usernames, websiteTitle, websiteTagline } = opts
+  const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, sidebarMode, sidebarCollapsed, acronyms, token, usernames, websiteTitle, websiteTagline } = opts
   log(`\n-> Start transform files to prepare Vitepress build.`, 'info')
   const start = Date.now()
 
@@ -53,7 +54,7 @@ export async function main(opts: PrepareOpts) {
   const failedUsers: string[] = []
   for (const username of usernames) {
     try {
-      await prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, sidebarMode, sidebarCollapsed, token, username, websiteTitle, websiteTagline })
+      await prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, sidebarMode, sidebarCollapsed, acronyms, token, username, websiteTitle, websiteTagline })
     } catch (error) {
       failedUsers.push(username)
       log(`   Failed to prepare documentation for '${username}': ${formatError(error)}`, 'error')

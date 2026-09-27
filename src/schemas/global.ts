@@ -25,6 +25,15 @@ const safeRefRegex = /^\w[\w./-]*$/
 const safeRefMessage = 'Branch name must start with a letter, digit or underscore and only contain letters, digits, ".", "-", "_" or "/".'
 
 /**
+ * A label word never holds a space or a dash: labels are split into words on
+ * spaces, and every dash of a file or folder name has become a space by then.
+ * An entry holding either could never match, so it is refused rather than
+ * silently ignored
+ */
+const acronymRegex = /^[^\s-]+$/
+const acronymMessage = 'Each acronym must be a single word, with no space or dash, as it is matched against one word of a label.'
+
+/**
  * Schema for the DocPress configuration file
  * Defines the structure and validation rules for the configuration
  */
@@ -69,6 +78,10 @@ export const configSchema = z.object({
   sidebarCollapsed: z.union([z.boolean(), z.null()])
     .default(true)
     .describe('Collapse behaviour of generated sidebar groups. "true" collapses them by default, "false" expands them, "null" makes them non-collapsible.'),
+  acronyms: z.string()
+    .regex(acronymRegex, acronymMessage)
+    .array()
+    .describe('List of comma separated words kept exactly as written in generated sidebar labels and home page titles, such as "CLI" or "API", matched whole and ignoring case.'),
   vitepressConfig: z.any()
     .optional()
     .describe('Path to the vitepress configuration file.'),
@@ -140,6 +153,13 @@ export const cliSchema = configSchema
       .transform(value => value === 'null' ? null : value === 'true')
       .optional()
       .describe(`${configSchema.shape.sidebarCollapsed.description} Values should be ${prettifyEnum(sidebarCollapsedValues)}.`),
+    // Piped back through the config rule so a CLI entry is held to the same
+    // single-word check as a config file one
+    acronyms: z.string()
+      .transform(splitByComma)
+      .pipe(configSchema.shape.acronyms)
+      .optional()
+      .describe(configSchema.shape.acronyms.description || ''),
   })
 
 export type Cli = z.infer<typeof cliSchema>
@@ -164,7 +184,7 @@ function prepareConfigData(configData: any) {
   if (!configData) return {}
 
   const result = { ...configData }
-  const arrayKeys = ['usernames', 'reposFilter', 'extraHeaderPages', 'extraPublicContent', 'extraTheme'] as const
+  const arrayKeys = ['usernames', 'reposFilter', 'extraHeaderPages', 'extraPublicContent', 'extraTheme', 'acronyms'] as const
   for (const key of arrayKeys) {
     if (typeof result[key] === 'string') {
       result[key] = [result[key]]

@@ -51,6 +51,8 @@ export type SidebarMode = 'single' | 'multi'
 export interface SidebarOpts {
   mode?: SidebarMode
   collapsed?: SidebarCollapsed
+  /** Words kept exactly as written in every generated label, home page titles included */
+  acronyms?: string[]
 }
 
 /**
@@ -99,12 +101,13 @@ export interface Index {
  * @param options.lastUpdated - Flag to display each page's last Git commit date, computed by the fetch step
  * @param options.sidebarMode - Shape of the generated sidebar, one flat list or one sidebar per repository
  * @param options.sidebarCollapsed - Collapse behaviour applied to generated sidebar groups
+ * @param options.acronyms - Words kept exactly as written in generated labels
  * @param options.token - Git provider token for API access
  * @param options.username - Git provider username to fetch repositories for
  * @param options.websiteTitle - Custom title for the documentation website
  * @param options.websiteTagline - Custom tagline for the documentation website
  */
-export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, sidebarMode, sidebarCollapsed, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
+export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, sidebarMode, sidebarCollapsed, acronyms, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
   // The forks page relies on matching contributors by login, which the GitLab API does not expose
   const forksEnabled = forks && gitProvider !== 'gitlab'
   if (forks && !forksEnabled) {
@@ -125,7 +128,7 @@ export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTh
     }, { internals: [], forks: [] })
 
   const websiteInfos = { title: websiteTitle, tagline: websiteTagline }
-  const { index, sidebar } = transformDoc(repositories.internals, user, websiteInfos, { mode: sidebarMode, collapsed: sidebarCollapsed })
+  const { index, sidebar } = transformDoc(repositories.internals, user, websiteInfos, { mode: sidebarMode, collapsed: sidebarCollapsed, acronyms })
 
   let finalSB
   let finalIndex
@@ -228,11 +231,13 @@ export function generateIndex(features: Feature[], user: ReturnType<typeof getUs
  * @param repoName - Name of the repository
  * @param description - Description of the repository
  * @param features - Optional existing features to append to
+ * @param routePrefix - Route prefix namespacing the repository in multi-user runs
+ * @param acronyms - Words kept exactly as written in the title
  * @returns Array of feature objects for the homepage
  */
-export function generateFeatures(repoName: string, description: string, features?: Feature[], routePrefix: string = '') {
+export function generateFeatures(repoName: string, description: string, features?: Feature[], routePrefix: string = '', acronyms: string[] = []) {
   const content = {
-    title: prettify(repoName, { mode: 'capitalize', replaceDash: true }),
+    title: prettify(repoName, { mode: 'capitalize', replaceDash: true, acronyms }),
     details: description,
     link: `/${routePrefix}${prettify(repoName, { removeDot: true })}/introduction`,
   }
@@ -246,11 +251,12 @@ export function generateFeatures(repoName: string, description: string, features
  * @param repoName - Name of the repository
  * @param sidebarPages - Array of sidebar pages to include in this project
  * @param collapsed - Collapse behaviour applied to the generated group
+ * @param acronyms - Words kept exactly as written in the group label
  * @returns A sidebar project configuration object
  */
-export function generateSidebarProject(repoName: string, sidebarPages: (SidebarProject | Page)[], collapsed: SidebarCollapsed = true) {
+export function generateSidebarProject(repoName: string, sidebarPages: (SidebarProject | Page)[], collapsed: SidebarCollapsed = true, acronyms: string[] = []) {
   return {
-    text: prettify(repoName, { mode: 'capitalize', replaceDash: true }),
+    text: prettify(repoName, { mode: 'capitalize', replaceDash: true, acronyms }),
     ...collapsedProp(collapsed),
     items: sidebarPages,
   }
@@ -279,9 +285,10 @@ export function generateSidebarPages(repoName: string, fileName: string, sidebar
  * @param repository - Repository information
  * @param obj - Object representing the file tree structure
  * @param collapsed - Collapse behaviour applied to generated folder groups
+ * @param acronyms - Words kept exactly as written in page and folder labels
  * @returns Array of sidebar items (projects and pages)
  */
-export function generateSidebarItems(repository: EnhancedRepository, obj: any, collapsed: SidebarCollapsed = true): (SidebarProject | Page)[] {
+export function generateSidebarItems(repository: EnhancedRepository, obj: any, collapsed: SidebarCollapsed = true, acronyms: string[] = []): (SidebarProject | Page)[] {
   return Object.entries(obj).flatMap(([key, value]): (SidebarProject | Page)[] => {
     if (key === '$') {
       if (Array.isArray(value)) {
@@ -298,7 +305,7 @@ export function generateSidebarItems(repository: EnhancedRepository, obj: any, c
           return {
             text: parse(filename).name === 'introduction'
               ? 'Introduction'
-              : prettify(filename, { mode: 'capitalize', replaceDash: true, removeExt: true }),
+              : prettify(filename, { mode: 'capitalize', replaceDash: true, removeExt: true, acronyms }),
             link: `/${repository.docpress.routePrefix ?? ''}${prettify(repository.name, { removeDot: true })}/${parse(filename).name}`,
           } as Page
         })
@@ -320,7 +327,7 @@ export function generateSidebarItems(repository: EnhancedRepository, obj: any, c
       }
 
       return [{
-        text: prettify(folder, { mode: 'capitalize', replaceDash: true }),
+        text: prettify(folder, { mode: 'capitalize', replaceDash: true, acronyms }),
         ...collapsedProp(collapsed),
         items: generateSidebarItems({
           ...repository,
@@ -328,7 +335,7 @@ export function generateSidebarItems(repository: EnhancedRepository, obj: any, c
           // Descend into the subfolder so file renames target the nested file and
           // not a same-named file at the repository root
           docpress: { ...repository.docpress, projectPath: renamed },
-        }, value, collapsed),
+        }, value, collapsed, acronyms),
       } as SidebarProject]
     }
 
@@ -470,11 +477,11 @@ export function sortSidebarRoutes(sidebarByRoute: DefaultTheme.SidebarMulti): De
  * @param repositories - Array of enhanced repositories
  * @param user - User information retrieved from GitHub
  * @param websiteInfos - Custom title and tagline information
- * @param sidebarOpts - Options driving sidebar shape and collapse behaviour
+ * @param sidebarOpts - Options driving sidebar shape, collapse behaviour and label spelling
  * @returns Object containing sidebar and index page configurations
  */
 export function transformDoc(repositories: EnhancedRepository[], user: ReturnType<typeof getUserInfos>, websiteInfos: WebsiteInfos, sidebarOpts: SidebarOpts = {}) {
-  const { mode = 'single', collapsed = true } = sidebarOpts
+  const { mode = 'single', collapsed = true, acronyms = [] } = sidebarOpts
   const features: Feature[] = []
   const sidebar: SidebarProject[] = []
   const sidebarByRoute: DefaultTheme.SidebarMulti = {}
@@ -518,7 +525,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
     }
 
     const projectTree = buildTree(projectFiles)
-    const sidebarItems = moveSourcesLast(generateSidebarItems(repository, projectTree, collapsed))
+    const sidebarItems = moveSourcesLast(generateSidebarItems(repository, projectTree, collapsed, acronyms))
 
     // Single mode wraps each repository in its own group, which costs one level
     const hidden = findHiddenSidebarPaths(sidebarItems, mode === 'multi' ? 0 : 1)
@@ -531,9 +538,9 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
       // route, so keying on the repository route scopes it to that project alone
       sidebarByRoute[`/${repository.docpress.routePrefix ?? ''}${prettify(repository.name, { removeDot: true })}/`] = sidebarItems
     } else {
-      sidebar.push(generateSidebarProject(prettify(repository.name, { removeDot: true }), sidebarItems, collapsed))
+      sidebar.push(generateSidebarProject(prettify(repository.name, { removeDot: true }), sidebarItems, collapsed, acronyms))
     }
-    features.push(...generateFeatures(prettify(repository.name, { removeDot: true }), repository.description || '', undefined, repository.docpress.routePrefix ?? ''))
+    features.push(...generateFeatures(prettify(repository.name, { removeDot: true }), repository.description || '', undefined, repository.docpress.routePrefix ?? '', acronyms))
   }
 
   log(`   Generate index content.`, 'info')
