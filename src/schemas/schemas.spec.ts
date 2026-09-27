@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { z } from 'zod'
 import type { Config, GlobalOpts } from './global.js'
 import { cliSchema, configSchema, globalOptsSchema } from './global.js'
 
@@ -384,6 +385,20 @@ describe('cliSchema', () => {
     })
 
     expect(() => globalOptsSchema.parse(invalidData)).toThrow(/Cannot read config file/)
+  })
+
+  it('should report each invalid config file value once, at its own path', () => {
+    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+      usernames: ['user1'],
+      gitProvider: 'not-a-provider',
+      acronyms: ['CLI', 'e-mail'],
+    }))
+
+    const result = globalOptsSchema.safeParse({ config: './config.json' })
+
+    expect(result.success).toBe(false)
+    expect(result.error?.issues.map(issue => issue.path)).toEqual([['gitProvider'], ['acronyms', 1]])
+    expect(z.prettifyError(result.error!)).not.toMatch(/✖ ✖/)
   })
 })
 

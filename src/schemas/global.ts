@@ -199,12 +199,13 @@ function prepareConfigData(configData: any) {
  *
  * @param configData - Prepared configuration data to validate
  * @returns The validated configuration data
- * @throws Error if the configuration data is invalid
+ * @throws ZodError if the configuration data is invalid, its issues left
+ * unformatted for globalOptsSchema to forward
  */
 function validateConfigData(configData: any) {
   const result = configSchema.partial().safeParse(configData)
   if (!result.success) {
-    throw new Error(z.prettifyError(result.error))
+    throw result.error
   }
   return result.data
 }
@@ -301,6 +302,17 @@ export const globalOptsSchema = cliSchema
       // Surface the failure as a validation issue instead of terminating the
       // process from inside the schema. The caller (parseOptions) reports it and
       // owns the single exit point, which keeps this schema pure and testable.
+      //
+      // A configuration file's issues are forwarded one by one with their own
+      // paths, as the CLI's are, since that exit point formats every issue.
+      // Formatted here as well, the whole list became the text of one pathless
+      // issue, and the report opened with a doubled mark ("✖ ✖").
+      if (error instanceof z.ZodError) {
+        for (const issue of error.issues) {
+          ctx.addIssue({ code: 'custom', message: issue.message, path: issue.path })
+        }
+        return z.NEVER
+      }
       ctx.addIssue({
         code: 'custom',
         message: error instanceof Error ? error.message : JSON.stringify(error, null, 2),
