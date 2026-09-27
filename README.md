@@ -52,6 +52,7 @@ Usage: docpress [options] [command]
 Build your doc website faster than light ⚡️⚡️⚡️
 
 Options:
+  --acronyms <string>                  List of comma separated words kept exactly as written in generated sidebar labels and home page titles, such as "CLI" or "API", matched whole and ignoring case.
   -b, --branch <string>                Branch used to collect Git provider data. Defaults to each repository's own default branch when not set.
   -c, --extra-public-content <string>  List of comma separated additional files or directories to process Vitepress public folder.
   -C, --config <string>                Path to the docpress configuration file.
