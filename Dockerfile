@@ -1,5 +1,5 @@
-ARG BUN_IMAGE=docker.io/oven/bun:1.3.14
-ARG BUN_ALPINE_IMAGE=docker.io/oven/bun:1.3.14-alpine
+ARG BUN_IMAGE=docker.io/oven/bun:1.4.2
+ARG BUN_ALPINE_IMAGE=docker.io/oven/bun:1.4.2-alpine
 
 # Base stage - only the dependency manifests so the install layers stay cached
 # until package.json / bun.lock actually change
