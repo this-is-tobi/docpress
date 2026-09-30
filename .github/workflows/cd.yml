@@ -14,7 +14,7 @@ jobs:
       BUN_VERSION: ${{ steps.versions.outputs.BUN_VERSION }}
     steps:
     - name: Checks-out repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Exposing versions pinned in mise.toml
       id: versions

@@ -20,7 +20,7 @@ jobs:
       HAS_APP_AUTH: ${{ secrets.APP_CLIENT_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
     steps:
     - name: Checks-out repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Mint GitHub App token
       # Read-only, and only for the 5,000 requests/hour an App gets against the
@@ -46,7 +46,7 @@ jobs:
         echo "CACHE_DIR=$(bun pm cache)" >> "$GITHUB_OUTPUT"
 
     - name: Cache node files
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ${{ steps.bun-cache.outputs.CACHE_DIR }}
