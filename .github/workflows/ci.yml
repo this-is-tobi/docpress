@@ -51,6 +51,9 @@ jobs:
     uses: ./.github/workflows/tests-cli.yml
     needs:
     - expose-vars
+    secrets:
+      APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
   build-docker:
     uses: this-is-tobi/github-workflows/.github/workflows/build-docker.yml@v0
@@ -76,6 +79,9 @@ jobs:
     - build-docker
     with:
       DOCKER_IMAGE: ${{ (github.event.pull_request.number || github.event.number) && format('ghcr.io/{0}/docpress:pr-{1}', github.repository_owner, (github.event.pull_request.number || github.event.number)) || '' }}
+    secrets:
+      APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
   scan-vuln:
     uses: this-is-tobi/github-workflows/.github/workflows/scan-trivy.yml@v0
@@ -93,6 +99,9 @@ jobs:
       FORMAT: sarif
       GITHUB_SECURITY_TAB: true
       PR_NUMBER: ${{ format('{0}', github.event.pull_request.number || github.event.number) }}
+    secrets:
+      APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
   # Sonarqube scan - requires vars.SONAR_URL repository variable and SONAR_TOKEN + SONAR_PROJECT_KEY secrets
   code-scan:

@@ -2,15 +2,38 @@ name: Tests - cli
 
 on:
   workflow_call:
+    secrets:
+      APP_CLIENT_ID:
+        description: GitHub App Client ID, used to mint a read-only token for the GitHub API calls docpress makes
+        required: false
+      APP_PRIVATE_KEY:
+        description: GitHub App private key (PEM). Required alongside APP_CLIENT_ID.
+        required: false
   workflow_dispatch:
 
 jobs:
   cli-tests:
     name: CLI tests
     runs-on: ubuntu-latest
+    env:
+      # `secrets` is not available in a step-level `if`, but it is here.
+      HAS_APP_AUTH: ${{ secrets.APP_CLIENT_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
     steps:
     - name: Checks-out repository
       uses: actions/checkout@v6
+
+    - name: Mint GitHub App token
+      # Read-only, and only for the 5,000 requests/hour an App gets against the
+      # job token's 1,000. Without the App secrets (e.g. fork pull requests) the
+      # tests fall back to GITHUB_TOKEN.
+      id: app-token
+      if: ${{ env.HAS_APP_AUTH == 'true' }}
+      uses: actions/create-github-app-token@v3
+      with:
+        client-id: ${{ secrets.APP_CLIENT_ID }}
+        private-key: ${{ secrets.APP_PRIVATE_KEY }}
+        permission-contents: read
+        permission-metadata: read
 
     - name: Install toolchain
       # bun, node and pnpm as pinned in mise.toml. node and pnpm are only needed
@@ -36,5 +59,5 @@ jobs:
 
     - name: Run cli tests
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
       run: ./ci/scripts/run-tests.sh -c 'npm,pnpm,bun'
