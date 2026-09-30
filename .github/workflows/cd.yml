@@ -6,18 +6,19 @@ on:
     - main
   workflow_dispatch:
 
-env:
-  # Pin the toolchain that builds and publishes to npm for reproducible releases
-  BUN_VERSION: 1.4.0
-
 jobs:
   expose-vars:
     runs-on: ubuntu-latest
     outputs:
-      BUN_VERSION: ${{ env.BUN_VERSION }}
+      # The toolchain that builds and publishes to npm is the one pinned in mise.toml
+      BUN_VERSION: ${{ steps.versions.outputs.BUN_VERSION }}
     steps:
-    - name: Exposing env vars
-      run: echo "Exposing env vars"
+    - name: Checks-out repository
+      uses: actions/checkout@v6
+
+    - name: Exposing versions pinned in mise.toml
+      id: versions
+      run: echo "BUN_VERSION=$(sed -n 's/^bun = "\(.*\)"/\1/p' mise.toml)" >> "$GITHUB_OUTPUT"
 
   release:
     uses: this-is-tobi/github-workflows/.github/workflows/release-app.yml@v0
