@@ -11,16 +11,22 @@ on:
         required: false
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   cli-tests:
     name: CLI tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       # `secrets` is not available in a step-level `if`, but it is here.
       HAS_APP_AUTH: ${{ secrets.APP_CLIENT_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
     steps:
     - name: Checks-out repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Mint GitHub App token
       # Read-only, and only for the 5,000 requests/hour an App gets against the
@@ -28,7 +34,7 @@ jobs:
       # tests fall back to GITHUB_TOKEN.
       id: app-token
       if: ${{ env.HAS_APP_AUTH == 'true' }}
-      uses: actions/create-github-app-token@v3
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
       with:
         client-id: ${{ secrets.APP_CLIENT_ID }}
         private-key: ${{ secrets.APP_PRIVATE_KEY }}
@@ -38,7 +44,7 @@ jobs:
     - name: Install toolchain
       # bun, node and pnpm as pinned in mise.toml. node and pnpm are only needed
       # for the npm and pnpm consumer-install scenarios below.
-      uses: jdx/mise-action@v5
+      uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
 
     - name: Get bun cache directory
       id: bun-cache
@@ -46,7 +52,7 @@ jobs:
         echo "CACHE_DIR=$(bun pm cache)" >> "$GITHUB_OUTPUT"
 
     - name: Cache node files
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: |
           ${{ steps.bun-cache.outputs.CACHE_DIR }}
