@@ -6,6 +6,13 @@ on:
       DOCKER_IMAGE:
         required: false
         type: string
+    secrets:
+      APP_CLIENT_ID:
+        description: GitHub App Client ID, used to mint a read-only token for the GitHub API calls docpress makes
+        required: false
+      APP_PRIVATE_KEY:
+        description: GitHub App private key (PEM). Required alongside APP_CLIENT_ID.
+        required: false
   workflow_dispatch:
     inputs:
       DOCKER_IMAGE:
@@ -17,9 +24,25 @@ jobs:
   docker-tests:
     name: Docker tests
     runs-on: ubuntu-latest
+    env:
+      # `secrets` is not available in a step-level `if`, but it is here.
+      HAS_APP_AUTH: ${{ secrets.APP_CLIENT_ID != '' && secrets.APP_PRIVATE_KEY != '' }}
     steps:
     - name: Checks-out repository
       uses: actions/checkout@v6
+
+    - name: Mint GitHub App token
+      # Read-only, and only for the 5,000 requests/hour an App gets against the
+      # job token's 1,000. Without the App secrets (e.g. fork pull requests) the
+      # tests fall back to GITHUB_TOKEN.
+      id: app-token
+      if: ${{ env.HAS_APP_AUTH == 'true' }}
+      uses: actions/create-github-app-token@v3
+      with:
+        client-id: ${{ secrets.APP_CLIENT_ID }}
+        private-key: ${{ secrets.APP_PRIVATE_KEY }}
+        permission-contents: read
+        permission-metadata: read
 
     - name: Install bun
       uses: oven-sh/setup-bun@v2
@@ -28,6 +51,6 @@ jobs:
 
     - name: Run docker tests
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
         DOCKER_IMAGE: ${{ inputs.DOCKER_IMAGE }}
       run: ./ci/scripts/run-tests.sh -d "$DOCKER_IMAGE"
