@@ -3,7 +3,9 @@
   "extends": [
     "config:recommended",
     ":semanticCommits",
-    ":semanticCommitTypeAll(build)"
+    ":semanticCommitTypeAll(build)",
+    "helpers:pinGitHubActionDigests",
+    "docker:pinDigests"
   ],
   "timezone": "Europe/Paris",
   "schedule": ["before 6am on monday"],
@@ -14,6 +16,7 @@
     "enabled": true,
     "schedule": ["before 6am on the first day of the month"]
   },
+  "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
     "enabled": true,
     "labels": ["dependencies", "security"],
@@ -22,7 +25,7 @@
   "packageRules": [
     {
       "description": "Group non-major updates into a single PR to keep review cheap",
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
       "groupName": "non-major dependencies"
     },
     {
@@ -42,8 +45,8 @@
       "enabled": false
     },
     {
-      "description": "Keep the bun pin in package.json, mise.toml and the workflows in one PR",
-      "matchPackageNames": ["bun", "oven-sh/bun"],
+      "description": "Keep the bun pin in package.json, mise.toml and the Docker images in one PR",
+      "matchPackageNames": ["bun", "oven-sh/bun", "oven/bun", "docker.io/oven/bun"],
       "groupName": "bun"
     }
   ]

@@ -16,6 +16,8 @@ on:
         required: false
         type: string
 
+permissions: {}
+
 jobs:
   # Runs on every push to an open PR: the 'pr-<N>' tag moves to the new build
   # as soon as it lands, orphaning the previous commit's image (and its
@@ -23,7 +25,7 @@ jobs:
   # the whole lifetime of a long-lived PR instead of only at close.
   clean-orphaned-images:
     if: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
-    uses: this-is-tobi/github-workflows/.github/workflows/clean-images.yml@v0
+    uses: this-is-tobi/github-workflows/.github/workflows/clean-images.yml@73f7d8c7954181d30c8459d9799d8772f8191703 # v0.35.0
     permissions:
       packages: write
     with:
@@ -34,7 +36,7 @@ jobs:
   # Runs once the PR closes: drop its Actions cache entries ...
   clean-cache:
     if: ${{ github.event_name != 'pull_request' || github.event.action == 'closed' }}
-    uses: this-is-tobi/github-workflows/.github/workflows/clean-cache.yml@v0
+    uses: this-is-tobi/github-workflows/.github/workflows/clean-cache.yml@73f7d8c7954181d30c8459d9799d8772f8191703 # v0.35.0
     permissions:
       actions: write
     with:
@@ -44,7 +46,7 @@ jobs:
   # ... and the final build's image, plus its per-arch children.
   clean-images:
     if: ${{ github.event_name != 'pull_request' || github.event.action == 'closed' }}
-    uses: this-is-tobi/github-workflows/.github/workflows/clean-images.yml@v0
+    uses: this-is-tobi/github-workflows/.github/workflows/clean-images.yml@73f7d8c7954181d30c8459d9799d8772f8191703 # v0.35.0
     permissions:
       packages: write
     with:

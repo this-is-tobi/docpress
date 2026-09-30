@@ -11,15 +11,21 @@ on:
     - "**"
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   expose-vars:
     runs-on: ubuntu-latest
     if: ${{ !github.event.pull_request.draft }}
+    permissions:
+      contents: read
     outputs:
       BUN_VERSION: ${{ steps.versions.outputs.BUN_VERSION }}
     steps:
     - name: Checks-out repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Exposing versions pinned in mise.toml
       id: versions
@@ -29,7 +35,7 @@ jobs:
   # Release PRs count as docs-only too: they only touch the changelog, the
   # manifest and the version in package.json. Outside a pull request every job runs.
   path-filter:
-    uses: this-is-tobi/github-workflows/.github/workflows/classify-changes.yml@v0
+    uses: this-is-tobi/github-workflows/.github/workflows/classify-changes.yml@73f7d8c7954181d30c8459d9799d8772f8191703 # v0.35.0
     if: ${{ !github.event.pull_request.draft }}
     permissions:
       pull-requests: read
@@ -41,7 +47,7 @@ jobs:
   # Pull requests are rebase-merged, so every commit lands on main as is and
   # release-please builds the version and changelog from it.
   lint-commits:
-    uses: this-is-tobi/github-workflows/.github/workflows/lint-commits.yml@v0
+    uses: this-is-tobi/github-workflows/.github/workflows/lint-commits.yml@73f7d8c7954181d30c8459d9799d8772f8191703 # v0.35.0
     if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
     permissions:
       contents: read
@@ -49,7 +55,7 @@ jobs:
       CONFIG_FILE: .commitlintrc.json
 
   scan-secrets:
-    uses: this-is-tobi/github-workflows/.github/workflows/scan-gitleaks.yml@v0
+    uses: this-is-tobi/github-workflows/.github/workflows/scan-gitleaks.yml@73f7d8c7954181d30c8459d9799d8772f8191703 # v0.35.0
     if: ${{ !github.event.pull_request.draft }}
     permissions:
       contents: read
@@ -60,20 +66,24 @@ jobs:
       PR_NUMBER: ${{ format('{0}', github.event.pull_request.number || '') }}
 
   lint:
-    uses: this-is-tobi/github-workflows/.github/workflows/lint-js.yml@v0
+    uses: this-is-tobi/github-workflows/.github/workflows/lint-js.yml@73f7d8c7954181d30c8459d9799d8772f8191703 # v0.35.0
     needs:
     - expose-vars
+    permissions:
+      contents: read
     with:
       RUNTIME: bun
       RUNTIME_VERSION: ${{ needs.expose-vars.outputs.BUN_VERSION }}
       PACKAGE_MANAGER: bun
 
   tests-unit:
-    uses: this-is-tobi/github-workflows/.github/workflows/test-vitest.yml@v0
+    uses: this-is-tobi/github-workflows/.github/workflows/test-vitest.yml@73f7d8c7954181d30c8459d9799d8772f8191703 # v0.35.0
     if: ${{ needs.path-filter.outputs.code == 'true' }}
     needs:
     - expose-vars
     - path-filter
+    permissions:
+      contents: read
     with:
       RUNTIME: bun
       RUNTIME_VERSION: ${{ needs.expose-vars.outputs.BUN_VERSION }}
@@ -88,20 +98,20 @@ jobs:
     if: ${{ needs.path-filter.outputs.code == 'true' }}
     needs:
     - path-filter
+    permissions:
+      contents: read
     secrets:
       APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
   build-docker:
-    uses: this-is-tobi/github-workflows/.github/workflows/build-docker.yml@v0
+    uses: this-is-tobi/github-workflows/.github/workflows/build-docker.yml@73f7d8c7954181d30c8459d9799d8772f8191703 # v0.35.0
     if: ${{ needs.path-filter.outputs.code == 'true' }}
     needs:
     - path-filter
     permissions:
       contents: read
       packages: write
-      attestations: write
-      id-token: write
     with:
       IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/docpress
       IMAGE_TAG: pr-${{ github.event.pull_request.number || github.event.number }}
@@ -114,6 +124,8 @@ jobs:
     uses: ./.github/workflows/tests-docker.yml
     needs:
     - build-docker
+    permissions:
+      contents: read
     with:
       DOCKER_IMAGE: ${{ (github.event.pull_request.number || github.event.number) && format('ghcr.io/{0}/docpress:pr-{1}', github.repository_owner, (github.event.pull_request.number || github.event.number)) || '' }}
     secrets:
@@ -121,7 +133,7 @@ jobs:
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
   scan-vuln:
-    uses: this-is-tobi/github-workflows/.github/workflows/scan-trivy.yml@v0
+    uses: this-is-tobi/github-workflows/.github/workflows/scan-trivy.yml@73f7d8c7954181d30c8459d9799d8772f8191703 # v0.35.0
     if: ${{ github.base_ref == 'main' || github.base_ref == 'develop' }}
     needs:
     - build-docker
@@ -142,7 +154,7 @@ jobs:
 
   # Sonarqube scan - requires vars.SONAR_URL repository variable and SONAR_TOKEN + SONAR_PROJECT_KEY secrets
   code-scan:
-    uses: this-is-tobi/github-workflows/.github/workflows/scan-sonarqube.yml@v0
+    uses: this-is-tobi/github-workflows/.github/workflows/scan-sonarqube.yml@73f7d8c7954181d30c8459d9799d8772f8191703 # v0.35.0
     if: ${{ vars.SONAR_URL != '' }}
     needs:
     - tests-unit
@@ -160,13 +172,15 @@ jobs:
         -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
         -Dsonar.coverage.exclusions=**/*.spec.js,**/*.spec.ts
         -Dsonar.cpd.exclusions=**/*.spec.js,**/*.spec.ts
-    secrets: inherit
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
 
   # The single check the ruleset requires, standing for the path-filtered jobs
   # above: list every job so a failure never reaches it as a skip.
   all-jobs-passed:
     name: Check jobs status
-    uses: this-is-tobi/github-workflows/.github/workflows/check-jobs.yml@v0
+    uses: this-is-tobi/github-workflows/.github/workflows/check-jobs.yml@73f7d8c7954181d30c8459d9799d8772f8191703 # v0.35.0
     if: ${{ always() }}
     needs:
     - expose-vars
