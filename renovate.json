@@ -3,7 +3,7 @@
   "extends": [
     "config:recommended",
     ":semanticCommits",
-    ":semanticCommitTypeAll(chore)"
+    ":semanticCommitTypeAll(build)"
   ],
   "timezone": "Europe/Paris",
   "schedule": ["before 6am on monday"],
