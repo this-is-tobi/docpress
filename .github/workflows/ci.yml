@@ -38,6 +38,27 @@ jobs:
         ["docs/*", "*.md", "LICENSE", "NOTICE", ".release-please-manifest.json"
         ${{ startsWith(github.head_ref, 'release-please--') && ', "package.json"' || '' }}]
 
+  # Pull requests are rebase-merged, so every commit lands on main as is and
+  # release-please builds the version and changelog from it.
+  lint-commits:
+    uses: this-is-tobi/github-workflows/.github/workflows/lint-commits.yml@v0
+    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
+    permissions:
+      contents: read
+    with:
+      CONFIG_FILE: .commitlintrc.json
+
+  scan-secrets:
+    uses: this-is-tobi/github-workflows/.github/workflows/scan-gitleaks.yml@v0
+    if: ${{ !github.event.pull_request.draft }}
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+    with:
+      GITHUB_SECURITY_TAB: true
+      PR_NUMBER: ${{ format('{0}', github.event.pull_request.number || '') }}
+
   lint:
     uses: this-is-tobi/github-workflows/.github/workflows/lint-js.yml@v0
     needs:
@@ -141,14 +162,17 @@ jobs:
         -Dsonar.cpd.exclusions=**/*.spec.js,**/*.spec.ts
     secrets: inherit
 
-  # Workaround for required status check in protection branches (see. https://github.com/orgs/community/discussions/13690)
+  # The single check the ruleset requires, standing for the path-filtered jobs
+  # above: list every job so a failure never reaches it as a skip.
   all-jobs-passed:
     name: Check jobs status
-    runs-on: ubuntu-latest
+    uses: this-is-tobi/github-workflows/.github/workflows/check-jobs.yml@v0
     if: ${{ always() }}
     needs:
     - expose-vars
     - path-filter
+    - lint-commits
+    - scan-secrets
     - lint
     - tests-unit
     - tests-cli
@@ -156,19 +180,5 @@ jobs:
     - tests-docker
     - scan-vuln
     - code-scan
-    steps:
-    - name: Check status of all required jobs
-      env:
-        NEEDS_CONTEXT: ${{ toJson(needs) }}
-      run: |-
-        JOB_IDS=$(echo "$NEEDS_CONTEXT" | jq -r 'keys[]')
-        for JOB_ID in $JOB_IDS; do
-          RESULT=$(echo "$NEEDS_CONTEXT" | jq -r ".[\"$JOB_ID\"].result")
-          echo "$JOB_ID job result: $RESULT"
-          if [[ $RESULT != "success" && $RESULT != "skipped" ]]; then
-            echo "***"
-            echo "Error: The $JOB_ID job did not pass."
-            exit 1
-          fi
-        done
-        echo "All jobs passed or were skipped."
+    with:
+      NEEDS: ${{ toJson(needs) }}
