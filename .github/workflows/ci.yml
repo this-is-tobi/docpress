@@ -25,6 +25,19 @@ jobs:
       id: versions
       run: echo "BUN_VERSION=$(sed -n 's/^bun = "\(.*\)"/\1/p' mise.toml)" >> "$GITHUB_OUTPUT"
 
+  # Docs-only changes skip everything but lint, which also checks markdown.
+  # Release PRs count as docs-only too: they only touch the changelog, the
+  # manifest and the version in package.json. Outside a pull request every job runs.
+  path-filter:
+    uses: this-is-tobi/github-workflows/.github/workflows/classify-changes.yml@v0
+    if: ${{ !github.event.pull_request.draft }}
+    permissions:
+      pull-requests: read
+    with:
+      PROSE_PATTERNS: >-
+        ["docs/*", "*.md", "LICENSE", "NOTICE", ".release-please-manifest.json"
+        ${{ startsWith(github.head_ref, 'release-please--') && ', "package.json"' || '' }}]
+
   lint:
     uses: this-is-tobi/github-workflows/.github/workflows/lint-js.yml@v0
     needs:
@@ -36,8 +49,10 @@ jobs:
 
   tests-unit:
     uses: this-is-tobi/github-workflows/.github/workflows/test-vitest.yml@v0
+    if: ${{ needs.path-filter.outputs.code == 'true' }}
     needs:
     - expose-vars
+    - path-filter
     with:
       RUNTIME: bun
       RUNTIME_VERSION: ${{ needs.expose-vars.outputs.BUN_VERSION }}
@@ -49,16 +64,18 @@ jobs:
 
   tests-cli:
     uses: ./.github/workflows/tests-cli.yml
+    if: ${{ needs.path-filter.outputs.code == 'true' }}
     needs:
-    - expose-vars
+    - path-filter
     secrets:
       APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
   build-docker:
     uses: this-is-tobi/github-workflows/.github/workflows/build-docker.yml@v0
+    if: ${{ needs.path-filter.outputs.code == 'true' }}
     needs:
-    - expose-vars
+    - path-filter
     permissions:
       contents: read
       packages: write
@@ -75,7 +92,6 @@ jobs:
   tests-docker:
     uses: ./.github/workflows/tests-docker.yml
     needs:
-    - expose-vars
     - build-docker
     with:
       DOCKER_IMAGE: ${{ (github.event.pull_request.number || github.event.number) && format('ghcr.io/{0}/docpress:pr-{1}', github.repository_owner, (github.event.pull_request.number || github.event.number)) || '' }}
@@ -85,7 +101,7 @@ jobs:
 
   scan-vuln:
     uses: this-is-tobi/github-workflows/.github/workflows/scan-trivy.yml@v0
-    if: ${{ !github.event.pull_request.draft && (github.base_ref == 'main' || github.base_ref == 'develop') }}
+    if: ${{ github.base_ref == 'main' || github.base_ref == 'develop' }}
     needs:
     - build-docker
     permissions:
@@ -132,6 +148,7 @@ jobs:
     if: ${{ always() }}
     needs:
     - expose-vars
+    - path-filter
     - lint
     - tests-unit
     - tests-cli
