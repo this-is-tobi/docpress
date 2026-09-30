@@ -11,20 +11,19 @@ on:
     - "**"
   workflow_dispatch:
 
-env:
-  NODE_VERSION: 24.14.0
-  BUN_VERSION: 1.4.0
-
 jobs:
   expose-vars:
     runs-on: ubuntu-latest
     if: ${{ !github.event.pull_request.draft }}
     outputs:
-      NODE_VERSION: ${{ env.NODE_VERSION }}
-      BUN_VERSION: ${{ env.BUN_VERSION }}
+      BUN_VERSION: ${{ steps.versions.outputs.BUN_VERSION }}
     steps:
-    - name: Exposing env vars
-      run: echo "Exposing env vars"
+    - name: Checks-out repository
+      uses: actions/checkout@v6
+
+    - name: Exposing versions pinned in mise.toml
+      id: versions
+      run: echo "BUN_VERSION=$(sed -n 's/^bun = "\(.*\)"/\1/p' mise.toml)" >> "$GITHUB_OUTPUT"
 
   lint:
     uses: this-is-tobi/github-workflows/.github/workflows/lint-js.yml@v0
@@ -52,9 +51,6 @@ jobs:
     uses: ./.github/workflows/tests-cli.yml
     needs:
     - expose-vars
-    with:
-      NODE_VERSION: ${{ needs.expose-vars.outputs.NODE_VERSION }}
-      BUN_VERSION: ${{ needs.expose-vars.outputs.BUN_VERSION }}
 
   build-docker:
     uses: this-is-tobi/github-workflows/.github/workflows/build-docker.yml@v0
