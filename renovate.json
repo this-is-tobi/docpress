@@ -35,7 +35,7 @@
       "allowedVersions": "<7.0.0"
     },
     {
-      "description": "Keep the bun pin in package.json, .prototools and the workflows in one PR",
+      "description": "Keep the bun pin in package.json, mise.toml and the workflows in one PR",
       "matchPackageNames": ["bun", "oven-sh/bun"],
       "groupName": "bun"
     }
