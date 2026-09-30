@@ -1,0 +1,9 @@
+/*
+ * Mermaid sizes its HTML labels at a line-height of 1.5, but renders them as <p>
+ * elements that pick up the VitePress `.vp-doc p` line-height and margins, so
+ * multi-line node and edge labels overflow their boxes and are clipped.
+ */
+.vp-doc .mermaid foreignObject p {
+  line-height: 1.5;
+  margin: 0;
+}
