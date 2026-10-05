@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.2](https://github.com/this-is-tobi/docpress/compare/v0.13.1...v0.13.2) (2026-10-05)
+
+
+### Dependencies
+
+* **deps:** update non-major dependencies ([8578594](https://github.com/this-is-tobi/docpress/commit/857859406ebac77d0e0d20b0913762b40fbbc077))
+
 ## [0.13.1](https://github.com/this-is-tobi/docpress/compare/v0.13.0...v0.13.1) (2026-09-30)
 
 
