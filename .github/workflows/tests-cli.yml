@@ -44,7 +44,7 @@ jobs:
     - name: Install toolchain
       # bun, node and pnpm as pinned in mise.toml. node and pnpm are only needed
       # for the npm and pnpm consumer-install scenarios below.
-      uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
+      uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
 
     - name: Get bun cache directory
       id: bun-cache
