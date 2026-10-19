@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.3](https://github.com/this-is-tobi/docpress/compare/v0.13.2...v0.13.3) (2026-10-19)
+
+
+### Dependencies
+
+* **deps:** update bun to v1.4.3 ([4b28518](https://github.com/this-is-tobi/docpress/commit/4b285186453c2e5cd273a26f7bd20faa61fb91f9))
+* **deps:** update non-major dependencies ([9d727c8](https://github.com/this-is-tobi/docpress/commit/9d727c882d118b0947d27f3c40fda6b3e4bcf49c))
+
 ## [0.13.2](https://github.com/this-is-tobi/docpress/compare/v0.13.1...v0.13.2) (2026-10-12)
 
 
