@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.13.4](https://github.com/this-is-tobi/docpress/compare/v0.13.3...v0.13.4) (2026-10-26)
+
+
+### Bug Fixes
+
+* **deps:** declare vue as a production dependency ([60e2dda](https://github.com/this-is-tobi/docpress/commit/60e2ddad60200aec9ad01fe247ac4ed0b124fff9))
+
+
+### Dependencies
+
+* **deps:** update bun to v1.4.4 ([4a0dcd8](https://github.com/this-is-tobi/docpress/commit/4a0dcd8f152e76bd0e9ec00f03037ff044fbfaf1))
+* **deps:** update non-major dependencies ([d6fcf8c](https://github.com/this-is-tobi/docpress/commit/d6fcf8c404187758fe2cbde67a2d23f177ae9975))
+
 ## [0.13.3](https://github.com/this-is-tobi/docpress/compare/v0.13.2...v0.13.3) (2026-10-19)
 
 
