@@ -41,7 +41,7 @@ jobs:
   # Release PRs count as docs-only too: they only touch the changelog, the
   # manifest and the version in package.json. Outside a pull request every job runs.
   path-filter:
-    uses: this-is-tobi/github-workflows/.github/workflows/classify-changes.yml@bedb8a8ec98b388c53b3982083c19c6b9a4bf583 # v0.43.0
+    uses: this-is-tobi/github-workflows/.github/workflows/classify-changes.yml@81805dd4617e38c163c323ad16437fcf87821309 # v0.44.0
     if: ${{ !github.event.pull_request.draft }}
     permissions:
       pull-requests: read
@@ -53,7 +53,7 @@ jobs:
   # Pull requests are rebase-merged, so every commit lands on main as is and
   # release-please builds the version and changelog from it.
   lint-commits:
-    uses: this-is-tobi/github-workflows/.github/workflows/lint-commits.yml@bedb8a8ec98b388c53b3982083c19c6b9a4bf583 # v0.43.0
+    uses: this-is-tobi/github-workflows/.github/workflows/lint-commits.yml@81805dd4617e38c163c323ad16437fcf87821309 # v0.44.0
     if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
     permissions:
       contents: read
@@ -61,7 +61,7 @@ jobs:
       CONFIG_FILE: .commitlintrc.json
 
   scan-secrets:
-    uses: this-is-tobi/github-workflows/.github/workflows/scan-gitleaks.yml@bedb8a8ec98b388c53b3982083c19c6b9a4bf583 # v0.43.0
+    uses: this-is-tobi/github-workflows/.github/workflows/scan-gitleaks.yml@81805dd4617e38c163c323ad16437fcf87821309 # v0.44.0
     if: ${{ !github.event.pull_request.draft }}
     permissions:
       contents: read
@@ -72,7 +72,7 @@ jobs:
       PR_NUMBER: ${{ format('{0}', github.event.pull_request.number || '') }}
 
   lint:
-    uses: this-is-tobi/github-workflows/.github/workflows/lint-js.yml@bedb8a8ec98b388c53b3982083c19c6b9a4bf583 # v0.43.0
+    uses: this-is-tobi/github-workflows/.github/workflows/lint-js.yml@81805dd4617e38c163c323ad16437fcf87821309 # v0.44.0
     needs:
     - expose-vars
     permissions:
@@ -83,7 +83,7 @@ jobs:
       PACKAGE_MANAGER: bun
 
   tests-unit:
-    uses: this-is-tobi/github-workflows/.github/workflows/test-vitest.yml@bedb8a8ec98b388c53b3982083c19c6b9a4bf583 # v0.43.0
+    uses: this-is-tobi/github-workflows/.github/workflows/test-vitest.yml@81805dd4617e38c163c323ad16437fcf87821309 # v0.44.0
     if: ${{ needs.path-filter.outputs.code == 'true' }}
     needs:
     - expose-vars
@@ -111,7 +111,7 @@ jobs:
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
   build-docker:
-    uses: this-is-tobi/github-workflows/.github/workflows/build-docker.yml@bedb8a8ec98b388c53b3982083c19c6b9a4bf583 # v0.43.0
+    uses: this-is-tobi/github-workflows/.github/workflows/build-docker.yml@81805dd4617e38c163c323ad16437fcf87821309 # v0.44.0
     if: ${{ needs.path-filter.outputs.code == 'true' }}
     needs:
     - path-filter
@@ -139,7 +139,7 @@ jobs:
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
   scan-vuln:
-    uses: this-is-tobi/github-workflows/.github/workflows/scan-trivy.yml@bedb8a8ec98b388c53b3982083c19c6b9a4bf583 # v0.43.0
+    uses: this-is-tobi/github-workflows/.github/workflows/scan-trivy.yml@81805dd4617e38c163c323ad16437fcf87821309 # v0.44.0
     if: ${{ github.base_ref == 'main' || github.base_ref == 'develop' }}
     needs:
     - build-docker
@@ -160,7 +160,7 @@ jobs:
 
   # Sonarqube scan - requires vars.SONAR_URL repository variable and SONAR_TOKEN + SONAR_PROJECT_KEY secrets
   code-scan:
-    uses: this-is-tobi/github-workflows/.github/workflows/scan-sonarqube.yml@bedb8a8ec98b388c53b3982083c19c6b9a4bf583 # v0.43.0
+    uses: this-is-tobi/github-workflows/.github/workflows/scan-sonarqube.yml@81805dd4617e38c163c323ad16437fcf87821309 # v0.44.0
     if: ${{ vars.SONAR_URL != '' }}
     needs:
     - tests-unit
@@ -186,7 +186,7 @@ jobs:
   # above: list every job so a failure never reaches it as a skip.
   all-jobs-passed:
     name: Check jobs status
-    uses: this-is-tobi/github-workflows/.github/workflows/check-jobs.yml@bedb8a8ec98b388c53b3982083c19c6b9a4bf583 # v0.43.0
+    uses: this-is-tobi/github-workflows/.github/workflows/check-jobs.yml@81805dd4617e38c163c323ad16437fcf87821309 # v0.44.0
     if: ${{ always() }}
     needs:
     - expose-vars
