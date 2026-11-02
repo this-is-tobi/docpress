@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.5](https://github.com/this-is-tobi/docpress/compare/v0.13.4...v0.13.5) (2026-11-02)
+
+
+### Bug Fixes
+
+* **docker:** install production dependencies on the prod image's libc ([46d808e](https://github.com/this-is-tobi/docpress/commit/46d808e75facc8e746ef64b86456a7e1dcbe0d7d))
+
+
+### Dependencies
+
+* **deps:** update non-major dependencies ([18093a2](https://github.com/this-is-tobi/docpress/commit/18093a2a63d14ffd50e996ba79d9e55171d52fd2))
+
 ## [0.13.4](https://github.com/this-is-tobi/docpress/compare/v0.13.3...v0.13.4) (2026-10-26)
 
 
