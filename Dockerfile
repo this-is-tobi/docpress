@@ -18,9 +18,12 @@ ENTRYPOINT [ "bun", "run" ]
 CMD [ "dev" ]
 
 
-# Prod dependencies stage
-FROM base AS prod-deps
+# Prod dependencies stage - installed on the prod image's libc (musl), because bun only
+# fetches the native optional packages (rollup, lightningcss, ...) matching the host libc
+FROM ${BUN_ALPINE_IMAGE} AS prod-deps
 
+WORKDIR /app
+COPY package.json bun.lock ./
 RUN --mount=type=cache,id=bun,target=/root/.bun/install/cache bun install --production --frozen-lockfile --ignore-scripts
 
 
