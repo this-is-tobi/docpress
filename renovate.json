@@ -48,6 +48,11 @@
       "description": "Keep the bun pin in package.json, mise.toml and the Docker images in one PR",
       "matchPackageNames": ["bun", "oven-sh/bun", "oven/bun", "docker.io/oven/bun"],
       "groupName": "bun"
+    },
+    {
+      "description": "No wait for our own reusable workflows: a fix released there has to reach this repository at once",
+      "matchDepNames": ["this-is-tobi/github-workflows"],
+      "minimumReleaseAge": null
     }
   ]
 }
