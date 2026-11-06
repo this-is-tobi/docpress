@@ -1,0 +1,7 @@
+[install]
+# Only resolve package versions published at least 3 days ago. Keep it equal to
+# minimumReleaseAge in renovate.json: Renovate cannot age a lock file
+# maintenance, so this is what enforces the cooldown there, and a longer value
+# here than there would make bun refuse versions Renovate has already accepted.
+# Versions already in bun.lock are untouched, so frozen installs are unaffected.
+minimumReleaseAge = 259200

@@ -53,6 +53,11 @@
       "description": "No wait for our own reusable workflows: a fix released there has to reach this repository at once",
       "matchDepNames": ["this-is-tobi/github-workflows"],
       "minimumReleaseAge": null
+    },
+    {
+      "description": "Lock file maintenance has no release timestamp for Renovate to age, so with minimumReleaseAge set its renovate/stability-days status stays pending forever. bun enforces the same age itself while it regenerates bun.lock (bunfig.toml), which is the check that actually protects the lock file",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "minimumReleaseAge": null
     }
   ]
 }
