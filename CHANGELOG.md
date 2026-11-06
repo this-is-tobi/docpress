@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.7](https://github.com/this-is-tobi/docpress/compare/v0.13.6...v0.13.7) (2026-11-06)
+
+
+### Dependencies
+
+* **deps:** lock file maintenance ([ac52c50](https://github.com/this-is-tobi/docpress/commit/ac52c50ad4ef7f68c049ae1de81efceae7e662e7))
+
 ## [0.13.6](https://github.com/this-is-tobi/docpress/compare/v0.13.5...v0.13.6) (2026-11-06)
 
 
