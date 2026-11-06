@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.6](https://github.com/this-is-tobi/docpress/compare/v0.13.5...v0.13.6) (2026-11-06)
+
+
+### Bug Fixes
+
+* resolve a nested page's parent links from its own folder ([9b1015c](https://github.com/this-is-tobi/docpress/commit/9b1015c158123613a503a951ea04cd684a7c46bb))
+
 ## [0.13.5](https://github.com/this-is-tobi/docpress/compare/v0.13.4...v0.13.5) (2026-11-02)
 
 
