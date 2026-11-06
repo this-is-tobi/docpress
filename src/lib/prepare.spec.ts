@@ -4,7 +4,7 @@ import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, renameSync,
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { extractFiles, getMdFiles, getUserInfos, getUserRepos } from '../utils/functions.js'
+import { extractFiles, getMdFiles, getUserInfos, getUserRepos, replaceRelativePath } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 import {
   addContent,
@@ -397,6 +397,15 @@ describe('transformDoc', () => {
       },
     ])
     expect(result.index.hero.name).toContain('John Doe\'s projects')
+  })
+
+  it('should resolve each page\'s parent links from the repository\'s project path', () => {
+    vi.mocked(getMdFiles).mockReturnValue(['/mock/path/30-boundary/10-the-boundary.md'])
+    vi.mocked(readdirSync).mockReturnValue(['30-boundary/10-the-boundary.md'] as any)
+
+    transformDoc(repositories, user, { title: undefined, tagline: undefined })
+
+    expect(replaceRelativePath).toHaveBeenCalledWith('/mock/path/30-boundary/10-the-boundary.md', undefined, '/mock/path')
   })
 
   it('should handle repository names with dots correctly in sidebar and features', () => {

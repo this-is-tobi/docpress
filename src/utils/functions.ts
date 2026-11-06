@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { basename, join, resolve } from 'node:path'
+import { basename, dirname, join, posix, relative, resolve, sep } from 'node:path'
 import YAML from 'yaml'
 import type { GlobalOpts } from '../schemas/global.js'
 import type { EnhancedRepository } from '../lib/fetch.js'
@@ -363,14 +363,25 @@ export function splitByComma(s: string) {
 
 /**
  * Replaces relative paths in markdown links with absolute URLs
+ * A parent link is resolved from the page's own folder: the project path holds what the
+ * repository's `docs/` folder holds, so a link to another page of the docs stays relative
+ * (replaceInternalMdLinks renames it) and only a link out of `docs/` goes to the tree.
+ * Resolving every link from the top of the docs would send a nested page's links to
+ * paths that do not exist
  *
  * @param file - Path to the markdown file to process
  * @param url - Base URL to use for absolute links
+ * @param root - Project path holding the file, the file's own folder by default
  */
-export function replaceRelativePath(file: string, url: string) {
+export function replaceRelativePath(file: string, url: string, root: string = dirname(file)) {
+  const pageDir = posix.join('docs', relative(root, dirname(file)).split(sep).join('/'))
   const fileContent = readFileSync(file, 'utf8')
   const updatedContent = fileContent.replace(relativePathRegex, (_match, p1, p2) => {
-    return `[${p1}](${url}/${p2})`
+    const target = posix.join(pageDir, '..', p2)
+    if (target.startsWith('docs/')) {
+      return `[${p1}](${posix.relative(pageDir, target)})`
+    }
+    return `[${p1}](${url}/${target})`
   })
   writeFileSync(file, updatedContent, 'utf8')
 }
