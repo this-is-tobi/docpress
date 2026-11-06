@@ -35,6 +35,48 @@ describe('file Path Replacements', () => {
       expect(readFileSync).toHaveBeenCalledWith(file, 'utf8')
       expect(writeFileSync).toHaveBeenCalledWith(file, content, 'utf8')
     })
+
+    it('should leave a nested page\'s link to another page of the docs relative', () => {
+      const file = '/project/30-boundary/10-the-boundary.md'
+      const content = 'See the [glossary](../95-reference/10-glossary.md#acronyms).'
+
+      ;(readFileSync as any).mockReturnValue(content)
+
+      replaceRelativePath(file, 'https://example.com', '/project')
+
+      expect(writeFileSync).toHaveBeenCalledWith(file, content, 'utf8')
+    })
+
+    it('should point a nested page\'s link to a repository file at the repository tree', () => {
+      const file = '/project/30-boundary/10-the-boundary.md'
+
+      ;(readFileSync as any).mockReturnValue('[format](../../pkg/format/)')
+
+      replaceRelativePath(file, 'https://example.com', '/project')
+
+      expect(writeFileSync).toHaveBeenCalledWith(file, '[format](https://example.com/pkg/format/)', 'utf8')
+    })
+
+    it('should make a link that leaves the docs and comes back relative to the page', () => {
+      const file = '/project/02-page.md'
+
+      ;(readFileSync as any).mockReturnValue('[other](../docs/sub/03-other.md)')
+
+      replaceRelativePath(file, 'https://example.com', '/project')
+
+      expect(writeFileSync).toHaveBeenCalledWith(file, '[other](sub/03-other.md)', 'utf8')
+    })
+
+    it('should give a nested page\'s link to another page its renamed path once both rewrites ran', () => {
+      const file = '/project/30-boundary/10-the-boundary.md'
+
+      ;(readFileSync as any).mockReturnValue('See the [glossary](../95-reference/10-glossary.md#acronyms).')
+      replaceRelativePath(file, 'https://example.com', '/project')
+      ;(readFileSync as any).mockReturnValue(vi.mocked(writeFileSync).mock.calls[0][1])
+      replaceInternalMdLinks(file)
+
+      expect(writeFileSync).toHaveBeenLastCalledWith(file, 'See the [glossary](../reference/glossary.md#acronyms).', 'utf8')
+    })
   })
 
   describe('replaceInternalMdLinks', () => {

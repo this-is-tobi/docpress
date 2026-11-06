@@ -490,7 +490,7 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
     log(`   Replace urls for repository '${repository.name}'.`, 'info')
     getMdFiles([repository.docpress.projectPath]).forEach((file) => {
       log(`   Processing file '${basename(file)}' for repository '${repository.name}'.`, 'debug')
-      replaceRelativePath(file, repository.docpress.replace_url)
+      replaceRelativePath(file, repository.docpress.replace_url, repository.docpress.projectPath)
 
       if (basename(file).toLowerCase() === 'readme.md') {
         replaceReadmePath(file, repository.docpress.replace_url)
