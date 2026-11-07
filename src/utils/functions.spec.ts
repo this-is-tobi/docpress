@@ -1,9 +1,14 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { addLastUpdatedFrontmatter, checkHttpStatus, createDir, deepMerge, extractFiles, formatDuration, formatError, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, isObject, loadConfigFile, prettify, prettifyEnum, redactToken, sanitizeSegment, splitByComma } from './functions.js'
+import { addLastUpdatedFrontmatter, checkHttpStatus, createDir, deepMerge, extractFiles, formatDuration, formatError, getMdFiles, getUserInfos, getUserRepos, isDir, isFile, isObject, loadConfigFile, parseFrontmatter, prettify, prettifyEnum, redactToken, sanitizeSegment, splitByComma } from './functions.js'
+import { log } from './logger.js'
 
 vi.mock('fs')
+vi.mock('./logger.js', async importOriginal => ({
+  ...await importOriginal<typeof import('./logger.js')>(),
+  log: vi.fn(),
+}))
 
 describe('checkHttpStatus', () => {
   const testUrl = 'http://example.com'
@@ -676,5 +681,27 @@ describe('addLastUpdatedFrontmatter', () => {
     const content = vi.mocked(writeFileSync).mock.calls[0][1] as string
     expect(content).toContain('lastUpdated: 2024-05-01T12:00:00+00:00')
     expect(content).not.toContain('2020-01-01T00:00:00+00:00')
+  })
+})
+
+describe('parseFrontmatter', () => {
+  it('should split the frontmatter data from the body', () => {
+    expect(parseFrontmatter('---\nnavTitle: Projects\nsidebar: false\n---\n\n# Title\n')).toEqual({
+      data: { navTitle: 'Projects', sidebar: false },
+      body: '\n# Title\n',
+    })
+  })
+
+  it('should return the whole document as body when there is no frontmatter', () => {
+    expect(parseFrontmatter('# Title\n')).toEqual({ data: {}, body: '# Title\n' })
+  })
+
+  it('should read a frontmatter that is not a mapping as empty', () => {
+    expect(parseFrontmatter('---\n- a\n- b\n---\nBody')).toEqual({ data: {}, body: 'Body' })
+  })
+
+  it('should warn and read an invalid frontmatter as empty', () => {
+    expect(parseFrontmatter('---\nkey: [unclosed\n---\nBody')).toEqual({ data: {}, body: 'Body' })
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Unable to parse a frontmatter block'), 'warn')
   })
 })

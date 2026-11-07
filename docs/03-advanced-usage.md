@@ -174,6 +174,16 @@ This option accepts a comma-separated list of Markdown files or directories cont
 
 > All specified extra-header-pages must be in Markdown format and can include any Vitepress-compatible content, such as links, images, and other documentation elements.
 
+Each page is listed in the navigation under a label derived from its file name (`01-about.md` becomes `about`, served at `/about`). Set a `navTitle` in its frontmatter to choose the label while keeping the route of the file:
+
+```md
+---
+navTitle: Pro. Projects
+---
+
+# Professional projects
+```
+
 ## Extra Public Content
 
 The `-c` or `--extra-public-content` option allows you to include additional static assets in the Vitepress `public` folder. This is useful for adding content that needs to be accessible across all pages of the documentation, such as custom icons, logos, or other assets.
