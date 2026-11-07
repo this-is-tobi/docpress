@@ -83,8 +83,8 @@ function toggle() {
 </style>
 
 <style>
-/* Collapsed state, set on the root element: the sidebar slides out and the content takes
-   its room back. The navigation bar keeps its layout, minus the gap the sidebar left */
+/* Collapsed state, set on the root element: the sidebar slides out and the page takes its
+   room back. The navigation bar keeps its layout */
 @media (min-width: 960px) {
   html.docpress-sidebar-collapsed .VPSidebar {
     opacity: 0;
@@ -92,11 +92,15 @@ function toggle() {
     transform: translateX(-100%);
   }
 
-  html.docpress-sidebar-collapsed .VPContent.has-sidebar {
+  html.docpress-sidebar-collapsed .VPContent.has-sidebar,
+  html.docpress-sidebar-collapsed .VPLocalNav.has-sidebar {
     padding-left: 0;
   }
 
-  html.docpress-sidebar-collapsed .VPNavBar.has-sidebar .title {
+  /* The sidebar backed the title of the bar and the seams beside it: with a scrollbar, the
+     title and the rest of the bar are sized against different widths and leave a gap, which
+     would show the page scrolling under. The whole bar is filled instead */
+  html.docpress-sidebar-collapsed .VPNavBar.has-sidebar {
     background-color: var(--vp-nav-bg-color);
   }
 
@@ -109,15 +113,10 @@ function toggle() {
     border-bottom-color: transparent;
   }
 
-  /* The page is then laid out as one without sidebar: content and outline centred together */
-  html.docpress-sidebar-collapsed .VPDoc.has-sidebar .container {
-    display: flex;
-    justify-content: center;
-    max-width: 992px;
-  }
-
-  html.docpress-sidebar-collapsed .VPDoc.has-sidebar .content {
-    max-width: 752px;
+  /* The text takes the width of the sidebar, on top of the 688px Vitepress gives it beside
+     the outline */
+  html.docpress-sidebar-collapsed .VPDoc.has-sidebar.has-aside .content-container {
+    max-width: calc(688px + var(--vp-sidebar-width));
   }
 
   html.docpress-sidebar-animating .VPContent.has-sidebar {
@@ -128,14 +127,6 @@ function toggle() {
 @media (min-width: 1440px) {
   html.docpress-sidebar-collapsed .VPContent.has-sidebar {
     padding-left: calc((100vw - var(--vp-layout-max-width)) / 2);
-  }
-
-  html.docpress-sidebar-collapsed .VPDoc.has-sidebar .container {
-    max-width: 1104px;
-  }
-
-  html.docpress-sidebar-collapsed .VPDoc.has-sidebar .content {
-    max-width: 784px;
   }
 }
 
