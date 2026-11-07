@@ -407,6 +407,29 @@ export function addLastUpdatedFrontmatter(file: string, date: string) {
 }
 
 /**
+ * Splits a markdown document into its YAML frontmatter and the body that follows it.
+ * A frontmatter that is not valid YAML, or not a mapping, is reported and read as empty,
+ * so one malformed page cannot abort the whole run
+ *
+ * @param content - Markdown document
+ * @returns The frontmatter data and the markdown body
+ */
+export function parseFrontmatter(content: string): { data: Record<string, unknown>, body: string } {
+  const match = content.match(frontmatterRegex)
+  if (!match) {
+    return { data: {}, body: content }
+  }
+
+  let data: unknown
+  try {
+    data = YAML.parse(match[1])
+  } catch (error) {
+    log(`   Unable to parse a frontmatter block, ignoring it. ${formatError(error)}`, 'warn')
+  }
+  return { data: isObject(data) ? data as Record<string, unknown> : {}, body: content.slice(match[0].length) }
+}
+
+/**
  * Strips the ordering prefix from every named segment of a relative link's directory
  * Folders are renamed during sidebar generation exactly as files are, so a link that
  * crosses one has to follow the rename on both halves of the path — rewriting only

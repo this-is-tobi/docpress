@@ -3,12 +3,12 @@ import type { GlobalOpts } from '../schemas/global.js'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import type { EnhancedRepository } from './fetch.js'
 import type { getInfos } from './git.js'
-import { appendFileSync, cpSync, existsSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
+import { appendFileSync, cpSync, existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { basename, dirname, parse, resolve } from 'node:path'
 import YAML from 'yaml'
 import { DOCPRESS_DIR, DOCS_DIR, FORKS_FILE, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
-import { createDir, extractFiles, formatError, getMdFiles, getUserInfos, getUserRepos, isFile, prettify, replaceInternalMdLinks, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
+import { createDir, extractFiles, formatError, getMdFiles, getUserInfos, getUserRepos, isFile, parseFrontmatter, prettify, replaceInternalMdLinks, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 import { generateFile } from '../utils/templates.js'
 import { getContributors } from './git.js'
@@ -554,7 +554,19 @@ export function transformDoc(repositories: EnhancedRepository[], user: ReturnTyp
 }
 
 /**
- * Adds extra pages to the documentation from specified paths
+ * Reads the label a page asks for in the navigation, through its `navTitle` frontmatter
+ *
+ * @param file - Path to the markdown page
+ * @returns The label, or undefined when the page sets none
+ */
+export function getNavTitle(file: string): string | undefined {
+  const { navTitle } = parseFrontmatter(readFileSync(resolve(process.cwd(), file), 'utf8')).data
+  return typeof navTitle === 'string' && navTitle.trim() ? navTitle.trim() : undefined
+}
+
+/**
+ * Adds extra pages to the documentation from specified paths. Each page is named in the
+ * navigation by its `navTitle` frontmatter, or else after its file name
  *
  * @param paths - Array of paths to markdown files
  * @returns Array of navigation page objects
@@ -570,7 +582,7 @@ export function addExtraPages(paths: string[]) {
     const dest = resolve(DOCS_DIR, prettify(basename(file), { mode: 'lowercase', removeIdx: true }))
     cpSync(src, dest)
     nav.push({
-      text: prettify(parse(src).name, { replaceDash: true, removeIdx: true }),
+      text: getNavTitle(src) ?? prettify(parse(src).name, { replaceDash: true, removeIdx: true }),
       link: `/${prettify(parse(src).name, { removeIdx: true, mode: 'lowercase' })}`,
     })
   }

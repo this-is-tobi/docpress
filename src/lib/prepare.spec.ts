@@ -1,6 +1,6 @@
 import type { EnhancedRepository } from './fetch.js'
 import type { getInfos } from './git.js'
-import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -20,6 +20,7 @@ import {
   generateSidebarPages,
   generateSidebarProject,
   generateVitepressFiles,
+  getNavTitle,
   mergeSidebars,
   moveSourcesLast,
   parseVitepressConfig,
@@ -490,6 +491,11 @@ describe('transformDoc', () => {
 })
 
 describe('addExtraPages', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(readFileSync).mockReturnValue('# Page')
+  })
+
   it('should copy files and return nav pages', () => {
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/File1.md', '/path/to/file2.md'])
     const result = addExtraPages(['/path/to/File1.md', '/path/to/file2.md'])
@@ -499,6 +505,26 @@ describe('addExtraPages', () => {
       { text: 'file2', link: '/file2' },
     ])
     expect(cpSync).toHaveBeenCalledTimes(2)
+  })
+
+  it('should name a page after its navTitle frontmatter while keeping the route of its file', () => {
+    vi.mocked(getMdFiles).mockReturnValue(['/path/to/03-projects.md'])
+    vi.mocked(readFileSync).mockReturnValue('---\nnavTitle: Pro. Projects\n---\n\n# Professional projects\n')
+
+    expect(addExtraPages(['/path/to'])).toEqual([{ text: 'Pro. Projects', link: '/projects' }])
+  })
+})
+
+describe('getNavTitle', () => {
+  it.each([
+    ['---\nnavTitle: \'  Projects  \'\n---\n', 'Projects'],
+    ['---\nnavTitle: \'\'\n---\n', undefined],
+    ['---\nnavTitle: 42\n---\n', undefined],
+    ['# No frontmatter', undefined],
+  ])('should read %j as %j', (content, expected) => {
+    vi.mocked(readFileSync).mockReturnValue(content)
+
+    expect(getNavTitle('/path/to/page.md')).toBe(expected)
   })
 })
 
@@ -908,6 +934,7 @@ describe('prepareDoc', () => {
     vi.mocked(readdirSync).mockReturnValue(['readme.md'] as any)
     vi.mocked(getMdFiles).mockReturnValue(['/path/to/README.md'])
     vi.mocked(statSync).mockReturnValue({ isFile: () => true } as any)
+    vi.mocked(readFileSync).mockReturnValue('')
   })
 
   it('should prepare documentation with basic options', async () => {
