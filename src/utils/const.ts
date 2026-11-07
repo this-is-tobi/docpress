@@ -16,9 +16,9 @@ export const DOCS_DIR = resolve(process.cwd(), 'docpress/docs')
 export const INDEX_FILE = resolve(process.cwd(), 'docpress/docs/index.md')
 
 /**
- * Path to the forks documentation file
+ * Path to the contributions page
  */
-export const FORKS_FILE = resolve(process.cwd(), 'docpress/docs/forks.md')
+export const CONTRIBUTIONS_FILE = resolve(process.cwd(), 'docpress/docs/contributions.md')
 
 /**
  * Path to VitePress configuration file

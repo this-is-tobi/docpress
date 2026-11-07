@@ -4,8 +4,8 @@ import { simpleGit } from 'simple-git'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { addLastUpdatedFrontmatter, createDir, getMdFiles } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
-import { applyLastUpdated, cloneRepo, getContributors, getInfos, parseLastCommitDates, quietOctokitLog } from './git.js'
-import type { EnhancedRepository } from './fetch.js'
+import type { Contribution } from './git.js'
+import { applyLastUpdated, cloneRepo, getContributions, getInfos, parseContributionsFilter, parseLastCommitDates, quietOctokitLog, SEARCH_RESULTS_CAP, sortContributions } from './git.js'
 
 vi.mock('@octokit/rest')
 vi.mock('simple-git')
@@ -121,125 +121,152 @@ describe('getInfos', () => {
   })
 })
 
-describe('getContributors', () => {
-  const mockRepository = {
-    name: 'repo1',
-    owner: { login: 'testOwner' },
-  } as EnhancedRepository
-  const mockToken = 'testToken'
+describe('parseContributionsFilter', () => {
+  it('should show every repository when there is no filter', () => {
+    const { qualifiers, isShown } = parseContributionsFilter()
+
+    expect(qualifiers).toEqual([])
+    expect(isShown('anyone', 'anything')).toBe(true)
+  })
+
+  it('should turn exclusions into search qualifiers and hide what they match, ignoring case', () => {
+    const { qualifiers, isShown } = parseContributionsFilter(['!Work-Org', '!friend/side-project'])
+
+    expect(qualifiers).toEqual(['-user:work-org', '-repo:friend/side-project'])
+    expect(isShown('work-org', 'platform')).toBe(false)
+    expect(isShown('Friend', 'Side-Project')).toBe(false)
+    expect(isShown('friend', 'other-project')).toBe(true)
+  })
+
+  it('should only show included repositories when the filter holds inclusions, exclusions still winning', () => {
+    const { qualifiers, isShown } = parseContributionsFilter(['open-webui', 'upciti/wakemeops', '!open-webui/legacy'])
+
+    expect(qualifiers).toEqual(['-repo:open-webui/legacy'])
+    expect(isShown('open-webui', 'helm-charts')).toBe(true)
+    expect(isShown('upciti', 'wakemeops')).toBe(true)
+    expect(isShown('upciti', 'other')).toBe(false)
+    expect(isShown('open-webui', 'legacy')).toBe(false)
+  })
+})
+
+describe('sortContributions', () => {
+  it('should order by stars, then merged pull requests, then name', () => {
+    const contribution = (name: string, pull_requests: number, stargazers_count: number) => ({ name, pull_requests, stargazers_count, owner: 'o' }) as Contribution
+
+    const sorted = sortContributions([contribution('b', 1, 10), contribution('a', 1, 10), contribution('c', 1, 50), contribution('d', 9, 0), contribution('e', 4, 10)])
+
+    expect(sorted.map(({ name }) => name)).toEqual(['c', 'e', 'a', 'b', 'd'])
+  })
+})
+
+describe('getContributions', () => {
+  const pull = (repo: string, merged_at: string | null, closed_at = '2020-01-01T00:00:00Z') => ({
+    repository_url: `https://api.github.com/repos/${repo}`,
+    pull_request: { merged_at },
+    closed_at,
+  })
+  const page = (items: ReturnType<typeof pull>[], total_count = items.length) => ({ data: Object.assign(items, { total_count }) })
+  const repository = (owner: string, name: string, extra: Record<string, unknown> = {}) => ({
+    data: {
+      owner: { login: owner, avatar_url: `https://avatars.example/${owner}` },
+      name,
+      html_url: `https://github.com/${owner}/${name}`,
+      description: `${name} description`,
+      stargazers_count: 42,
+      language: 'Go',
+      archived: false,
+      private: false,
+      ...extra,
+    },
+  })
+  const mockOctokit = (pages: unknown[], get: ReturnType<typeof vi.fn>) => {
+    const octokit = {
+      rest: { search: { issuesAndPullRequests: vi.fn() }, repos: { get } },
+      paginate: { iterator: vi.fn().mockReturnValueOnce(pages) },
+    }
+    ;(Octokit as any).mockImplementation(function () { return octokit })
+    return octokit
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('should return repository source and contributors on success', async () => {
-    const mockRepoData = { source: { owner: { login: 'test-source-owner' } }, name: 'repo1' }
-    const mockContributorsDataPage1 = [{ login: 'contributor1' }, { login: 'contributor2' }]
-    const mockContributorsDataPage2 = [{ login: 'contributor3' }]
+  it('should count merged pull requests per repository and describe each repository', async () => {
+    const get = vi.fn()
+      .mockResolvedValueOnce(repository('open-webui', 'helm-charts', { description: null }))
+      .mockResolvedValueOnce(repository('upciti', 'wakemeops', { stargazers_count: 215, archived: true }))
+    const octokit = mockOctokit([
+      page([pull('open-webui/helm-charts', '2026-01-10T10:00:00Z'), pull('upciti/wakemeops', null, '2025-05-02T08:00:00Z')]),
+      page([pull('open-webui/helm-charts', '2026-03-01T10:00:00Z'), pull('open-webui/helm-charts', '2025-12-24T10:00:00Z')]),
+    ], get)
 
-    const mockOctokit = {
-      rest: {
-        repos: {
-          get: vi.fn()
-            .mockResolvedValueOnce({ data: mockRepoData }),
-          listContributors: vi.fn(),
-        },
-      },
-      paginate: {
-        iterator: vi.fn()
-          .mockReturnValueOnce([
-            { data: mockContributorsDataPage1 },
-            { data: mockContributorsDataPage2 },
-          ]),
-      },
-    }
+    const result = await getContributions({ username: 'me', token: 'token', filter: ['!work-org'] })
 
-    ;(Octokit as any).mockImplementation(function () { return mockOctokit })
-
-    const result = await getContributors({ repository: mockRepository, token: mockToken })
-
-    expect(result).toEqual({
-      source: mockRepoData.source,
-      contributors: [...mockContributorsDataPage1, ...mockContributorsDataPage2],
+    expect(octokit.paginate.iterator).toHaveBeenCalledWith(octokit.rest.search.issuesAndPullRequests, {
+      q: 'is:pr is:merged is:public author:me -user:me -user:work-org',
+      per_page: 100,
     })
+    expect(get).toHaveBeenNthCalledWith(1, { owner: 'open-webui', repo: 'helm-charts' })
+    expect(result).toEqual([
+      expect.objectContaining({ name: 'wakemeops', pull_requests: 1, last_merged_at: '2025-05-02T08:00:00Z', archived: true }),
+      {
+        author: 'me',
+        owner: 'open-webui',
+        name: 'helm-charts',
+        avatar_url: 'https://avatars.example/open-webui',
+        html_url: 'https://github.com/open-webui/helm-charts',
+        description: null,
+        stargazers_count: 42,
+        language: 'Go',
+        archived: false,
+        pull_requests: 3,
+        last_merged_at: '2026-03-01T10:00:00Z',
+        pull_requests_url: 'https://github.com/open-webui/helm-charts/pulls?q=is%3Apr%20is%3Amerged%20author%3Ame',
+      },
+    ])
   })
 
-  it('should log a warning and return empty contributors if contributors request fails with non-404', async () => {
-    const mockRepoData = { source: { owner: { login: 'test-source-owner' } }, name: 'repo1' }
+  it('should skip hidden, self-owned and private repositories, and repositories that cannot be read', async () => {
+    const get = vi.fn()
+      .mockResolvedValueOnce(repository('secret', 'repo', { private: true }))
+      .mockRejectedValueOnce(new Error('404 Not Found'))
+      .mockResolvedValueOnce(repository('kept', 'repo'))
+    mockOctokit([page([
+      pull('ME/own-repo', '2026-01-01T00:00:00Z'),
+      pull('friend/hidden', '2026-01-01T00:00:00Z'),
+      pull('secret/repo', '2026-01-01T00:00:00Z'),
+      pull('deleted/repo', '2026-01-01T00:00:00Z'),
+      pull('kept/repo', '2026-01-01T00:00:00Z'),
+    ])], get)
 
-    const mockOctokit = {
-      rest: {
-        repos: {
-          get: vi.fn()
-            .mockResolvedValueOnce({ data: mockRepoData }),
-          listContributors: vi.fn(),
-        },
-      },
-      // paginate lives at the top level of the Octokit client; make its iterator
-      // reject so the real catch branch (not a mock-shape TypeError) is exercised
-      paginate: {
-        iterator: vi.fn(() => {
-          throw new Error('500 Server Error')
-        }),
-      },
-    }
+    const result = await getContributions({ username: 'me', filter: ['!friend/hidden'] })
 
-    ;(Octokit as any).mockImplementation(function () { return mockOctokit })
-
-    const result = await getContributors({ repository: mockRepository, token: mockToken })
-
-    expect(log).toHaveBeenCalledWith(`   Failed to get contributors infos for repository '${mockRepository.name}'. Error : 500 Server Error`, 'warn')
-    expect(result).toEqual({
-      source: mockRepoData.source,
-      contributors: [],
-    })
+    expect(get).toHaveBeenCalledTimes(3)
+    expect(log).toHaveBeenCalledWith(`   Failed to get repository infos for 'deleted/repo'. Error : 404 Not Found`, 'warn')
+    expect(result.map(({ owner, name }) => `${owner}/${name}`)).toEqual(['kept/repo'])
   })
 
-  it('should degrade gracefully when the repository lookup itself fails', async () => {
-    const mockOctokit = {
-      rest: {
-        repos: {
-          get: vi.fn().mockRejectedValueOnce(new Error('404 Not Found')),
-          listContributors: vi.fn(),
-        },
-      },
-      paginate: { iterator: vi.fn() },
-    }
+  it('should warn when the search holds more results than GitHub returns', async () => {
+    mockOctokit([page([], SEARCH_RESULTS_CAP + 52)], vi.fn())
 
-    ;(Octokit as any).mockImplementation(function () { return mockOctokit })
+    await getContributions({ username: 'me' })
 
-    const result = await getContributors({ repository: mockRepository, token: mockToken })
-
-    // A deleted/private upstream must not throw: it returns no source so the
-    // fork is skipped rather than aborting the whole prepare step
-    expect(log).toHaveBeenCalledWith(`   Failed to get repository infos for '${mockRepository.name}'. Error : 404 Not Found`, 'warn')
-    expect(result).toEqual({ source: undefined, contributors: [] })
+    expect(log).toHaveBeenCalledWith(expect.stringContaining(`'me' has ${SEARCH_RESULTS_CAP + 52} merged pull requests`), 'warn')
   })
 
-  it('should return empty contributors if source owner login is undefined', async () => {
-    const mockRepoData = { source: { owner: {} }, name: 'repo1' }
-
-    const mockOctokit = {
-      rest: {
-        repos: {
-          get: vi.fn()
-            .mockResolvedValueOnce({ data: mockRepoData }),
-          listContributors: vi.fn(),
-        },
-        paginate: {
-          iterator: vi.fn(),
-        },
-      },
+  it('should warn and list nothing when the search fails', async () => {
+    const octokit = {
+      rest: { search: { issuesAndPullRequests: vi.fn() }, repos: { get: vi.fn() } },
+      paginate: { iterator: vi.fn(() => { throw new Error('403 rate limit exceeded') }) },
     }
+    ;(Octokit as any).mockImplementation(function () { return octokit })
 
-    ;(Octokit as any).mockImplementation(function () { return mockOctokit })
+    const result = await getContributions({ username: 'me' })
 
-    const result = await getContributors({ repository: mockRepository, token: mockToken })
-
-    expect(result).toEqual({
-      source: mockRepoData.source,
-      contributors: [],
-    })
+    expect(log).toHaveBeenCalledWith(`   Failed to search merged pull requests of 'me'. Error : 403 rate limit exceeded`, 'warn')
+    expect(result).toEqual([])
+    expect(octokit.rest.repos.get).not.toHaveBeenCalled()
   })
 })
 

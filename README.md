@@ -56,7 +56,9 @@ Options:
   -b, --branch <string>                Branch used to collect Git provider data. Defaults to each repository's own default branch when not set.
   -c, --extra-public-content <string>  List of comma separated additional files or directories to process Vitepress public folder.
   -C, --config <string>                Path to the docpress configuration file.
-  -f, --forks                          Whether or not to create the dedicated fork page that aggregate external contributions.
+  --contributions                      Whether or not to create the contributions page, listing the public repositories owned by others where the user's pull requests were merged.
+  --contributions-filter <string>      List of comma separated owners ("owner") or repositories ("owner/repo") shown on the contributions page. Prefix an entry with "!" to hide it instead. Default to every repository.
+  -f, --forks                          Deprecated alias of "contributions".
   -g, --git-provider <string>          Git provider used to retrieve data.
                                        Values should be "github" or "gitlab".
                                        (default: "github")

@@ -78,7 +78,7 @@ const mockOpts: PrepareOpts = {
   vitepressConfig: mockVitepressConfig,
   branch: 'main',
   gitProvider: 'github',
-  forks: false,
+  contributions: false,
   lastUpdated: false,
   sidebarMode: 'single',
   sidebarCollapsed: true,
@@ -145,6 +145,24 @@ describe('main', () => {
   it('should forward the acronyms to prepareDoc', async () => {
     await main({ ...mockOpts, acronyms: ['CLI', 'MCP'] })
     expect(prepareDoc).toHaveBeenCalledWith(expect.objectContaining({ acronyms: ['CLI', 'MCP'] }))
+  })
+
+  it('should forward the contributions and hero options to prepareDoc', async () => {
+    const hero = { actions: [{ text: 'About me', link: '/about' }] }
+    await main({ ...mockOpts, contributions: true, contributionsFilter: ['!some-org'], hero })
+    expect(prepareDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ contributions: true, contributionsFilter: ['!some-org'], hero }),
+    )
+  })
+
+  it('should warn that the forks option is deprecated when it is set', async () => {
+    await main({ ...mockOpts, forks: true, contributions: true })
+    expect(log).toHaveBeenCalledWith(expect.stringContaining(`'forks' option is deprecated`), 'warn')
+  })
+
+  it('should not warn about the forks option when it is unset', async () => {
+    await main(mockOpts)
+    expect(log).not.toHaveBeenCalledWith(expect.stringContaining(`'forks' option is deprecated`), 'warn')
   })
 
   it('should log a success summary once every username succeeds', async () => {

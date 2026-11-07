@@ -61,7 +61,7 @@ New features should be accompanied by tests, and existing tests must keep passin
 Docpress runs as a three-stage pipeline, exposed both as the default command and as individual sub-commands (`fetch`, `prepare`, `build`):
 
 1. __fetch__ ([src/lib/fetch.ts](../src/lib/fetch.ts), [src/lib/git.ts](../src/lib/git.ts), [src/lib/gitlab.ts](../src/lib/gitlab.ts)) — resolves the user/group and repositories from the Git provider, then clones the documentation of each eligible repository (sparse checkout of `docs/` or the root `README.md`). User and repository metadata are written to `docpress/user-<login>.json` and `docpress/repos-<login>.json` so the next stage can run independently.
-2. __prepare__ ([src/lib/prepare.ts](../src/lib/prepare.ts), [src/lib/vitepress.ts](../src/lib/vitepress.ts)) — reads that metadata, rewrites links, renames files, builds the sidebar/navigation, optionally generates the forks page, and emits the VitePress config, index and theme files.
+2. __prepare__ ([src/lib/prepare.ts](../src/lib/prepare.ts), [src/lib/vitepress.ts](../src/lib/vitepress.ts)) — reads that metadata, rewrites links, renames files, builds the sidebar/navigation, optionally generates the contributions page, and emits the VitePress config, index and theme files.
 3. __build__ ([src/commands/build.ts](../src/commands/build.ts)) — runs the VitePress build to produce the static site.
 
 Configuration is validated with [Zod](https://zod.dev/) in [src/schemas/global.ts](../src/schemas/global.ts), which also drives the CLI help text. Values are merged with the precedence **CLI options > config file > defaults**.

@@ -1,16 +1,15 @@
 import type { EnhancedRepository } from './fetch.js'
-import type { getInfos } from './git.js'
-import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, cpSync, existsSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import YAML from 'yaml'
 import { extractFiles, getMdFiles, getUserInfos, getUserRepos, replaceRelativePath } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
+import { getContributions } from './git.js'
 import {
   addContent,
+  addContributionsPage,
   addExtraPages,
-  addForkPage,
   addSources,
   buildTree,
   findHiddenSidebarPaths,
@@ -22,12 +21,14 @@ import {
   generateSidebarProject,
   generateVitepressFiles,
   getNavTitle,
+  isContributionsPage,
+  mergeContributions,
   mergeSidebars,
   moveSourcesLast,
   parseVitepressConfig,
   parseVitepressIndex,
   prepareDoc,
-  processForks,
+  processContributions,
   transformDoc,
 } from './prepare.js'
 import { getVitepressConfig } from './vitepress.js'
@@ -48,25 +49,30 @@ vi.mock('../utils/functions.js', async importOriginal => ({
 vi.mock('../utils/const.js', () => ({
   DOCS_DIR: '/tmp/docpress/mock/docs',
   INDEX_FILE: '/tmp/docpress/mock/docs/index.md',
-  FORKS_FILE: '/tmp/docpress/mock/docs/forks.md',
+  CONTRIBUTIONS_FILE: '/tmp/docpress/mock/docs/contributions.md',
   VITEPRESS_CONFIG: '/tmp/docpress/mock/.vitepress/config.js',
   VITEPRESS_THEME: '/tmp/docpress/mock/.vitepress/theme',
   VITEPRESS_USER_THEME: '/tmp/docpress/mock/.vitepress/theme/user',
   TEMPLATE_THEME: '/tmp/docpress/mock/templates/theme',
   DOCPRESS_DIR: '/tmp/docpress/mock',
 }))
+const mockContribution = vi.hoisted(() => ({
+  author: 'test-user',
+  owner: 'upstream',
+  name: 'project',
+  avatar_url: 'https://avatars.example/upstream',
+  html_url: 'https://github.com/upstream/project',
+  description: 'Upstream project',
+  stargazers_count: 10,
+  language: 'Go',
+  archived: false,
+  pull_requests: 3,
+  last_merged_at: '2026-03-01T10:00:00Z',
+  pull_requests_url: 'https://github.com/upstream/project/pulls?q=is%3Apr%20is%3Amerged%20author%3Atest-user',
+}))
 vi.mock('./git.js', async importOriginal => ({
-  ...await importOriginal<typeof import('../utils/functions.js')>(),
-  getContributors: () => ({
-    source: {
-      name: 'test-repo',
-      owner: { login: 'test-user' },
-      html_url: 'https://github.com/test/repo',
-      description: 'Test repo description',
-      stargazers_count: 10,
-    },
-    contributors: [{ login: 'test-user', contributions: 10 }],
-  }),
+  ...await importOriginal<typeof import('./git.js')>(),
+  getContributions: vi.fn(async () => [mockContribution]),
 }))
 
 vi.mock('./vitepress.js', () => ({
@@ -85,8 +91,6 @@ vi.mock('/mock/config.json', () => ({ config: { title: 'My Project' } }))
 // iteration; tests assign `config` to drive the accumulation branch
 const previousConfigModule = vi.hoisted(() => ({ config: undefined as any }))
 vi.mock('/tmp/docpress/mock/.vitepress/config.js', () => previousConfigModule)
-
-const tempDir = resolve(__dirname, 'temp-test-dir')
 
 describe('addSources', () => {
   it('should append source content to a file', () => {
@@ -538,6 +542,13 @@ describe('addExtraPages', () => {
 
     expect(addExtraPages(['/path/to'])).toEqual([{ text: 'Pro. Projects', link: '/projects' }])
   })
+
+  it('should leave the excluded pages out', () => {
+    vi.mocked(getMdFiles).mockReturnValue(['/path/to/about.md', '/path/to/contributions.md'])
+
+    expect(addExtraPages(['/path/to'], ['/path/to/contributions.md'])).toEqual([{ text: 'about', link: '/about' }])
+    expect(cpSync).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('getNavTitle', () => {
@@ -550,6 +561,17 @@ describe('getNavTitle', () => {
     vi.mocked(readFileSync).mockReturnValue(content)
 
     expect(getNavTitle('/path/to/page.md')).toBe(expected)
+  })
+})
+
+describe('isContributionsPage', () => {
+  it.each([
+    ['/extras/contributions.md', true],
+    ['/extras/04-Contributions.md', true],
+    ['/extras/forks.md', true],
+    ['/extras/about.md', false],
+  ])('should tell whether %s writes the contributions introduction', (file, expected) => {
+    expect(isContributionsPage(file)).toBe(expected)
   })
 })
 
@@ -669,90 +691,82 @@ describe('generateVitepressFiles', () => {
   })
 })
 
-describe('addForkPage', () => {
-  beforeAll(() => {
-    if (!existsSync(tempDir)) mkdirSync(tempDir)
-  })
-  afterAll(() => {
-    rmSync(tempDir, { recursive: true, force: true })
-  })
+describe('mergeContributions', () => {
+  it('should let a later entry replace an earlier one for the same author and repository, ignoring case', () => {
+    const stale = { ...mockContribution, pull_requests: 1 }
+    const fresh = { ...mockContribution, owner: 'Upstream', pull_requests: 5 }
+    const other = { ...mockContribution, author: 'someone-else', pull_requests: 2 }
 
-  const mockForks = [
-    {
-      repository: {
-        name: 'example-repo',
-        owner: { login: 'example-user' },
-        html_url: 'https://github.com/example/repo',
-        description: 'An example repository',
-        stargazers_count: 42,
-      },
-      contributions: 5,
-    },
-  ] as { repository: Awaited<ReturnType<typeof getInfos>>['repos'][number], contributions: number }[]
-
-  it('should generate a forks page file', () => {
-    addForkPage(mockForks)
-
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
-      expect.stringContaining('layout: fork-page'),
-    )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
-      expect.stringContaining('example-repo'),
-    )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
-      expect.stringContaining('example-user'),
-    )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
-      expect.stringContaining('example-user'),
-    )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
-      expect.stringContaining('An example repository'),
-    )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
-      expect.stringContaining('5'),
-    )
+    expect(mergeContributions([stale, other], [fresh])).toEqual([fresh, other])
   })
 })
 
-describe('processForks', () => {
-  beforeAll(() => {
-    if (!existsSync(tempDir)) mkdirSync(tempDir)
-  })
-  afterAll(() => {
-    rmSync(tempDir, { recursive: true, force: true })
+describe('addContributionsPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
-  const mockRepositories = [
-    {
-      name: 'test-repo',
-      owner: { login: 'test-user' },
-      docpress: { projectPath: '/test/path', branch: 'main' },
-      html_url: 'https://github.com/test/repo',
-    },
-  ] as EnhancedRepository[]
-  const mockUsername = 'test-user'
+  it('should write the contributions in the frontmatter, under the default introduction', () => {
+    addContributionsPage([mockContribution])
 
-  it('should process forks and generate the forks page', async () => {
-    await processForks(mockRepositories, mockUsername)
+    const [file, content] = vi.mocked(writeFileSync).mock.calls.at(-1)! as [string, string]
+    expect(file).toBe('/tmp/docpress/mock/docs/contributions.md')
+    const [, frontmatter, body] = content.split('---\n')
+    expect(YAML.parse(frontmatter)).toEqual({ sidebar: false, layout: 'contributions-page', contributions: [mockContribution] })
+    expect(body).toContain('# Contributions')
+  })
 
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
-      expect.stringContaining('test-repo'),
-    )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
-      expect.stringContaining('test-user'),
-    )
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
-      expect.stringContaining('Test repo description'),
-    )
+  it('should take the introduction and frontmatter of the given page, keeping the generated layout', () => {
+    vi.mocked(readFileSync).mockReturnValue('---\nnavTitle: Open source\nsidebar: true\nlayout: doc\n---\n\n# My contributions\n\nThanks to every maintainer.\n')
+
+    addContributionsPage([mockContribution], '/extras/contributions.md')
+
+    const content = vi.mocked(writeFileSync).mock.calls.at(-1)![1] as string
+    const [, frontmatter, body] = content.split('---\n')
+    expect(YAML.parse(frontmatter)).toEqual({ navTitle: 'Open source', sidebar: true, layout: 'contributions-page', contributions: [mockContribution] })
+    expect(body).toBe('\n# My contributions\n\nThanks to every maintainer.\n')
+  })
+})
+
+describe('processContributions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(existsSync).mockReturnValue(false)
+  })
+
+  it('should write the page and report it when contributions are found', async () => {
+    await expect(processContributions({ username: 'test-user', token: 'token', filter: ['!work'] })).resolves.toBe(true)
+
+    expect(getContributions).toHaveBeenCalledWith({ username: 'test-user', token: 'token', filter: ['!work'] })
+    expect(writeFileSync).toHaveBeenCalledWith('/tmp/docpress/mock/docs/contributions.md', expect.stringContaining('upstream'))
+  })
+
+  it('should extend the page a previous username of the run wrote', async () => {
+    const previous = { ...mockContribution, author: 'other-user', pull_requests: 9 }
+    vi.mocked(existsSync).mockReturnValue(true)
+    vi.mocked(readFileSync).mockReturnValue(`---\n${YAML.stringify({ layout: 'contributions-page', contributions: [previous] })}---\n`)
+
+    await processContributions({ username: 'test-user' })
+
+    const content = vi.mocked(writeFileSync).mock.calls.at(-1)![1] as string
+    expect(YAML.parse(content.split('---\n')[1]).contributions).toEqual([previous, mockContribution])
+  })
+
+  it('should ignore a page left by an earlier run', async () => {
+    vi.mocked(existsSync).mockImplementation(path => path === '/tmp/docpress/mock/docs/contributions.md')
+
+    await processContributions({ username: 'test-user' })
+
+    expect(readFileSync).not.toHaveBeenCalledWith('/tmp/docpress/mock/docs/contributions.md', 'utf8')
+  })
+
+  it('should skip and remove the page when there is nothing to list', async () => {
+    vi.mocked(getContributions).mockResolvedValueOnce([])
+
+    await expect(processContributions({ username: 'test-user' })).resolves.toBe(false)
+
+    expect(writeFileSync).not.toHaveBeenCalled()
+    expect(rmSync).toHaveBeenCalledWith('/tmp/docpress/mock/docs/contributions.md', { force: true })
   })
 })
 
@@ -879,7 +893,7 @@ describe('flattenTree', () => {
 // Values the options schema always resolves, whatever the CLI or config file set
 const resolvedDefaults = {
   gitProvider: 'github',
-  forks: false,
+  contributions: false,
   lastUpdated: false,
   sidebarMode: 'single',
   sidebarCollapsed: true,
@@ -982,18 +996,28 @@ describe('prepareDoc', () => {
     )
   })
 
-  it('should include forks when forks option is true', async () => {
+  it('should generate the contributions page when the contributions option is true', async () => {
     await prepareDoc({
       ...resolvedDefaults,
       username: 'test-user',
-      forks: true,
+      contributions: true,
+      contributionsFilter: ['!work'],
       token: 'test-token',
     })
 
-    expect(writeFileSync).toHaveBeenCalledWith(
-      '/tmp/docpress/mock/docs/forks.md',
-      expect.any(String),
-    )
+    expect(getContributions).toHaveBeenCalledWith({ username: 'test-user', token: 'test-token', filter: ['!work'] })
+    expect(writeFileSync).toHaveBeenCalledWith('/tmp/docpress/mock/docs/contributions.md', expect.any(String))
+    const [, nav] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
+    expect(nav).toEqual([{ text: 'Contributions', link: '/contributions' }])
+  })
+
+  it('should leave the contributions page out of the navigation when there is nothing to list', async () => {
+    vi.mocked(getContributions).mockResolvedValueOnce([])
+
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user', contributions: true })
+
+    const [, nav] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
+    expect(nav).toEqual([])
   })
 
   it('should pass the hero settings on to the home page', async () => {
@@ -1107,8 +1131,8 @@ features:
     expect(readFile).toHaveBeenCalled()
   })
 
-  it('should warn and skip the forks page on the gitlab provider', async () => {
-    await prepareDoc({ ...resolvedDefaults, username: 'test-user', forks: true, gitProvider: 'gitlab' })
+  it('should warn and skip the contributions page on the gitlab provider', async () => {
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user', contributions: true, gitProvider: 'gitlab' })
 
     expect(log).toHaveBeenCalledWith(
       expect.stringContaining(`not supported with the 'gitlab' provider`),
@@ -1118,13 +1142,29 @@ features:
     expect(nav).toEqual([])
   })
 
-  it('should not duplicate the forks entry supplied as an extra header page', async () => {
-    vi.mocked(getMdFiles).mockReturnValue(['/path/to/forks.md'])
+  it('should use a contributions header page as the introduction rather than as a page of its own', async () => {
+    vi.mocked(getMdFiles).mockReturnValue(['/path/to/about.md', '/path/to/contributions.md'])
+    vi.mocked(readFileSync).mockImplementation(path => String(path).endsWith('contributions.md')
+      ? '---\nnavTitle: Open source\n---\n\n# Open source\n'
+      : '# About\n')
 
-    await prepareDoc({ ...resolvedDefaults, username: 'test-user', forks: true, extraHeaderPages: ['/path/to/forks.md'] })
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user', contributions: true, extraHeaderPages: ['/path/to'] })
 
     const [, nav] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
-    expect(nav).toEqual([{ text: 'Forks', link: '/forks' }])
+    expect(nav).toEqual([{ text: 'about', link: '/about' }, { text: 'Open source', link: '/contributions' }])
+    expect(cpSync).not.toHaveBeenCalledWith('/path/to/contributions.md', expect.anything())
+    const page = vi.mocked(writeFileSync).mock.calls.find(([file]) => file === '/tmp/docpress/mock/docs/contributions.md')![1]
+    expect(page).toContain('# Open source')
+  })
+
+  it('should keep a contributions header page as a plain page when the contributions page is off', async () => {
+    vi.mocked(getMdFiles).mockReturnValue(['/path/to/contributions.md'])
+
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user', extraHeaderPages: ['/path/to'] })
+
+    const [, nav] = vi.mocked(getVitepressConfig).mock.calls.at(-1)!
+    expect(nav).toEqual([{ text: 'contributions', link: '/contributions' }])
+    expect(getContributions).not.toHaveBeenCalled()
   })
 
   it('should build a route-keyed sidebar in multi mode', async () => {
@@ -1763,18 +1803,6 @@ describe('addContent input shapes', () => {
     addContent('/path/to/file1.md', '/mock/dir')
 
     expect(cpSync).toHaveBeenCalled()
-  })
-})
-
-describe('processForks contribution counting', () => {
-  it('should drop repositories the user has not contributed to', async () => {
-    vi.clearAllMocks()
-
-    // getContributors is mocked to report contributions for 'test-user' only
-    await processForks([{ name: 'fork-repo' }] as unknown as EnhancedRepository[], 'someone-else')
-
-    const written = vi.mocked(writeFileSync).mock.calls.at(-1)?.[1] as string
-    expect(written).not.toContain('fork-repo')
   })
 })
 

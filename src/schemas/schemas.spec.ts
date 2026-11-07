@@ -11,11 +11,15 @@ vi.mock('fs')
 const defaultConfig = {
   token: undefined,
   gitProvider: 'github',
-  forks: false,
+  contributions: false,
   lastUpdated: false,
   sidebarMode: 'single',
   sidebarCollapsed: true,
 }
+
+// configSchema leaves `contributions` unset: it is only defaulted once options are merged,
+// so the deprecated `forks` alias can still apply
+const { contributions: _contributions, ...configDefaults } = defaultConfig
 
 describe('globalOptsSchema', () => {
   it('should validate valid global options', () => {
@@ -242,7 +246,8 @@ describe('configSchema', () => {
     const validCombinedData: Config & { token: GlobalOpts['token'] } = {
       branch: 'main',
       gitProvider: 'github',
-      forks: false,
+      contributions: true,
+      contributionsFilter: ['!some-org', 'owner/repo'],
       lastUpdated: false,
       token: 'your_token',
       usernames: ['your_username'],
@@ -277,17 +282,18 @@ describe('configSchema', () => {
       extraPublicContent: [],
       extraTheme: [],
       acronyms: [],
+      contributionsFilter: [],
       websiteTitle: '',
       websiteTagline: '',
     }
 
     const result = configSchema.parse(partialData)
     expect(result).toEqual({
-      ...defaultConfig,
+      ...configDefaults,
       ...partialData,
       usernames: ['your_username'],
-      forks: false,
     })
+    expect(result).not.toHaveProperty('contributions')
   })
 
   it('should throw an error if gitProvider is not in the allowed enum values', () => {
@@ -316,16 +322,16 @@ describe('configSchema', () => {
       extraPublicContent: [],
       extraTheme: [],
       acronyms: [],
+      contributionsFilter: [],
       websiteTitle: '',
       websiteTagline: '',
     }
-    const { token: _token, ...rest } = defaultConfig
+    const { token: _token, ...rest } = configDefaults
 
     const result = configSchema.parse(dataWithEmptyArrays)
     expect(result).toEqual({
       ...dataWithEmptyArrays,
       ...rest,
-      forks: false,
     })
   })
 })
@@ -573,6 +579,45 @@ describe('vitepressConfig merging', () => {
     })
 
     expect(result.vitepressConfig).toEqual({ title: 'From vitepress config', lang: 'fr' })
+  })
+})
+
+describe('contributions options', () => {
+  it('should default the contributions page to disabled', () => {
+    expect(globalOptsSchema.parse({ usernames: 'user1' }).contributions).toBe(false)
+  })
+
+  it('should honour the deprecated forks option from a config file', () => {
+    vi.mocked(readFileSync).mockReturnValueOnce(JSON.stringify({ usernames: ['user1'], forks: true }))
+
+    expect(globalOptsSchema.parse({ config: './config.json' }).contributions).toBe(true)
+  })
+
+  it('should let an explicit contributions value win over the deprecated forks option', () => {
+    vi.mocked(readFileSync).mockReturnValueOnce(JSON.stringify({ usernames: ['user1'], forks: true, contributions: false }))
+
+    expect(globalOptsSchema.parse({ config: './config.json' }).contributions).toBe(false)
+  })
+
+  it('should let the CLI flag enable the page over a config file', () => {
+    vi.mocked(readFileSync).mockReturnValueOnce(JSON.stringify({ usernames: ['user1'], contributions: false }))
+
+    expect(globalOptsSchema.parse({ config: './config.json', contributions: true }).contributions).toBe(true)
+  })
+
+  it('should split a CLI contributions filter on commas', () => {
+    expect(cliSchema.parse({ contributionsFilter: '!some-org,owner/repo' }).contributionsFilter).toEqual(['!some-org', 'owner/repo'])
+  })
+
+  it('should wrap a single config file filter entry in an array', () => {
+    vi.mocked(readFileSync).mockReturnValueOnce(JSON.stringify({ usernames: ['user1'], contributionsFilter: '!some-org' }))
+
+    expect(globalOptsSchema.parse({ config: './config.json' }).contributionsFilter).toEqual(['!some-org'])
+  })
+
+  it.each(['is:private', 'owner repo', 'owner/repo/extra', '!', ''])('should refuse the filter entry %j, which is no owner nor repository', (entry) => {
+    expect(() => cliSchema.parse({ contributionsFilter: entry })).toThrow()
+    expect(() => configSchema.partial().parse({ contributionsFilter: [entry] })).toThrow()
   })
 })
 

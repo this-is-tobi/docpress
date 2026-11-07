@@ -20,6 +20,8 @@ const cmdName = 'prepare'
 export const prepareOpts = [
   createOption('--acronyms <string>', configSchema.shape.acronyms.description),
   createOption('-c, --extra-public-content <string>', configSchema.shape.extraPublicContent.description),
+  createOption('--contributions', configSchema.shape.contributions.description),
+  createOption('--contributions-filter <string>', configSchema.shape.contributionsFilter.description),
   createOption('-f, --forks', configSchema.shape.forks.description),
   createOption('-p, --extra-header-pages <string>', configSchema.shape.extraHeaderPages.description),
   createOption('-t, --extra-theme <string>', configSchema.shape.extraTheme.description),
@@ -46,15 +48,18 @@ export const prepareCmd = addOptions(createCommand(cmdName), [...prepareOpts, ..
  * @param opts - Validated prepare options
  */
 export async function main(opts: PrepareOpts) {
-  const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, sidebarMode, sidebarCollapsed, acronyms, token, usernames, websiteTitle, websiteTagline } = opts
+  const { extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, contributions, contributionsFilter, forks, gitProvider, hero, lastUpdated, sidebarMode, sidebarCollapsed, acronyms, token, usernames, websiteTitle, websiteTagline } = opts
   log(`\n-> Start transform files to prepare Vitepress build.`, 'info')
   const start = Date.now()
+  if (forks !== undefined) {
+    log(`   The 'forks' option is deprecated and will be removed, use 'contributions' instead.`, 'warn')
+  }
 
   createDir(dirname(VITEPRESS_CONFIG), { clean: true })
   const failedUsers: string[] = []
   for (const username of usernames) {
     try {
-      await prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, sidebarMode, sidebarCollapsed, acronyms, token, username, websiteTitle, websiteTagline })
+      await prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, contributions, contributionsFilter, gitProvider, hero, lastUpdated, sidebarMode, sidebarCollapsed, acronyms, token, username, websiteTitle, websiteTagline })
     } catch (error) {
       failedUsers.push(username)
       log(`   Failed to prepare documentation for '${username}': ${formatError(error)}`, 'error')
