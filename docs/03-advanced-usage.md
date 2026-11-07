@@ -87,7 +87,7 @@ When using this option, the provided files are processed and registered automati
 
 2. __Supported File Types__:
   - `.vue`: Vue components are registered dynamically. The name of the component is derived from the filename.
-  - `.css` or `.scss`: Stylesheets are applied globally to enhance or override existing styles.
+  - `.css` or `.scss`: Stylesheets are applied globally to enhance or override existing styles. They load after the default theme, so a rule as specific as the one it replaces wins: the theme variables (`:root { --vp-c-brand-1: … }`) are overridden as written, while a component style, scoped by Vue (`.VPButton.medium[data-v-…]`), needs a selector at least as specific (e.g. `:root .VPButton.medium`).
   - `.js` or `.ts`: JavaScript or TypeScript files can be used to add logic or utilities.
   - Static assets like `.png`, `.jpg`, `.svg`, etc., are included as part of the final build and are accessible in your documentation.
 
