@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.14.0](https://github.com/this-is-tobi/docpress/compare/v0.13.7...v0.14.0) (2026-11-07)
+
+
+### Features
+
+* merge a hero config over the generated home page hero ([bf88b84](https://github.com/this-is-tobi/docpress/commit/bf88b8464c8cf375aa24ee09b9713cdb9412b084))
+* name header pages in the navigation from a navTitle frontmatter ([9212b94](https://github.com/this-is-tobi/docpress/commit/9212b94942720c4814b8838b3c363754bcae05ff))
+* replace the forks page with a contributions page ([77850f2](https://github.com/this-is-tobi/docpress/commit/77850f28ca14f2c83f2401c816f1e34d4903ee1b))
+* **theme:** add a sidebar toggle on wide screens ([ddc9837](https://github.com/this-is-tobi/docpress/commit/ddc98371683c92b63c845151cfbf5ed3cab6645a))
+
+
+### Bug Fixes
+
+* drop the stray colon from the search no results label ([564eb11](https://github.com/this-is-tobi/docpress/commit/564eb11cf18ac8f625f7aef92128dcdc060ba4c2))
+* keep the nav entries of the vitepress config ([32883ff](https://github.com/this-is-tobi/docpress/commit/32883ff8591437f0fd9242e67485d2b0a8345893))
+* **theme:** fill the nav bar and widen the text while the sidebar is hidden ([5d32c15](https://github.com/this-is-tobi/docpress/commit/5d32c15e1cc8026d30d12f56e0255eb709facce0))
+* **theme:** load the extra theme styles after the default theme ([3e5cf12](https://github.com/this-is-tobi/docpress/commit/3e5cf124d311a9faa65e8cb30512240ea9093f4f))
+
 ## [0.13.7](https://github.com/this-is-tobi/docpress/compare/v0.13.6...v0.13.7) (2026-11-06)
 
 
