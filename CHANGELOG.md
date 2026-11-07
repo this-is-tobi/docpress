@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.15.0](https://github.com/this-is-tobi/docpress/compare/v0.14.0...v0.15.0) (2026-11-07)
+
+
+### Features
+
+* **theme:** cross-fade pages on navigation ([117c563](https://github.com/this-is-tobi/docpress/commit/117c5632eaa6576e5901ad6daaed2a5ba9c6c0c5))
+
+
+### Bug Fixes
+
+* **theme:** keep the scrollbar room on short pages ([e97680e](https://github.com/this-is-tobi/docpress/commit/e97680e98a33155289305ff5ebe7519b70609ba3))
+
 ## [0.14.0](https://github.com/this-is-tobi/docpress/compare/v0.13.7...v0.14.0) (2026-11-07)
 
 
