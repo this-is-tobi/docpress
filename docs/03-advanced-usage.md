@@ -283,7 +283,7 @@ Vitepress selects the sidebar whose key is the longest matching prefix of the cu
 
 ### Sidebar Toggle
 
-On wide screens, pages with a sidebar get a toggle button next to the search box: it hides the sidebar so the content takes the whole width, and shows it again. Every page load starts with the sidebar shown; once hidden, it stays hidden while the visitor moves between pages. On small screens, Vitepress keeps opening the sidebar from its own menu button.
+On wide screens, pages with a sidebar get a toggle button next to the search box: it hides the sidebar and gives its width to the text, and shows it again. Every page load starts with the sidebar shown; once hidden, it stays hidden while the visitor moves between pages. On small screens, Vitepress keeps opening the sidebar from its own menu button.
 
 ### Nesting Depth
 
