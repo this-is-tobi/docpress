@@ -63,6 +63,14 @@ describe('getVitepressConfig', () => {
     expect(result.themeConfig?.nav).toEqual(defaultNav)
   })
 
+  it('should keep the navigation entries of the custom config ahead of the generated ones', () => {
+    const home = { text: 'Home', link: '/' }
+
+    const result = getVitepressConfig(defaultSidebar, defaultNav, { themeConfig: { nav: [home] } })
+
+    expect(result.themeConfig?.nav).toEqual([home, ...defaultNav])
+  })
+
   it('should pass a route-keyed sidebar through unchanged', () => {
     const multiSidebar = { '/repo/': [{ text: 'Introduction', link: '/repo/introduction' }] }
 

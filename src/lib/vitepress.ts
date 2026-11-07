@@ -44,7 +44,8 @@ const defaultVitepressConfig: ReturnType<typeof defineConfig> = {
 }
 
 /**
- * Generates VitePress configuration by merging default and custom configs
+ * Generates VitePress configuration by merging default and custom configs. Navigation
+ * entries set in the custom config are kept, ahead of the generated ones
  *
  * @param sidebar - Sidebar configuration, either one flat list or one sidebar per route
  * @param nav - Navigation configuration
@@ -52,8 +53,8 @@ const defaultVitepressConfig: ReturnType<typeof defineConfig> = {
  * @returns Merged VitePress configuration
  */
 export function getVitepressConfig(sidebar: DefaultTheme.Sidebar, nav: Page[], vitepressConfig?: ReturnType<typeof defineConfig>): Partial<ReturnType<typeof defineConfig>> {
-  const config = vitepressConfig
-    ? deepMerge(defaultVitepressConfig, vitepressConfig, { themeConfig: { sidebar, nav } })
-    : deepMerge(defaultVitepressConfig, { themeConfig: { sidebar, nav } })
-  return config
+  const generated = { themeConfig: { sidebar, nav: [...(vitepressConfig?.themeConfig?.nav ?? []), ...nav] } }
+  return vitepressConfig
+    ? deepMerge(defaultVitepressConfig, vitepressConfig, generated)
+    : deepMerge(defaultVitepressConfig, generated)
 }

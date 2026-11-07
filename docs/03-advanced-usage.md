@@ -72,6 +72,18 @@ Basic Vitepress configuration example:
 }
 ```
 
+Navigation entries set in `themeConfig.nav` are kept, ahead of the generated ones (extra header pages, then the contributions page). For instance, to add an explicit link to the home page:
+
+```json
+{
+  "vitepressConfig": {
+    "themeConfig": {
+      "nav": [{ "text": "Home", "link": "/" }]
+    }
+  }
+}
+```
+
 ## Vitepress Theme
 
 The `-t` or `--extra-theme` option allows users to provide additional files or directories that will be integrated into the VitePress theme dynamically. This enables users to enhance or completely customize the look and feel of their documentation site by adding their own components, styles, and other assets.
