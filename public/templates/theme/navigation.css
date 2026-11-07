@@ -1,0 +1,7 @@
+/*
+ * The scrollbar keeps its room on pages too short to scroll, so moving between a short page
+ * and a long one does not shift the layout sideways where scrollbars take up space.
+ */
+html {
+  scrollbar-gutter: stable;
+}
