@@ -281,6 +281,10 @@ In `multi` mode the generated keys follow the site routes, which means they incl
 
 Vitepress selects the sidebar whose key is the longest matching prefix of the current route. Pages that fall outside every key — the home page, the contributions page and extra header pages — are rendered without a sidebar.
 
+### Sidebar Toggle
+
+On wide screens, pages with a sidebar get a toggle button next to the search box: it hides the sidebar so the content takes the whole width, and shows it again. Every page load starts with the sidebar shown; once hidden, it stays hidden while the visitor moves between pages. On small screens, Vitepress keeps opening the sidebar from its own menu button.
+
 ### Nesting Depth
 
 Vitepress renders six levels of sidebar items and silently drops anything deeper. Because `single` mode wraps every repository in its own group, it spends one level on that wrapper:

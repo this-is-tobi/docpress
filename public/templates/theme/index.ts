@@ -1,5 +1,7 @@
 import type { Theme } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
+import { h } from 'vue'
+import SidebarToggle from './components/SidebarToggle.vue'
 import ContributionsPage from './layouts/ContributionsPage.vue'
 import './styles.js'
 
@@ -10,6 +12,11 @@ const processedFiles = new Set<string>()
 const vuePathPrefixRegex = /^.*[\\/]/
 
 export default {
+  // The sidebar toggle sits before the search box: the slots around the site title live
+  // inside its home link, where a button cannot go
+  Layout: () => h(DefaultTheme.Layout, null, {
+    'nav-bar-content-before': () => h(SidebarToggle),
+  }),
   enhanceApp({ app }) {
     Object.entries(userFiles).forEach(([path, file]) => {
       if (!processedFiles.has(path)) {
