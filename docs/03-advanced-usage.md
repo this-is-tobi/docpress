@@ -168,6 +168,10 @@ Docpress will:
 
 This flexibility allows you to create a fully customized, professional documentation experience tailored to your needs.
 
+### Page Transitions
+
+Following a link within the site cross-fades from one page to the next, through the browser's View Transitions API, instead of switching at once. Browsers without the API, and visitors who ask their system for reduced motion, keep the instant switch.
+
 ## Extra Header Pages
 
 With the `-p` or `--extra-header-pages` option, you can add additional pages to the Vitepress website header, such as privacy policies, advanced user guides, or links to external resources.

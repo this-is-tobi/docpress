@@ -1,8 +1,10 @@
 import type { Theme } from 'vitepress'
+import { inBrowser } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
 import { h } from 'vue'
 import SidebarToggle from './components/SidebarToggle.vue'
 import ContributionsPage from './layouts/ContributionsPage.vue'
+import { crossFadeNavigation } from './transitions.js'
 import './styles.js'
 
 // Stylesheets are left to ./styles: hoisted along with this glob, they would load before
@@ -17,7 +19,11 @@ export default {
   Layout: () => h(DefaultTheme.Layout, null, {
     'nav-bar-content-before': () => h(SidebarToggle),
   }),
-  enhanceApp({ app }) {
+  enhanceApp({ app, router }) {
+    // The router also renders the pages on the server, where there is nothing to animate
+    if (inBrowser) {
+      crossFadeNavigation(router)
+    }
     Object.entries(userFiles).forEach(([path, file]) => {
       if (!processedFiles.has(path)) {
         processedFiles.add(path)
