@@ -19,7 +19,7 @@ describe('getVitepressConfig', () => {
             modal: {
               backButtonTitle: 'erase search',
               displayDetails: 'show details',
-              noResultsText: 'No results for : ',
+              noResultsText: 'No results for',
               resetButtonTitle: 'cancel search',
               footer: {
                 selectText: 'go to',
