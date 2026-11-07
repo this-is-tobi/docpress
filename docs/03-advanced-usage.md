@@ -170,7 +170,7 @@ This flexibility allows you to create a fully customized, professional documenta
 
 ### Page Transitions
 
-Following a link within the site cross-fades from one page to the next, through the browser's View Transitions API, instead of switching at once. Browsers without the API, and visitors who ask their system for reduced motion, keep the instant switch.
+Following a link within the site cross-fades from one page to the next, through the browser's View Transitions API, instead of switching at once. Browsers without the API, and visitors who ask their system for reduced motion, keep the instant switch. The scrollbar also keeps its room on pages too short to scroll, so going from a short page to a long one does not shift the layout sideways.
 
 ## Extra Header Pages
 
