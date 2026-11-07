@@ -12,7 +12,9 @@ Options:
   -b, --branch <string>                Branch used to collect Git provider data. Defaults to each repository's own default branch when not set.
   -c, --extra-public-content <string>  List of comma separated additional files or directories to process Vitepress public folder.
   -C, --config <string>                Path to the docpress configuration file.
-  -f, --forks                          Whether or not to create the dedicated fork page that aggregate external contributions.
+  --contributions                      Whether or not to create the contributions page, listing the public repositories owned by others where the user's pull requests were merged.
+  --contributions-filter <string>      List of comma separated owners ("owner") or repositories ("owner/repo") shown on the contributions page. Prefix an entry with "!" to hide it instead. Default to every repository.
+  -f, --forks                          Deprecated alias of "contributions".
   -g, --git-provider <string>          Git provider used to retrieve data.
                                        Values should be "github" or "gitlab".
                                        (default: "github")
@@ -184,6 +186,8 @@ navTitle: Pro. Projects
 # Professional projects
 ```
 
+A page named `contributions.md` (or `forks.md`) is not added as a page of its own when the [contributions page](#contributions-page) is generated: it writes the introduction of that page instead.
+
 ## Extra Public Content
 
 The `-c` or `--extra-public-content` option allows you to include additional static assets in the Vitepress `public` folder. This is useful for adding content that needs to be accessible across all pages of the documentation, such as custom icons, logos, or other assets.
@@ -222,34 +226,38 @@ The `hero` setting of the configuration file is merged over the generated hero, 
 
 Set `"image": null` to show no image at all.
 
-## Fork Contributions Page
+## Contributions Page
 
-The `-f` or `--forks` option generates a dedicated page showcasing all forked repositories where the user's contributions have been successfully merged into the original source repositories.
+The `--contributions` option generates a page listing the public repositories, owned by others, where the user's pull requests were merged. It is served at `/contributions` and added last to the navigation.
+
+The repositories are found by searching the user's merged pull requests, so a contribution stays listed once its fork is deleted, or when it was pushed without one. Each card shows the repository description, its stars and main language, and the number of merged pull requests, linked to their list on GitHub. Cards are ordered from the most starred repository to the least, and visitors can reorder them from the selector above them: by stars, by number of merged pull requests, by latest merge or by name.
 
 > [!NOTE]
-> The forks page is only available with the `github` provider: the GitLab API does not expose the contributor identity needed to match merged contributions. This feature is ideal for creating a centralized portfolio or documentation to highlight the user's collaborative work and contributions across multiple projects.
+> The contributions page is only available with the `github` provider, which offers the pull request search it relies on.
 
-By aggregating these repositories, the page serves as both a recognition of the user’s contributions and a historical archive of projects influenced by their efforts. It emphasizes the impact of these contributions and celebrates the investment made in community and open-source projects.
+### Contributions Filter
 
-### Common Use Cases
+The `--contributions-filter` option (or `contributionsFilter` in the configuration file) chooses the repositories shown on the page. Each entry names an owner (`owner`) or a repository (`owner/repo`), and an entry prefixed with `!` hides what it matches instead:
 
-- Showcasing user contributions: Highlight the breadth of repositories where the user has made meaningful contributions.
-- Building a contribution portfolio: Create a centralized "museum" of merged pull requests to demonstrate the user's influence across projects.
-- Encouraging collaboration: Inspire others by showing how individual contributions can make a significant difference in the broader ecosystem.
-- Archiving collaborative efforts: Preserve a historical record of impactful contributions and projects influenced by the user.
+```json
+{
+  "contributions": true,
+  "contributionsFilter": ["!my-company", "!friend/side-project"]
+}
+```
 
-### Generated Forks Page
+With entries that are not prefixed, only the matching repositories are shown. Hidden owners and repositories are also left out of the search itself, which helps users with many contributions: GitHub returns at most 1000 pull requests for a search, and Docpress warns when that limit is reached.
 
-When this flag is enabled, the tool creates a markdown page (`docs/forks.md` that will be available in header as `Forks`) listing all forked repositories where the user's pull requests have been merged into the original repositories. The page typically includes details such as:
-- Repository name
-- Repository description
-- Repository stars counter
+### Introduction
 
-This page acts as a dynamic portfolio of contributions, making it an excellent resource for professionals, developers, and community members who wish to document their work and demonstrate their impact across various projects.
+The page opens with a short introduction. To write your own, add a `contributions.md` page to the [extra header pages](#extra-header-pages): its content is placed above the cards, its frontmatter is merged into the generated one (e.g. `navTitle` names the navigation entry), and it is not added as a page of its own. The page is laid out without sidebar; set `sidebar: true` in that frontmatter to show it.
 
-### Forks With Extra Theme
+### Custom Layout
 
-If this option is used together with an extra theme (`-t` / `--extra-theme`), you can override the default fork page presentation by providing your own `ForkPage.vue` layout in your custom theme. Docpress registers the theme files first, so a `fork-page` layout supplied through `--extra-theme` takes precedence over the built-in one.
+The cards are rendered by the `ContributionsPage` layout. To change their presentation, provide your own `ContributionsPage.vue` through the [extra theme](#vitepress-theme): it replaces the built-in layout, and reads the contributions from the `contributions` frontmatter of the page.
+
+> [!WARNING]
+> The `--forks` option, which generated a page from the user's forks, is deprecated: it now enables the contributions page.
 
 ## Sidebar Generation
 
@@ -271,7 +279,7 @@ In `multi` mode the generated keys follow the site routes, which means they incl
 }
 ```
 
-Vitepress selects the sidebar whose key is the longest matching prefix of the current route. Pages that fall outside every key — the home page, the forks page and extra header pages — are rendered without a sidebar.
+Vitepress selects the sidebar whose key is the longest matching prefix of the current route. Pages that fall outside every key — the home page, the contributions page and extra header pages — are rendered without a sidebar.
 
 ### Nesting Depth
 
@@ -358,7 +366,8 @@ Docpress can be configured with an external JSON configuration file specified by
 - `extraHeaderPages`: Additional pages to include in the website header (equivalent to `-p`).
 - `extraPublicContent`: Additional content for the Vitepress public folder (equivalent to `-c`).
 - `extraTheme`: Files or folders to customize the Vitepress theme (equivalent to `-t`).
-- `forks`: Whether or not to create the forks page documentation (equivalent to `-f`).
+- `contributions`: Whether or not to create the contributions page (equivalent to `--contributions`). See [Contributions Page](#contributions-page).
+- `contributionsFilter`: Owners or repositories shown on, or hidden from, the contributions page (equivalent to `--contributions-filter`).
 - `hero`: Settings merged over the generated home page hero, such as buttons or an image. See [Home Page](#home-page).
 - `sidebarMode`: Shape of the generated sidebar, `single` or `multi` (equivalent to `--sidebar-mode`). See [Sidebar Generation](#sidebar-generation).
 - `sidebarCollapsed`: Collapse behaviour of generated sidebar groups, `true`, `false` or `null` (equivalent to `--sidebar-collapsed`).
@@ -375,7 +384,8 @@ Example JSON configuration:
   "extraHeaderPages": ["./extras-headers", "header2.md"],
   "extraPublicContent": ["./extras-public", "favicon.ico", "logo.png"],
   "extraTheme": ["./extras-theme/styles", "./extras-theme/components", "./more.css"],
-  "forks": false,
+  "contributions": true,
+  "contributionsFilter": ["!my-company"],
   "sidebarMode": "multi",
   "sidebarCollapsed": false,
   "acronyms": ["CLI", "API"],
@@ -404,7 +414,7 @@ When collecting from **multiple users**, generated pages are namespaced by usern
   "extraHeaderPages": ["./extras-headers", "header2.md"],
   "extraPublicContent": ["./extras-public", "favicon.ico", "logo.png"],
   "extraTheme": ["./extras-theme/styles", "./extras-theme/components", "./more.css"],
-  "forks": false,
+  "contributions": false,
   "vitepressConfig": {
     "title": "My Project Documentation",
     "description": "A site generated by Docpress",

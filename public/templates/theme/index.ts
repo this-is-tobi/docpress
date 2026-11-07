@@ -1,6 +1,6 @@
 import type { Theme } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
-import ForkPage from './layouts/ForkPage.vue'
+import ContributionsPage from './layouts/ContributionsPage.vue'
 import './styles.js'
 
 // Stylesheets are left to ./styles: hoisted along with this glob, they would load before
@@ -20,7 +20,11 @@ export default {
         }
       }
     })
-    app.component('fork-page', ForkPage)
+    // Registered last and only when missing, so a `ContributionsPage.vue` supplied
+    // through the extra theme replaces the built-in layout instead of being shadowed by it
+    if (!app.component('ContributionsPage')) {
+      app.component('ContributionsPage', ContributionsPage)
+    }
   },
   extends: DefaultTheme,
 } satisfies Theme

@@ -34,6 +34,13 @@ const acronymRegex = /^[^\s-]+$/
 const acronymMessage = 'Each acronym must be a single word, with no space or dash, as it is matched against one word of a label.'
 
 /**
+ * A contributions filter entry names an owner or an `owner/repo` repository, optionally
+ * negated, and nothing else: it becomes a search qualifier, so it may not smuggle in others
+ */
+const contributionsFilterRegex = /^!?[\w.-]+(?:\/[\w.-]+)?$/
+const contributionsFilterMessage = 'Each contributions filter entry must be an owner ("owner") or a repository ("owner/repo"), optionally prefixed with "!" to hide it.'
+
+/**
  * Hero section of the home page, as Vitepress defines it
  */
 const heroSchema = z.looseObject({
@@ -81,9 +88,18 @@ export const configSchema = z.object({
   extraTheme: z.string()
     .array()
     .describe('List of comma separated additional files or directories to use as Vitepress theme.'),
+  // No schema default: the deprecated `forks` alias can only apply while this is unset,
+  // so `false` is defaulted once options are merged (see globalOptsSchema)
+  contributions: z.boolean()
+    .optional()
+    .describe('Whether or not to create the contributions page, listing the public repositories owned by others where the user\'s pull requests were merged.'),
+  contributionsFilter: z.string()
+    .regex(contributionsFilterRegex, contributionsFilterMessage)
+    .array()
+    .describe('List of comma separated owners ("owner") or repositories ("owner/repo") shown on the contributions page. Prefix an entry with "!" to hide it instead. Default to every repository.'),
   forks: z.boolean()
-    .default(false)
-    .describe('Whether or not to create the dedicated fork page that aggregate external contributions.'),
+    .optional()
+    .describe('Deprecated alias of "contributions".'),
   hero: heroSchema
     .optional()
     .describe('Hero section of the home page, merged over the generated one: "name", "text", "tagline", "image" (null hides the avatar) and "actions".'),
@@ -129,9 +145,15 @@ export const cliSchema = configSchema
     logLevel: z.enum(LOG_LEVEL_NAMES)
       .optional()
       .describe(configSchema.shape.logLevel.description || ''),
-    forks: z.boolean()
+    contributions: z.boolean()
       .optional()
-      .describe(configSchema.shape.forks.description || ''),
+      .describe(configSchema.shape.contributions.description || ''),
+    // Piped back through the config rule so a CLI entry is held to the same check
+    contributionsFilter: z.string()
+      .transform(splitByComma)
+      .pipe(configSchema.shape.contributionsFilter)
+      .optional()
+      .describe(configSchema.shape.contributionsFilter.description || ''),
     lastUpdated: z.boolean()
       .optional()
       .describe(configSchema.shape.lastUpdated.description || ''),
@@ -185,12 +207,12 @@ export type Cli = z.infer<typeof cliSchema>
 /**
  * Settings that always hold a value once CLI options, config file and defaults are merged
  */
-type ResolvedKeys = 'usernames' | 'gitProvider' | 'forks' | 'lastUpdated' | 'sidebarMode' | 'sidebarCollapsed'
+type ResolvedKeys = 'usernames' | 'gitProvider' | 'lastUpdated' | 'sidebarMode' | 'sidebarCollapsed'
 
 /**
  * Options resolved from CLI arguments, configuration file and defaults
  */
-export type ResolvedOpts = Omit<Partial<Config>, ResolvedKeys> & Pick<Config, ResolvedKeys> & { token?: string }
+export type ResolvedOpts = Omit<Partial<Config>, ResolvedKeys | 'contributions'> & Pick<Config, ResolvedKeys> & { contributions: boolean, token?: string }
 
 /**
  * Prepares configuration data by converting string values to arrays when needed
@@ -202,7 +224,7 @@ function prepareConfigData(configData: any) {
   if (!configData) return {}
 
   const result = { ...configData }
-  const arrayKeys = ['usernames', 'reposFilter', 'extraHeaderPages', 'extraPublicContent', 'extraTheme', 'acronyms'] as const
+  const arrayKeys = ['usernames', 'reposFilter', 'extraHeaderPages', 'extraPublicContent', 'extraTheme', 'acronyms', 'contributionsFilter'] as const
   for (const key of arrayKeys) {
     if (typeof result[key] === 'string') {
       result[key] = [result[key]]
@@ -297,7 +319,6 @@ export const globalOptsSchema = cliSchema
       // can fall back to each repository's own default branch (see fetch.ts).
       const mergedConfig = {
         gitProvider: 'github',
-        forks: false,
         lastUpdated: false,
         sidebarMode: 'single',
         sidebarCollapsed: true,
@@ -315,7 +336,10 @@ export const globalOptsSchema = cliSchema
 
       resolveLogLevel(mergedConfig.logLevel)
 
-      return validateFinalConfig({ ...mergedConfig, token: resolveToken(token, mergedConfig.gitProvider) })
+      // `forks` is the former name of `contributions`, honoured when the latter is unset
+      const contributions = mergedConfig.contributions ?? mergedConfig.forks ?? false
+
+      return validateFinalConfig({ ...mergedConfig, contributions, token: resolveToken(token, mergedConfig.gitProvider) })
     } catch (error) {
       // Surface the failure as a validation issue instead of terminating the
       // process from inside the schema. The caller (parseOptions) reports it and

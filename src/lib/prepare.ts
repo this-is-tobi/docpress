@@ -2,17 +2,38 @@ import type { DefaultTheme, defineConfig } from 'vitepress'
 import type { GlobalOpts } from '../schemas/global.js'
 import type { PrepareOpts } from '../schemas/prepare.js'
 import type { EnhancedRepository } from './fetch.js'
-import type { getInfos } from './git.js'
-import { appendFileSync, cpSync, existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import type { Contribution } from './git.js'
+import { appendFileSync, cpSync, existsSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { basename, dirname, parse, resolve } from 'node:path'
 import YAML from 'yaml'
-import { DOCPRESS_DIR, DOCS_DIR, FORKS_FILE, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
+import { CONTRIBUTIONS_FILE, DOCPRESS_DIR, DOCS_DIR, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
 import { createDir, deepMerge, extractFiles, formatError, getMdFiles, getUserInfos, getUserRepos, isFile, parseFrontmatter, prettify, replaceInternalMdLinks, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 import { generateFile } from '../utils/templates.js'
-import { getContributors } from './git.js'
+import { getContributions, sortContributions } from './git.js'
 import { getVitepressConfig } from './vitepress.js'
+
+/**
+ * Route of the generated contributions page
+ */
+export const CONTRIBUTIONS_ROUTE = '/contributions'
+
+/**
+ * Layout of the contributions page, resolved by Vue to the `ContributionsPage` component
+ */
+export const CONTRIBUTIONS_LAYOUT = 'contributions-page'
+
+/**
+ * Introduction of the contributions page when the user does not write one
+ */
+const DEFAULT_CONTRIBUTIONS_INTRO = '# Contributions\n\nPull requests merged into open source projects maintained by others.\n'
+
+/**
+ * Header page names that supply the contributions page introduction rather than a page
+ * of their own, `forks` being the name it had before
+ */
+const CONTRIBUTIONS_PAGE_NAMES = ['contributions', 'forks']
 
 /**
  * Represents a navigation page item with text and link
@@ -105,7 +126,8 @@ export interface Index {
  * @param options.extraPublicContent - Array of paths to additional public content
  * @param options.extraTheme - Array of paths to additional theme files
  * @param options.vitepressConfig - Path to the VitePress configuration file
- * @param options.forks - Flag to include forked repositories
+ * @param options.contributions - Flag to generate the contributions page
+ * @param options.contributionsFilter - Owners or repositories kept on, or hidden from, the contributions page
  * @param options.gitProvider - Git provider used to retrieve data
  * @param options.hero - Hero settings merged over the generated home page hero
  * @param options.lastUpdated - Flag to display each page's last Git commit date, computed by the fetch step
@@ -117,28 +139,18 @@ export interface Index {
  * @param options.websiteTitle - Custom title for the documentation website
  * @param options.websiteTagline - Custom tagline for the documentation website
  */
-export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, hero, lastUpdated, sidebarMode, sidebarCollapsed, acronyms, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
-  // The forks page relies on matching contributors by login, which the GitLab API does not expose
-  const forksEnabled = forks && gitProvider !== 'gitlab'
-  if (forks && !forksEnabled) {
-    log(`   The forks page is not supported with the 'gitlab' provider, skipping.`, 'warn')
+export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, contributions, contributionsFilter, gitProvider, hero, lastUpdated, sidebarMode, sidebarCollapsed, acronyms, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
+  // Merged pull requests are searched through the GitHub API, which GitLab has no equivalent of
+  const contributionsEnabled = contributions && gitProvider !== 'gitlab'
+  if (contributions && !contributionsEnabled) {
+    log(`   The contributions page is not supported with the 'gitlab' provider, skipping.`, 'warn')
   }
   const user = getUserInfos(username)
   const repositories = getUserRepos(username)
-    .reduce(({ internals, forks }: { internals: EnhancedRepository[], forks: EnhancedRepository[] }, cur) => {
-      const { clone_url, private: privateRepo, fork, docpress } = cur
-      if (clone_url && !privateRepo && !docpress.filtered) {
-        if (!fork && docpress.includes.length) {
-          return { internals: [...internals, cur], forks }
-        } else if (fork) {
-          return { internals, forks: [...forks, cur] }
-        }
-      }
-      return { internals, forks }
-    }, { internals: [], forks: [] })
+    .filter(({ clone_url, private: privateRepo, fork, docpress }) => clone_url && !privateRepo && !fork && !docpress.filtered && docpress.includes.length)
 
   const websiteInfos = { title: websiteTitle, tagline: websiteTagline, hero }
-  const { index, sidebar } = transformDoc(repositories.internals, user, websiteInfos, { mode: sidebarMode, collapsed: sidebarCollapsed, acronyms })
+  const { index, sidebar } = transformDoc(repositories, user, websiteInfos, { mode: sidebarMode, collapsed: sidebarCollapsed, acronyms })
 
   let finalSB
   let finalIndex
@@ -159,13 +171,13 @@ export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTh
   }
   const nav: Page[] = []
 
+  // A header page named after the contributions page writes its introduction, rather
+  // than a page of its own that the generated one would overwrite
+  const contributionsIntro = contributionsEnabled && extraHeaderPages
+    ? getMdFiles(extraHeaderPages).find(isContributionsPage)
+    : undefined
   if (extraHeaderPages) {
-    const pages = addExtraPages(extraHeaderPages)
-    if (forksEnabled) {
-      nav.push(...pages.filter(p => p.link !== '/forks'))
-    } else {
-      nav.push(...pages)
-    }
+    nav.push(...addExtraPages(extraHeaderPages, contributionsIntro ? [contributionsIntro] : []))
   }
   if (extraPublicContent) {
     log(`   Add extras Vitepress public folder content.`, 'info')
@@ -175,10 +187,11 @@ export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTh
     log(`   Add extras Vitepress theme files.`, 'info')
     addContent(extraTheme, resolve(VITEPRESS_USER_THEME))
   }
-  if (forksEnabled && username.length) {
-    log(`   Add fork page to display external contributions.`, 'info')
-    await processForks(repositories.forks, username, token)
-    nav.push({ text: 'Forks', link: '/forks' })
+  if (contributionsEnabled && username.length) {
+    log(`   Add contributions page to display merged pull requests.`, 'info')
+    if (await processContributions({ username, token, filter: contributionsFilter, introPage: contributionsIntro })) {
+      nav.push({ text: (contributionsIntro && getNavTitle(contributionsIntro)) || 'Contributions', link: CONTRIBUTIONS_ROUTE })
+    }
   }
 
   // Vitepress only renders the last updated date once its own "lastUpdated" flag is on;
@@ -581,14 +594,25 @@ export function getNavTitle(file: string): string | undefined {
 }
 
 /**
+ * Tells whether a header page supplies the contributions page introduction
+ *
+ * @param file - Path to the markdown page
+ * @returns True for a page named `contributions` or `forks`, ordering prefix aside
+ */
+export function isContributionsPage(file: string): boolean {
+  return CONTRIBUTIONS_PAGE_NAMES.includes(prettify(parse(file).name, { removeIdx: true, mode: 'lowercase' }))
+}
+
+/**
  * Adds extra pages to the documentation from specified paths. Each page is named in the
  * navigation by its `navTitle` frontmatter, or else after its file name
  *
  * @param paths - Array of paths to markdown files
+ * @param exclude - Pages to leave out
  * @returns Array of navigation page objects
  */
-export function addExtraPages(paths: string[]) {
-  const files = getMdFiles(paths)
+export function addExtraPages(paths: string[], exclude: string[] = []) {
+  const files = getMdFiles(paths).filter(file => !exclude.includes(file))
   const nav: Page[] = []
 
   log(`   Add extras Vitepress headers pages.`, 'info')
@@ -631,47 +655,72 @@ export function addContent(paths: string | string[], dir: string, fn?: () => voi
 }
 
 /**
- * Creates a fork page to display external contributions
+ * Merges contribution lists, a later entry replacing an earlier one for the same author
+ * and repository
  *
- * @param forks - Array of repositories and contribution counts
+ * @param lists - Contribution lists to merge
+ * @returns The merged contributions, from the most starred repository to the least
  */
-export function addForkPage(forks: { repository: Awaited<ReturnType<typeof getInfos>>['repos'][number], contributions: number }[]) {
-  const separator = '---\n'
-  const header = 'layout: fork-page\nrepoList:\n'
-  const text = '\n# External contributions\n\nThis gallery is a visual representation of the collaborative work done across a variety of open-source projects, each driven by a shared passion for innovation and community growth.\n\nEvery tile below represents a unique project where contributions have been made-ranging from code enhancements to documentation improvements. Each project includes a summary of its goals, features, and links to GitHub for direct access.\n\nThis page serves as both a portfolio of past work and a resource for revisiting projects that have made a meaningful impact.\n'
-  const frontmatter = forks.map(({ repository, contributions }) => {
-    const { name, owner, html_url, description, stargazers_count } = repository
-    return { name, owner: owner.login, html_url, description, stargazers_count, contributions }
-  })
-  log(`   Generate forks page.`, 'info')
-  writeFileSync(FORKS_FILE, separator + header + YAML.stringify(frontmatter) + separator + text)
+export function mergeContributions(...lists: Contribution[][]): Contribution[] {
+  const byKey = new Map<string, Contribution>()
+  for (const contribution of lists.flat()) {
+    byKey.set(`${contribution.author}/${contribution.owner}/${contribution.name}`.toLowerCase(), contribution)
+  }
+  return sortContributions([...byKey.values()])
 }
 
-type Source = Required<Awaited<ReturnType<typeof getContributors>>['source']>
+/**
+ * Writes the contributions page: its frontmatter carries the contributions rendered by
+ * the `ContributionsPage` layout, and the introduction page, when given, supplies the
+ * markdown above them and frontmatter of its own
+ *
+ * @param contributions - Contributions to list
+ * @param introPage - Header page holding the introduction
+ */
+export function addContributionsPage(contributions: Contribution[], introPage?: string) {
+  const { data, body } = introPage
+    ? parseFrontmatter(readFileSync(resolve(process.cwd(), introPage), 'utf8'))
+    : { data: {}, body: DEFAULT_CONTRIBUTIONS_INTRO }
+  // The sidebar is left out by default: the cards are laid out for the full width
+  const frontmatter = { sidebar: false, ...data, layout: CONTRIBUTIONS_LAYOUT, contributions }
 
-type AdaptedLicense = Omit<NonNullable<Source>['license'], 'spdx_id'> & { spdx_id?: string }
-
-type AdaptedRepository = Omit<NonNullable<Source>, 'license'> & { license: AdaptedLicense }
+  log(`   Generate contributions page.`, 'info')
+  writeFileSync(CONTRIBUTIONS_FILE, `---\n${YAML.stringify(frontmatter)}---\n\n${body.trimStart()}`)
+}
 
 /**
- * Processes forked repositories to generate contribution information
+ * Generates the contributions page of a username. Every username of a run shares the
+ * page, so it is extended with the contributions a previous username wrote; the Vitepress
+ * config only exists once one has been prepared in this run, which tells such a page
+ * apart from one left over by an earlier run
  *
- * @param repositories - Array of enhanced repositories
- * @param username - GitHub username
- * @param token - Optional GitHub API token
+ * @param options - Options for the contributions page
+ * @param options.username - GitHub username whose merged pull requests are listed
+ * @param options.token - GitHub API token
+ * @param options.filter - Owners or repositories to keep, or to hide with a `!` prefix
+ * @param options.introPage - Header page holding the introduction
+ * @returns True when the page was written, false when there is nothing to list
  */
-export async function processForks(repositories: EnhancedRepository[], username: GlobalOpts['usernames'][number], token?: GlobalOpts['token']) {
-  const forks = await Promise.all(
-    repositories.map(async (repository) => {
-      const { source, contributors } = await getContributors({ repository, token })
-      return {
-        contributions: contributors?.find(contributor => contributor.login === username)?.contributions ?? 0,
-        repository: source as AdaptedRepository,
-      }
-    }),
-  ).then(f => f.filter(({ repository, contributions }) => !!repository && contributions))
+export async function processContributions({ username, token, filter, introPage }: {
+  username: GlobalOpts['usernames'][number]
+  token?: GlobalOpts['token']
+  filter?: string[]
+  introPage?: string
+}): Promise<boolean> {
+  const current = await getContributions({ username, token, filter })
+  const { contributions: previous }: Record<string, unknown> = existsSync(VITEPRESS_CONFIG) && existsSync(CONTRIBUTIONS_FILE)
+    ? parseFrontmatter(readFileSync(CONTRIBUTIONS_FILE, 'utf8')).data
+    : {}
+  const contributions = mergeContributions(Array.isArray(previous) ? previous : [], current)
 
-  addForkPage(forks)
+  if (!contributions.length) {
+    log(`   No merged pull request found in repositories owned by others, skipping the contributions page.`, 'info')
+    // A page left over by an earlier run would otherwise be built, unlisted
+    rmSync(CONTRIBUTIONS_FILE, { force: true })
+    return false
+  }
+  addContributionsPage(contributions, introPage)
+  return true
 }
 
 /**

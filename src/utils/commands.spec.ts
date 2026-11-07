@@ -29,7 +29,7 @@ describe('parseOptions', () => {
       gitProvider: 'github',
       sidebarMode: 'single',
       sidebarCollapsed: true,
-      forks: false,
+      contributions: false,
       lastUpdated: false,
       reposFilter: ['repo1', 'repo2'],
       token: 'token123',
@@ -63,7 +63,7 @@ describe('parseOptions', () => {
       extraPublicContent: [],
       extraTheme: [],
       reposFilter: [],
-      forks: false,
+      contributions: false,
     }
 
     loadConfigFileMock.mockReturnValue(config)
