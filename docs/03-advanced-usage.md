@@ -201,6 +201,27 @@ This option accepts a comma-separated list of file or directory paths.
 
 > All files and directories specified with extra-public-content are directly accessible at the root of the final site, making it easy to link to them within your Markdown files (e.g., using /logo.png in an img tag).
 
+## Home Page
+
+Docpress generates the home page from the collected repositories: a hero section, named after the user (or `--website-title`) with the user's bio (or `--website-tagline`) and avatar, followed by one card per repository.
+
+The `hero` setting of the configuration file is merged over the generated hero, so it can adjust any of the Vitepress [hero options](https://vitepress.dev/reference/default-theme-home-page#hero-section) — for instance add buttons, or change the image:
+
+```json
+{
+  "hero": {
+    "tagline": "Robots are everywhere",
+    "image": { "src": "/avatar.png", "alt": "My avatar" },
+    "actions": [
+      { "theme": "brand", "text": "About me", "link": "/about" },
+      { "theme": "alt", "text": "GitHub", "link": "https://github.com/this-is-tobi" }
+    ]
+  }
+}
+```
+
+Set `"image": null` to show no image at all.
+
 ## Fork Contributions Page
 
 The `-f` or `--forks` option generates a dedicated page showcasing all forked repositories where the user's contributions have been successfully merged into the original source repositories.
@@ -338,6 +359,7 @@ Docpress can be configured with an external JSON configuration file specified by
 - `extraPublicContent`: Additional content for the Vitepress public folder (equivalent to `-c`).
 - `extraTheme`: Files or folders to customize the Vitepress theme (equivalent to `-t`).
 - `forks`: Whether or not to create the forks page documentation (equivalent to `-f`).
+- `hero`: Settings merged over the generated home page hero, such as buttons or an image. See [Home Page](#home-page).
 - `sidebarMode`: Shape of the generated sidebar, `single` or `multi` (equivalent to `--sidebar-mode`). See [Sidebar Generation](#sidebar-generation).
 - `sidebarCollapsed`: Collapse behaviour of generated sidebar groups, `true`, `false` or `null` (equivalent to `--sidebar-collapsed`).
 - `acronyms`: Words kept exactly as written in generated labels, such as `CLI` or `API` (equivalent to `--acronyms`). See [Acronyms In Labels](#acronyms-in-labels).

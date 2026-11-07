@@ -4,6 +4,7 @@ import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSyn
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import YAML from 'yaml'
 import { extractFiles, getMdFiles, getUserInfos, getUserRepos, replaceRelativePath } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 import {
@@ -129,6 +130,30 @@ describe('generateIndex', () => {
       },
       features,
     })
+  })
+})
+
+describe('generateIndex hero', () => {
+  const user = { name: 'John Doe', login: 'johndoe', bio: 'Coder', avatar_url: 'https://avatars.example/johndoe' } as ReturnType<typeof getUserInfos>
+
+  it('should show the user avatar as the hero image', () => {
+    const { hero } = generateIndex([], user, {})
+
+    expect(hero).toEqual({ name: 'John Doe\'s projects', tagline: 'Coder', image: { src: 'https://avatars.example/johndoe', alt: 'John Doe' } })
+  })
+
+  it('should merge the hero settings over the generated hero', () => {
+    const actions = [{ theme: 'brand' as const, text: 'About me', link: '/about' }]
+
+    const { hero } = generateIndex([], user, { title: 'My site', hero: { tagline: 'Hello', image: { alt: 'Me' }, actions } })
+
+    expect(hero).toEqual({ name: 'My site', tagline: 'Hello', image: { src: 'https://avatars.example/johndoe', alt: 'Me' }, actions })
+  })
+
+  it('should hide the avatar when the hero settings set a null image', () => {
+    const { hero } = generateIndex([], user, { hero: { image: null } })
+
+    expect(hero.image).toBeNull()
   })
 })
 
@@ -969,6 +994,13 @@ describe('prepareDoc', () => {
       '/tmp/docpress/mock/docs/forks.md',
       expect.any(String),
     )
+  })
+
+  it('should pass the hero settings on to the home page', async () => {
+    await prepareDoc({ ...resolvedDefaults, username: 'test-user', hero: { tagline: 'Custom tagline' } })
+
+    const index = vi.mocked(writeFileSync).mock.calls.find(([file]) => file === '/tmp/docpress/mock/docs/index.md')![1] as string
+    expect(YAML.parse(index.replace('---\n', '')).hero.tagline).toBe('Custom tagline')
   })
 
   it('should default vitepressConfig.lastUpdated to true when the lastUpdated option is enabled', async () => {

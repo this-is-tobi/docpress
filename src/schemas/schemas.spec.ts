@@ -575,3 +575,26 @@ describe('vitepressConfig merging', () => {
     expect(result.vitepressConfig).toEqual({ title: 'From vitepress config', lang: 'fr' })
   })
 })
+
+describe('hero option', () => {
+  it('should accept the Vitepress hero settings, unknown ones included', () => {
+    const hero = {
+      tagline: 'Robots are everywhere',
+      image: { src: '/avatar.png', alt: 'Me' },
+      actions: [{ theme: 'brand', text: 'About me', link: '/about' }],
+      custom: true,
+    }
+    vi.mocked(readFileSync).mockReturnValueOnce(JSON.stringify({ usernames: ['user1'], hero }))
+
+    expect(globalOptsSchema.parse({ config: './config.json' }).hero).toEqual(hero)
+  })
+
+  it('should accept a null image, which hides the avatar', () => {
+    expect(configSchema.partial().parse({ hero: { image: null } }).hero).toEqual({ image: null })
+  })
+
+  it('should refuse an action without a link or with an unknown theme', () => {
+    expect(() => configSchema.partial().parse({ hero: { actions: [{ text: 'About me' }] } })).toThrow()
+    expect(() => configSchema.partial().parse({ hero: { actions: [{ text: 'About me', link: '/about', theme: 'loud' }] } })).toThrow()
+  })
+})

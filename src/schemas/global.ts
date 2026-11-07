@@ -34,6 +34,21 @@ const acronymRegex = /^[^\s-]+$/
 const acronymMessage = 'Each acronym must be a single word, with no space or dash, as it is matched against one word of a label.'
 
 /**
+ * Hero section of the home page, as Vitepress defines it
+ */
+const heroSchema = z.looseObject({
+  name: z.string().optional(),
+  text: z.string().optional(),
+  tagline: z.string().optional(),
+  image: z.union([z.string(), z.looseObject({}), z.null()]).optional(),
+  actions: z.looseObject({
+    text: z.string(),
+    link: z.string(),
+    theme: z.enum(['brand', 'alt']).optional(),
+  }).array().optional(),
+})
+
+/**
  * Schema for the DocPress configuration file
  * Defines the structure and validation rules for the configuration
  */
@@ -69,6 +84,9 @@ export const configSchema = z.object({
   forks: z.boolean()
     .default(false)
     .describe('Whether or not to create the dedicated fork page that aggregate external contributions.'),
+  hero: heroSchema
+    .optional()
+    .describe('Hero section of the home page, merged over the generated one: "name", "text", "tagline", "image" (null hides the avatar) and "actions".'),
   lastUpdated: z.boolean()
     .default(false)
     .describe('Whether or not to inject each page\'s last Git commit date as Vitepress "lastUpdated" frontmatter.'),
