@@ -8,7 +8,7 @@ import { readFile } from 'node:fs/promises'
 import { basename, dirname, parse, resolve } from 'node:path'
 import YAML from 'yaml'
 import { DOCPRESS_DIR, DOCS_DIR, FORKS_FILE, INDEX_FILE, TEMPLATE_THEME, VITEPRESS_CONFIG, VITEPRESS_THEME, VITEPRESS_USER_THEME } from '../utils/const.js'
-import { createDir, extractFiles, formatError, getMdFiles, getUserInfos, getUserRepos, isFile, parseFrontmatter, prettify, replaceInternalMdLinks, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
+import { createDir, deepMerge, extractFiles, formatError, getMdFiles, getUserInfos, getUserRepos, isFile, parseFrontmatter, prettify, replaceInternalMdLinks, replaceReadmePath, replaceRelativePath } from '../utils/functions.js'
 import { log } from '../utils/logger.js'
 import { generateFile } from '../utils/templates.js'
 import { getContributors } from './git.js'
@@ -76,14 +76,23 @@ export interface Feature {
 }
 
 /**
+ * Hero section of the VitePress home page
+ */
+export interface Hero {
+  name?: string
+  text?: string
+  tagline?: string
+  /** Image shown beside the text, `null` to show none */
+  image?: string | Record<string, unknown> | null
+  actions?: { text: string, link: string, theme?: 'brand' | 'alt' }[]
+}
+
+/**
  * Represents the structure of the VitePress index page
  */
 export interface Index {
   layout: string
-  hero: {
-    name: string
-    tagline?: string
-  }
+  hero: Hero
   /** List of features to display */
   features: Feature[]
 }
@@ -98,6 +107,7 @@ export interface Index {
  * @param options.vitepressConfig - Path to the VitePress configuration file
  * @param options.forks - Flag to include forked repositories
  * @param options.gitProvider - Git provider used to retrieve data
+ * @param options.hero - Hero settings merged over the generated home page hero
  * @param options.lastUpdated - Flag to display each page's last Git commit date, computed by the fetch step
  * @param options.sidebarMode - Shape of the generated sidebar, one flat list or one sidebar per repository
  * @param options.sidebarCollapsed - Collapse behaviour applied to generated sidebar groups
@@ -107,7 +117,7 @@ export interface Index {
  * @param options.websiteTitle - Custom title for the documentation website
  * @param options.websiteTagline - Custom tagline for the documentation website
  */
-export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, lastUpdated, sidebarMode, sidebarCollapsed, acronyms, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
+export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTheme, vitepressConfig, forks, gitProvider, hero, lastUpdated, sidebarMode, sidebarCollapsed, acronyms, token, username, websiteTitle, websiteTagline }: Omit<PrepareOpts, 'usernames' | 'branch' | 'reposFilter'> & { username: PrepareOpts['usernames'][number] }) {
   // The forks page relies on matching contributors by login, which the GitLab API does not expose
   const forksEnabled = forks && gitProvider !== 'gitlab'
   if (forks && !forksEnabled) {
@@ -127,7 +137,7 @@ export async function prepareDoc({ extraHeaderPages, extraPublicContent, extraTh
       return { internals, forks }
     }, { internals: [], forks: [] })
 
-  const websiteInfos = { title: websiteTitle, tagline: websiteTagline }
+  const websiteInfos = { title: websiteTitle, tagline: websiteTagline, hero }
   const { index, sidebar } = transformDoc(repositories.internals, user, websiteInfos, { mode: sidebarMode, collapsed: sidebarCollapsed, acronyms })
 
   let finalSB
@@ -200,6 +210,8 @@ export function addSources(repoUrl: string, outputPath: string) {
 export interface WebsiteInfos {
   title?: string
   tagline?: string
+  /** Hero settings merged over the generated hero */
+  hero?: Hero
 }
 
 /**
@@ -210,17 +222,21 @@ export interface WebsiteInfos {
  * @param websiteInfos - Custom title and tagline information
  * @returns An object with index page configuration
  */
-export function generateIndex(features: Feature[], user: ReturnType<typeof getUserInfos>, websiteInfos: WebsiteInfos) {
-  const { name, login, bio } = user
-  const { title, tagline } = websiteInfos
+export function generateIndex(features: Feature[], user: ReturnType<typeof getUserInfos>, websiteInfos: WebsiteInfos): Index {
+  const { name, login, bio, avatar_url } = user
+  const { title, tagline, hero: heroSettings } = websiteInfos
 
-  const hero = title
-    ? { name: title, tagline }
-    : { name: name ? `${name}'s projects` : `${login}'s projects`, tagline: bio ?? 'Robots are everywhere 🤖' }
+  const hero: Hero = {
+    ...(title
+      ? { name: title, tagline }
+      : { name: name ? `${name}'s projects` : `${login}'s projects`, tagline: bio ?? 'Robots are everywhere 🤖' }),
+    ...(avatar_url ? { image: { src: avatar_url, alt: name ?? login } } : {}),
+  }
 
   return {
     layout: 'home',
-    hero,
+    // Settings win over the generated values, and a `null` image hides the avatar
+    hero: heroSettings ? deepMerge<Hero>(hero, heroSettings) : hero,
     features,
   }
 }
@@ -236,7 +252,7 @@ export function generateIndex(features: Feature[], user: ReturnType<typeof getUs
  * @returns Array of feature objects for the homepage
  */
 export function generateFeatures(repoName: string, description: string, features?: Feature[], routePrefix: string = '', acronyms: string[] = []) {
-  const content = {
+  const content: Feature = {
     title: prettify(repoName, { mode: 'capitalize', replaceDash: true, acronyms }),
     details: description,
     link: `/${routePrefix}${prettify(repoName, { removeDot: true })}/introduction`,
