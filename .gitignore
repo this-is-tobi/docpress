@@ -184,3 +184,6 @@ dist/
 docpress/
 docpress-docker/
 extras/
+
+# mise, when its lockfile setting is on
+mise.lock
