@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/this-is-tobi/docpress/compare/v0.15.0...v0.15.1) (2026-11-09)
+
+
+### Dependencies
+
+* **deps:** update non-major dependencies ([0d53eac](https://github.com/this-is-tobi/docpress/commit/0d53eac6da3aba79c132110b78987cbd94885674))
+
 ## [0.15.0](https://github.com/this-is-tobi/docpress/compare/v0.14.0...v0.15.0) (2026-11-07)
 
 
