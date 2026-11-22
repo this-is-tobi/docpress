@@ -27,7 +27,7 @@ jobs:
       run: echo "BUN_VERSION=$(sed -n 's/^bun = "\(.*\)"/\1/p' mise.toml)" >> "$GITHUB_OUTPUT"
 
   release:
-    uses: this-is-tobi/github-workflows/.github/workflows/release-app.yml@d6938174527f067bc870ff10a83d36b57a49360f # v0.48.2
+    uses: this-is-tobi/github-workflows/.github/workflows/release-app.yml@55d9e5bfded7ed785088ed5807dbbb46b7c1aa76 # v0.48.3
     permissions:
       contents: write
       issues: write
@@ -39,7 +39,7 @@ jobs:
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
   npm:
-    uses: this-is-tobi/github-workflows/.github/workflows/release-npm.yml@d6938174527f067bc870ff10a83d36b57a49360f # v0.48.2
+    uses: this-is-tobi/github-workflows/.github/workflows/release-npm.yml@55d9e5bfded7ed785088ed5807dbbb46b7c1aa76 # v0.48.3
     if: ${{ needs.release.outputs.release-created == 'true' }}
     needs:
     - expose-vars
@@ -58,7 +58,7 @@ jobs:
     # registered for this repository and workflow file, via id-token: write
 
   docker:
-    uses: this-is-tobi/github-workflows/.github/workflows/build-docker.yml@d6938174527f067bc870ff10a83d36b57a49360f # v0.48.2
+    uses: this-is-tobi/github-workflows/.github/workflows/build-docker.yml@55d9e5bfded7ed785088ed5807dbbb46b7c1aa76 # v0.48.3
     if: ${{ needs.release.outputs.release-created == 'true' }}
     needs:
     - release
@@ -77,7 +77,7 @@ jobs:
   # SLSA provenance (GitHub attestation), SPDX SBOM and keyless cosign signature
   # for the released image, verifiable with `gh attestation verify` and `cosign`.
   attest:
-    uses: this-is-tobi/github-workflows/.github/workflows/attest-docker.yml@d6938174527f067bc870ff10a83d36b57a49360f # v0.48.2
+    uses: this-is-tobi/github-workflows/.github/workflows/attest-docker.yml@55d9e5bfded7ed785088ed5807dbbb46b7c1aa76 # v0.48.3
     needs:
     - docker
     permissions:
